@@ -78,16 +78,12 @@ h1 em{color:var(--green);font-style:normal}
 .section-label{font-size:11px;font-weight:600;letter-spacing:.9px;color:var(--text-dim);text-transform:uppercase;margin-bottom:16px}
 
 /* AGENTS */
-.agents{border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:48px}
-.agent-card{display:flex;align-items:center;gap:14px;padding:16px 20px;border-bottom:0.5px solid var(--border-sub);background:var(--bg-card);transition:background .15s}
-.agent-card:last-child{border-bottom:none}
+.agents{border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:visible;margin-bottom:48px}
+.agent-card{display:flex;align-items:center;gap:16px;padding:14px 20px;border-bottom:0.5px solid var(--border-sub);background:var(--bg-card);transition:background .15s;overflow:visible}
+.agent-card:first-of-type{border-radius:var(--radius-lg) var(--radius-lg) 0 0}
+.agent-card:last-of-type{border-bottom:none}
 .agent-card.running{background:var(--bg-card-hover)}
-.agent-icon{width:34px;height:34px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.agent-icon svg{width:17px;height:17px}
-.icon-green{background:var(--green-bg);color:var(--green)}
-.icon-blue{background:var(--blue-bg);color:var(--blue)}
-.icon-coral{background:var(--coral-bg);color:var(--coral)}
-.icon-purple{background:var(--purple-bg);color:var(--purple)}
+
 .agent-info{flex:1;min-width:0}
 .agent-name{font-size:13px;font-weight:500;color:var(--text)}
 .agent-desc{font-size:12px;color:var(--text-dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -104,6 +100,89 @@ h1 em{color:var(--green);font-style:normal}
 /* TASK OUTPUT */
 .task-output{display:none;margin:0 20px 14px;padding:10px 14px;background:#0d1014;border-radius:6px;border-left:2px solid var(--border-sub);font-size:12px;color:var(--text-muted);line-height:1.6;max-height:120px;overflow-y:auto}
 .task-output.visible{display:block}
+
+/* ─── BONHOMMES ANIMÉS ─── */
+
+.char-wrap{
+  width:48px;
+  flex-shrink:0;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  height:68px;
+  overflow:visible;
+  position:relative;
+}
+
+.bonhomme{
+  display:block;
+  overflow:visible;
+}
+
+/* Parties SVG */
+.b-head{fill:var(--ac,#5dcaa5)}
+.b-body{fill:var(--ac,#5dcaa5);opacity:.82}
+.b-limb{stroke:var(--ac,#5dcaa5);stroke-width:3.5;stroke-linecap:round;fill:none}
+.b-pupil{fill:var(--ad,#085041)}
+.b-mouth{fill:none;stroke:rgba(255,255,255,.75);stroke-width:1.6;stroke-linecap:round}
+
+/* Pivots bras (coordonnées SVG absolues) */
+.arm-l{transform-origin:16px 29px}
+.arm-r{transform-origin:34px 29px}
+
+/* ── État EN ATTENTE : balancement doux ── */
+.bonhomme.state-wait{
+  animation:char-sway 2.4s ease-in-out infinite;
+  transform-origin:25px 70px;
+}
+@keyframes char-sway{
+  0%,100%{transform:rotate(-5deg)}
+  50%   {transform:rotate(5deg)}
+}
+
+/* ── État EN COURS : rebond + bras qui oscillent ── */
+.bonhomme.state-running{
+  animation:char-bounce .42s ease-in-out infinite alternate;
+  transform-origin:25px 70px;
+}
+@keyframes char-bounce{
+  0%  {transform:translateY(0) scaleY(1)}
+  100%{transform:translateY(-6px) scaleY(1.04)}
+}
+.bonhomme.state-running .arm-l{
+  animation:arm-l-run .42s ease-in-out infinite alternate;
+}
+.bonhomme.state-running .arm-r{
+  animation:arm-r-run .42s ease-in-out infinite alternate;
+}
+@keyframes arm-l-run{
+  0%  {transform:rotate(-32deg)}
+  100%{transform:rotate(22deg)}
+}
+@keyframes arm-r-run{
+  0%  {transform:rotate(32deg)}
+  100%{transform:rotate(-22deg)}
+}
+
+/* ── État TERMINÉ : saut + bras levés ── */
+.bonhomme.state-done{
+  animation:char-celebrate .5s ease-in-out 5;
+  transform-origin:25px 70px;
+}
+@keyframes char-celebrate{
+  0%,100%{transform:translateY(0)}
+  40%    {transform:translateY(-10px)}
+}
+.bonhomme.state-done .arm-l{
+  transform:rotate(-138deg);
+  transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+}
+.bonhomme.state-done .arm-r{
+  transform:rotate(138deg);
+  transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+}
+
+/* ─── FIN BONHOMMES ─── */
 
 /* REPORT */
 .report-section{display:none}
@@ -139,4 +218,5 @@ footer{border-top:0.5px solid var(--border);padding:24px 0;margin-top:0}
   h1{font-size:28px}
   .stats{grid-template-columns:1fr}
   .agent-desc{display:none}
+  .char-wrap{width:40px;height:58px}
 }

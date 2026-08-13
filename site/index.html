@@ -23,11 +23,7 @@
       Démo live — ASPICE / ISO 26262
     </div>
     <h1>Audit de conformité<br>par <em>agents IA</em></h1>
-    <p class="subtitle">
-      4 agents CrewAI analysent un dossier documentaire en temps réel —
-      qualité des exigences, couverture de test, risques sûreté — et produisent
-      un rapport structuré en quelques secondes.
-    </p>
+    <p class="subtitle">4 agents CrewAI analysent un dossier documentaire en temps réel — qualité des exigences, couverture de test, risques sûreté — et produisent un rapport structuré en quelques secondes.</p>
     <div class="hero-actions">
       <button class="btn btn-primary" id="btn-launch">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -55,9 +51,22 @@
   <div class="section-label">Agents</div>
   <div class="agents" id="agents-container">
 
+    <!-- Agent 0 — Analyste (vert) -->
     <div class="agent-card" id="agent-0">
-      <div class="agent-icon icon-green">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <div class="char-wrap">
+        <svg class="bonhomme state-wait" id="char-0" viewBox="0 0 50 74" width="42" height="62" aria-hidden="true" style="--ac:#5dcaa5;--ab:#1a2e24;--ad:#04342c">
+          <circle class="b-head" cx="25" cy="12" r="10"/>
+          <circle cx="21.5" cy="11" r="1.8" fill="rgba(255,255,255,.9)"/>
+          <circle cx="28.5" cy="11" r="1.8" fill="rgba(255,255,255,.9)"/>
+          <circle class="b-pupil" cx="22" cy="11.5" r="1"/>
+          <circle class="b-pupil" cx="29" cy="11.5" r="1"/>
+          <path class="b-mouth" d="M20.5 16.5 Q25 20 29.5 16.5"/>
+          <rect class="b-body" x="16" y="24" width="18" height="20" rx="5"/>
+          <g class="arm-l"><line class="b-limb" x1="16" y1="29" x2="4" y2="41"/></g>
+          <g class="arm-r"><line class="b-limb" x1="34" y1="29" x2="46" y2="41"/></g>
+          <line class="b-limb" x1="21" y1="44" x2="15" y2="63"/>
+          <line class="b-limb" x1="29" y1="44" x2="35" y2="63"/>
+        </svg>
       </div>
       <div class="agent-info">
         <div class="agent-name">Analyste d'exigences</div>
@@ -70,9 +79,22 @@
     </div>
     <div class="task-output" id="output-0"></div>
 
+    <!-- Agent 1 — Vérificateur (bleu) -->
     <div class="agent-card" id="agent-1">
-      <div class="agent-icon icon-blue">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+      <div class="char-wrap">
+        <svg class="bonhomme state-wait" id="char-1" viewBox="0 0 50 74" width="42" height="62" aria-hidden="true" style="--ac:#5b8def;--ab:#1c2340;--ad:#042C53">
+          <circle class="b-head" cx="25" cy="12" r="10"/>
+          <circle cx="21.5" cy="11" r="1.8" fill="rgba(255,255,255,.9)"/>
+          <circle cx="28.5" cy="11" r="1.8" fill="rgba(255,255,255,.9)"/>
+          <circle class="b-pupil" cx="22" cy="11.5" r="1"/>
+          <circle class="b-pupil" cx="29" cy="11.5" r="1"/>
+          <path class="b-mouth" d="M20.5 16.5 Q25 20 29.5 16.5"/>
+          <rect class="b-body" x="16" y="24" width="18" height="20" rx="5"/>
+          <g class="arm-l"><line class="b-limb" x1="16" y1="29" x2="4" y2="41"/></g>
+          <g class="arm-r"><line class="b-limb" x1="34" y1="29" x2="46" y2="41"/></g>
+          <line class="b-limb" x1="21" y1="44" x2="15" y2="63"/>
+          <line class="b-limb" x1="29" y1="44" x2="35" y2="63"/>
+        </svg>
       </div>
       <div class="agent-info">
         <div class="agent-name">Vérificateur de conformité</div>
@@ -85,9 +107,22 @@
     </div>
     <div class="task-output" id="output-1"></div>
 
+    <!-- Agent 2 — Détecteur (corail) -->
     <div class="agent-card" id="agent-2">
-      <div class="agent-icon icon-coral">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <div class="char-wrap">
+        <svg class="bonhomme state-wait" id="char-2" viewBox="0 0 50 74" width="42" height="62" aria-hidden="true" style="--ac:#e08060;--ab:#2d1f1a;--ad:#4A1B0C">
+          <circle class="b-head" cx="25" cy="12" r="10"/>
+          <circle cx="21.5" cy="11" r="1.8" fill="rgba(255,255,255,.9)"/>
+          <circle cx="28.5" cy="11" r="1.8" fill="rgba(255,255,255,.9)"/>
+          <circle class="b-pupil" cx="22" cy="11.5" r="1"/>
+          <circle class="b-pupil" cx="29" cy="11.5" r="1"/>
+          <path class="b-mouth" d="M20.5 16.5 Q25 20 29.5 16.5"/>
+          <rect class="b-body" x="16" y="24" width="18" height="20" rx="5"/>
+          <g class="arm-l"><line class="b-limb" x1="16" y1="29" x2="4" y2="41"/></g>
+          <g class="arm-r"><line class="b-limb" x1="34" y1="29" x2="46" y2="41"/></g>
+          <line class="b-limb" x1="21" y1="44" x2="15" y2="63"/>
+          <line class="b-limb" x1="29" y1="44" x2="35" y2="63"/>
+        </svg>
       </div>
       <div class="agent-info">
         <div class="agent-name">Détecteur de risques</div>
@@ -100,9 +135,22 @@
     </div>
     <div class="task-output" id="output-2"></div>
 
+    <!-- Agent 3 — Rédacteur (violet) -->
     <div class="agent-card" id="agent-3">
-      <div class="agent-icon icon-purple">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      <div class="char-wrap">
+        <svg class="bonhomme state-wait" id="char-3" viewBox="0 0 50 74" width="42" height="62" aria-hidden="true" style="--ac:#a07ad8;--ab:#26202e;--ad:#26215C">
+          <circle class="b-head" cx="25" cy="12" r="10"/>
+          <circle cx="21.5" cy="11" r="1.8" fill="rgba(255,255,255,.9)"/>
+          <circle cx="28.5" cy="11" r="1.8" fill="rgba(255,255,255,.9)"/>
+          <circle class="b-pupil" cx="22" cy="11.5" r="1"/>
+          <circle class="b-pupil" cx="29" cy="11.5" r="1"/>
+          <path class="b-mouth" d="M20.5 16.5 Q25 20 29.5 16.5"/>
+          <rect class="b-body" x="16" y="24" width="18" height="20" rx="5"/>
+          <g class="arm-l"><line class="b-limb" x1="16" y1="29" x2="4" y2="41"/></g>
+          <g class="arm-r"><line class="b-limb" x1="34" y1="29" x2="46" y2="41"/></g>
+          <line class="b-limb" x1="21" y1="44" x2="15" y2="63"/>
+          <line class="b-limb" x1="29" y1="44" x2="35" y2="63"/>
+        </svg>
       </div>
       <div class="agent-info">
         <div class="agent-name">Rédacteur de synthèse</div>
@@ -150,11 +198,13 @@
     const text = document.getElementById('status-text-' + idx);
     const card = document.getElementById('agent-' + idx);
     const statusEl = document.getElementById('status-' + idx);
+    const char = document.getElementById('char-' + idx);
     if (!dot) return;
 
     dot.className = 'dot dot-' + state;
     statusEl.className = 'agent-status status-' + state;
     card.classList.toggle('running', state === 'running');
+    if (char) char.setAttribute('class', 'bonhomme state-' + state);
 
     const labels = { wait: 'En attente', running: 'En cours…', done: 'Terminé' };
     text.textContent = labels[state] || state;
@@ -173,8 +223,7 @@
   function showOutput(idx, text) {
     const out = document.getElementById('output-' + idx);
     if (!out) return;
-    const preview = text.trim().slice(0, 300) + (text.length > 300 ? '…' : '');
-    out.textContent = preview;
+    out.textContent = text.trim().slice(0, 300) + (text.length > 300 ? '…' : '');
     out.classList.add('visible');
   }
 
@@ -193,17 +242,12 @@
     statusMsg.className = 'status-msg visible' + (isError ? ' error' : '');
   }
 
-  function clearStatus() {
-    statusMsg.className = 'status-msg';
-  }
+  function clearStatus() { statusMsg.className = 'status-msg'; }
 
   btn.addEventListener('click', function() {
     if (es) { es.close(); es = null; }
-
     resetUI();
     btn.disabled = true;
-    btn.querySelector('svg').style.display = 'none';
-    btn.childNodes[btn.childNodes.length - 1].textContent = ' Audit en cours…';
     setStatus('Connexion au moteur…');
 
     es = new EventSource('/audit/stream');
@@ -215,7 +259,6 @@
       if (data.type === 'start') {
         setAgentStatus(0, 'running');
         setStatus('Agent 1/4 en cours…');
-
       } else if (data.type === 'task_done') {
         const idx = data.index;
         setAgentStatus(idx, 'done');
@@ -224,22 +267,15 @@
           setAgentStatus(idx + 1, 'running');
           setStatus('Agent ' + (idx + 2) + '/4 en cours…');
         }
-
       } else if (data.type === 'done') {
         clearStatus();
         btn.disabled = false;
-        btn.querySelector('svg').style.display = '';
-        btn.childNodes[btn.childNodes.length - 1].textContent = ' Relancer l\'audit';
         showReport(data.report || '');
         es.close(); es = null;
-
       } else if (data.type === 'error') {
         setStatus(data.message || 'Erreur inconnue.', true);
         btn.disabled = false;
-        btn.querySelector('svg').style.display = '';
-        btn.childNodes[btn.childNodes.length - 1].textContent = ' Lancer l\'audit';
         es.close(); es = null;
-
       } else if (data.type === 'close') {
         es.close(); es = null;
       }
@@ -248,8 +284,6 @@
     es.onerror = function() {
       setStatus('Connexion interrompue. Vérifiez que le serveur tourne.', true);
       btn.disabled = false;
-      btn.querySelector('svg').style.display = '';
-      btn.childNodes[btn.childNodes.length - 1].textContent = ' Lancer l\'audit';
       if (es) { es.close(); es = null; }
     };
   });
