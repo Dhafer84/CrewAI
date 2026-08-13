@@ -2,27 +2,41 @@
 
 Ce module est le SEUL point d'entrée que les couches de présentation
 (CLI local aujourd'hui, API FastAPI plus tard) doivent appeler.
-
-Ni cette fonction ni rien dans src/qualitycrew/ ne doit connaître
-l'existence d'un CLI, d'un serveur web ou d'une route HTTP.
-Ce découplage est ce qui permet de passer de l'Option A (site statique)
-à l'Option B (démo live) sans réécrire le moteur.
-
-À implémenter en Phase 2, après agents.py / tasks.py / crew.py.
 """
 
 from pathlib import Path
 
+from .config import require_llm_key
+from .crew import build_crew
 
-def run_audit(documents_dir: Path) -> str:
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_DEFAULT_CHECKLIST = _PROJECT_ROOT / "checklists" / "aspice_iso_checklist.md"
+
+
+def run_audit(
+    documents_dir: Path,
+    checklist_path: Path | None = None,
+) -> str:
     """Lance l'audit complet sur un dossier de documents projet.
 
     Args:
-        documents_dir: chemin vers un dossier contenant les documents
-            fictifs (srs.md, test_plan.md, review_report.md).
+        documents_dir: dossier contenant srs.md, test_plan.md, review_report.md.
+        checklist_path: checklist à utiliser. Défaut : checklists/aspice_iso_checklist.md.
 
     Returns:
-        Le rapport final en markdown, tel que produit par l'agent
-        "Rédacteur de synthèse".
+        Rapport d'audit en markdown.
     """
-    raise NotImplementedError("À implémenter en Phase 2.")
+    require_llm_key()
+
+    checklist_path = checklist_path or _DEFAULT_CHECKLIST
+
+    docs = {
+        "srs": (documents_dir / "srs.md").read_text(encoding="utf-8"),
+        "test_plan": (documents_dir / "test_plan.md").read_text(encoding="utf-8"),
+        "review_report": (documents_dir / "review_report.md").read_text(encoding="utf-8"),
+        "checklist": checklist_path.read_text(encoding="utf-8"),
+    }
+
+    crew = build_crew(docs)
+    result = crew.kickoff()
+    return result.raw
