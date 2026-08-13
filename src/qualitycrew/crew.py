@@ -6,7 +6,7 @@ from .agents import make_agents, make_llm
 from .tasks import make_tasks
 
 
-def build_crew(docs: dict[str, str]) -> Crew:
+def build_crew(docs: dict[str, str], task_callback=None) -> Crew:
     llm = make_llm()
     agents = make_agents(llm)
     tasks = make_tasks(agents, docs)
@@ -16,4 +16,5 @@ def build_crew(docs: dict[str, str]) -> Crew:
         tasks=tasks,
         process=Process.sequential,
         verbose=True,
+        task_callback=task_callback,
     )

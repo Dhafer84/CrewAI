@@ -16,6 +16,7 @@ _DEFAULT_CHECKLIST = _PROJECT_ROOT / "checklists" / "aspice_iso_checklist.md"
 def run_audit(
     documents_dir: Path,
     checklist_path: Path | None = None,
+    task_callback=None,
 ) -> str:
     """Lance l'audit complet sur un dossier de documents projet.
 
@@ -37,6 +38,6 @@ def run_audit(
         "checklist": checklist_path.read_text(encoding="utf-8"),
     }
 
-    crew = build_crew(docs)
+    crew = build_crew(docs, task_callback=task_callback)
     result = crew.kickoff()
     return result.raw
