@@ -1,0 +1,12 @@
+# Moteur du crew
+crewai==1.15.15
+crewai-tools==1.15.15
+python-dotenv==1.2.2
+
+# Lecture de documents (utile seulement si les documents source
+# passent en .docx/.pdf plus tard — la v1 travaille en .md)
+# python-docx==1.1.2
+# pypdf==5.6.0
+
+# Qualité / audit de dépendances (dev uniquement)
+# pip-audit==2.7.3
