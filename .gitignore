@@ -1,0 +1,38 @@
+# --- Secrets : ne JAMAIS committer ---
+.env
+.env.*
+!.env.example
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+venv/
+.venv/
+env/
+ENV/
+
+# --- Rapports générés (contenu dynamique, pas versionné) ---
+reports/*
+!reports/.gitkeep
+!reports/example_report.md
+
+# --- Outils / IDE ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# --- Tests / couverture ---
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- Logs ---
+*.log
