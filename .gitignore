@@ -1,7 +1,11 @@
+# --- Claude Code ---
+CLAUDE.md
+
 # --- Secrets : ne JAMAIS committer ---
 .env
 .env.*
 !.env.example
+data/INJECTED_DEFECTS_SECRET.md
 
 # --- Python ---
 __pycache__/
