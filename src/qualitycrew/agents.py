@@ -5,9 +5,9 @@ from .config import LLM_MODEL, GROQ_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY
 
 
 def make_llm() -> LLM:
-    # LiteLLM détecte le provider depuis le préfixe du model (groq/, claude-, gpt-)
-    # Les clés API sont déjà dans l'environnement via config.py / dotenv
-    return LLM(model=LLM_MODEL)
+    # max_retries active le backoff exponentiel automatique de LiteLLM
+    # utile sur le free tier Groq (limite 12k TPM)
+    return LLM(model=LLM_MODEL, max_retries=6)
 
 
 def make_agents(llm: LLM) -> dict[str, Agent]:

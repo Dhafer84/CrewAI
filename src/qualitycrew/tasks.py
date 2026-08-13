@@ -44,8 +44,20 @@ croise le SRS et le plan de test avec la checklist ci-dessous.
 Pour chaque point CHK-01 à CHK-15, produis une ligne du tableau :
 | CHK-XX | Libellé court | Conforme / Non conforme / Non applicable | Justification (1-2 phrases) |
 
-Appuie-toi sur les éléments de preuve dans les documents : cite l'exigence ou le cas de test
-qui justifie le verdict, ou explique ce qui manque.
+INSTRUCTIONS CRITIQUES pour CHK-07 et CHK-14 (couverture de test) :
+- Extrais d'abord la liste COMPLÈTE des identifiants du SRS (SRS-001, SRS-002, ... jusqu'au dernier).
+- Pour chaque identifiant, cherche s'il apparaît dans une ligne "Vérifie : SRS-XXX" du plan de test.
+- Tout identifiant SRS absent du plan de test est un trou de couverture à signaler NOMINATIVEMENT.
+- CHK-07 est Non conforme dès qu'une seule exigence n'a pas de cas de test.
+- Ne te contente pas de vérifier si la matrice déclarée est "cohérente avec elle-même" : vérifie
+  qu'elle couvre TOUTES les exigences du SRS.
+
+INSTRUCTIONS CRITIQUES pour CHK-11 et CHK-13 (sûreté ISO 26262) :
+- CHK-11 exige que les temps de réponse soient bornés ET vérifiables (= qu'un TC les mesure).
+  Une exigence de délai spécifiée mais sans TC n'est PAS vérifiable : verdict Non conforme.
+- CHK-13 exige cohérence entre seuils, hystérésis et redondance. Vérifie également que
+  les fonctions de sécurité spécifiant une redondance matérielle (ex. double source de mesure)
+  ont bien un TC qui valide ce comportement.
 
 CHECKLIST :
 {checklist}
@@ -58,7 +70,9 @@ SRS (rappel) :
 """,
         expected_output=(
             "Tableau markdown à 4 colonnes, 15 lignes (CHK-01 à CHK-15) : "
-            "| Point | Libellé | Verdict | Justification |"
+            "| Point | Libellé | Verdict | Justification | "
+            "La justification de CHK-07 doit lister les SRS-XXX sans TC. "
+            "La justification de CHK-11 doit préciser si les délais sont testés ou seulement spécifiés."
         ),
         agent=agents["verificateur"],
     )
@@ -67,25 +81,47 @@ SRS (rappel) :
         description=f"""
 À partir des constats des deux analyses précédentes, identifie les risques de plus haut niveau.
 
-Cherche systématiquement :
-1. Trous de couverture : exigences du SRS sans aucun cas de test dans le plan de test
-2. Points ISO 26262 spécifiés dans le SRS mais non testés (notamment sûreté, redondance, temps de réponse)
-3. Incohérences entre SRS, plan de test et rapport de revue
-4. Constats de revue avec statut "ouvert" non adressés
+ÉTAPE 1 — Trous de couverture (à faire AVANT tout le reste) :
+Dresse la liste exhaustive des exigences SRS sans aucun cas de test.
+Méthode : pour chaque SRS-XXX du document, vérifie qu'au moins un TC indique "Vérifie : SRS-XXX".
+Liste NOMINATIVEMENT chaque SRS-XXX non couvert. Ne pas écrire "certaines exigences" : cite les IDs.
 
-Pour chaque risque identifié :
-  - Référence(s) concernée(s) : ex. SRS-014, TC-xxx
-  - Nature du risque en une phrase
-  - Niveau : Critique | Majeur | Mineur
+ÉTAPE 2 — Risques sûreté ISO 26262 (fonctions critiques non vérifiées) :
+Examine chaque exigence portant sur une fonction de sécurité (ouverture contacteur, redondance
+de mesure, temps de réponse, repli sûr). Pour chacune :
+  a) La fonction est-elle spécifiée avec un comportement déterministe ? (CHK-10)
+  b) Existe-t-il un TC qui la mesure réellement ? Si non → risque à signaler.
+Porte une attention particulière aux exigences liées à SYS-REQ-014 (SRS-006, SRS-014, SRS-015) :
+ce sont les exigences critiques de temps de réponse et de redondance.
 
-Classe les risques par niveau décroissant.
+ÉTAPE 3 — Incohérences croisées :
+  - SRS-006 impose ouverture contacteur < 50 ms après T_crit.
+  - SRS-015 impose délai global T_crit → ouverture < 100 ms.
+  Ces deux contraintes sont-elles testées ? Si non, note l'incohérence : spécifié mais non vérifié.
+
+ÉTAPE 4 — Constats de revue ouverts non adressés dans le plan de test.
+
+Pour chaque risque :
+  Niveau : Critique | Majeur | Mineur
+  Réf(s) : SRS-XXX et/ou TC-XXX concernés
+  Description : une phrase précise
+
+Classe par niveau décroissant (Critique en premier).
 
 RAPPORT DE REVUE :
 {review_report}
+
+SRS (rappel pour les étapes 2 et 3) :
+{srs}
+
+PLAN DE TEST (rappel pour les étapes 1, 2 et 3) :
+{test_plan}
 """,
         expected_output=(
-            "Liste de risques classés par sévérité décroissante. "
-            "Format par risque : Niveau | Réf(s) | Description du risque."
+            "Liste structurée de risques par niveau décroissant. "
+            "L'étape 1 doit nommer chaque SRS-XXX sans TC. "
+            "L'étape 2 doit mentionner explicitement SRS-014 et SRS-015 si non testés. "
+            "L'étape 3 doit statuer sur la cohérence SRS-006 / SRS-015 et leur couverture de test."
         ),
         agent=agents["detecteur"],
     )

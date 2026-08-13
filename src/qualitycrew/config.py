@@ -17,13 +17,27 @@ load_dotenv()
 # dans les messages et Groq le rejette. On patch litellm.completion pour
 # le retirer avant l'envoi.
 _original_litellm_completion = litellm.completion
+_RATE_LIMIT_NAMES = ("ratelimiterror", "rate_limit_exceeded", "rate limit")
 
 
 def _completion_strip_cache_breakpoint(**kwargs):
     for msg in kwargs.get("messages", []):
         if isinstance(msg, dict):
             msg.pop("cache_breakpoint", None)
-    return _original_litellm_completion(**kwargs)
+
+    # Backoff exponentiel sur rate limit (free tier Groq : 12k TPM)
+    delay = 2.0
+    for attempt in range(7):
+        try:
+            return _original_litellm_completion(**kwargs)
+        except Exception as exc:
+            name = type(exc).__name__.lower() + str(exc).lower()
+            if any(k in name for k in _RATE_LIMIT_NAMES) and attempt < 6:
+                import time
+                time.sleep(delay)
+                delay = min(delay * 2, 60)
+            else:
+                raise
 
 
 litellm.completion = _completion_strip_cache_breakpoint
