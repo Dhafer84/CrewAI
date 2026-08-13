@@ -7,9 +7,26 @@ Ne jamais coder une clé en dur ailleurs dans le projet.
 
 import os
 
+import litellm
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Bug CrewAI 1.15.x : strip_cache_breakpoint n'est pas appelé pour les
+# providers LiteLLM (Groq, etc.), donc le champ "cache_breakpoint" atterrit
+# dans les messages et Groq le rejette. On patch litellm.completion pour
+# le retirer avant l'envoi.
+_original_litellm_completion = litellm.completion
+
+
+def _completion_strip_cache_breakpoint(**kwargs):
+    for msg in kwargs.get("messages", []):
+        if isinstance(msg, dict):
+            msg.pop("cache_breakpoint", None)
+    return _original_litellm_completion(**kwargs)
+
+
+litellm.completion = _completion_strip_cache_breakpoint
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")

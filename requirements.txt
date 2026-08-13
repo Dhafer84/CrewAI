@@ -1,6 +1,7 @@
 # Moteur du crew
 crewai==1.15.15
 crewai-tools==1.15.15
+litellm==1.96.2
 python-dotenv==1.2.2
 
 # Lecture de documents (utile seulement si les documents source
