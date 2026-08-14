@@ -20,8 +20,8 @@ Analyse chaque exigence du SRS ci-dessous selon les critères CHK-01 à CHK-06 :
 - CHK-05 : périmètre cohérent avec le module BTM (pas de besoin hors-sujet)
 - CHK-06 : trace amont vers une exigence système (ou justification d'absence)
 
-Pour chaque problème trouvé, indique sur une ligne :
-  [ID exigence] | [CHK-XX] | [description courte du problème]
+Pour chaque problème trouvé, ajoute une ligne à un tableau markdown avec les colonnes
+Exigence | Point | Constat.
 
 Si une exigence est conforme sur tous les points, ne la mentionne pas.
 
@@ -29,8 +29,8 @@ SRS :
 {srs}
 """,
         expected_output=(
-            "Liste des constats au format : [ID] | [CHK-XX] | [description]. "
-            "Une ligne par problème détecté. "
+            "Un tableau markdown valide (ligne d'en-tête + ligne de séparation ---) "
+            "avec les colonnes Exigence | Point | Constat, une ligne par problème détecté. "
             "Si aucun problème : écrire 'Aucun constat — toutes les exigences sont conformes.'"
         ),
         agent=agents["analyste"],
