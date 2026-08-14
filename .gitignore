@@ -1,5 +1,6 @@
 # --- Claude Code ---
 CLAUDE.md
+.claude/
 
 # --- Secrets : ne JAMAIS committer ---
 .env
