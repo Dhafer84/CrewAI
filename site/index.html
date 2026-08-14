@@ -223,7 +223,9 @@
   function showOutput(idx, text) {
     const out = document.getElementById('output-' + idx);
     if (!out) return;
-    out.textContent = text.trim().slice(0, 300) + (text.length > 300 ? '…' : '');
+    const trimmed = text.trim();
+    const truncated = trimmed.slice(0, 600) + (trimmed.length > 600 ? '…' : '');
+    out.innerHTML = marked.parse(truncated);
     out.classList.add('visible');
   }
 
