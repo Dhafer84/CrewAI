@@ -126,6 +126,67 @@ h1 em{color:var(--green);font-style:normal}
 .crit-mineur .crit-val{color:var(--blue)}
 .crit-info .crit-val{color:var(--text-muted)}
 
+/* ─── SAFETYSCOPE (HARA / ASIL) ─── */
+
+.badge-purple{background:var(--purple-bg);border-color:var(--purple);color:var(--purple)}
+
+.disclaimer{display:flex;gap:10px;align-items:flex-start;background:var(--bg-card);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:44px;font-size:12.5px;color:var(--text-muted);line-height:1.6}
+.disclaimer svg{width:16px;height:16px;flex-shrink:0;margin-top:2px;color:var(--text-dim)}
+.disclaimer strong{color:var(--text);font-weight:500}
+
+.item-field{width:100%;margin-bottom:8px}
+
+/* Carte d'événement redouté */
+.event-card{background:var(--bg-card);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:12px;transition:border-color .15s}
+.event-card.is-rated{border-color:var(--border-sub);background:var(--bg-card-hover)}
+.event-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.event-num{font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--text-dim)}
+.event-del{background:none;border:none;color:var(--text-dim);cursor:pointer;padding:2px;border-radius:4px;display:flex}
+.event-del:hover{color:var(--red)}
+.event-del svg{width:15px;height:15px}
+.event-input{width:100%;margin-bottom:8px;font-size:13px}
+
+.event-rating{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end;margin-top:12px}
+.rating{display:flex;flex-direction:column;gap:5px;min-width:0}
+.rating-label{font-size:10.5px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--text-dim)}
+.rating-select{background:#0d1014;border:0.5px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit;font-size:12px;padding:7px 9px;width:100%;cursor:pointer}
+.rating-select:focus{outline:none;border-color:var(--purple)}
+.rating-result{display:flex;flex-direction:column;gap:5px;align-items:flex-start}
+
+/* Badges ASIL — échelle croissante de criticité */
+.asil-badge{display:inline-flex;align-items:center;justify-content:center;min-width:44px;padding:6px 12px;border-radius:6px;font-size:14px;font-weight:600;letter-spacing:.4px}
+.asil-badge.badge-sm{min-width:30px;padding:2px 7px;font-size:11px}
+.asil-none{background:#0d1014;border:0.5px solid var(--border);color:var(--text-dim)}
+.asil-qm{background:#1a1d24;border:0.5px solid var(--border);color:var(--text-muted)}
+.asil-a{background:var(--blue-bg);border:0.5px solid var(--blue);color:var(--blue)}
+.asil-b{background:var(--amber-bg);border:0.5px solid var(--amber);color:var(--amber)}
+.asil-c{background:var(--coral-bg);border:0.5px solid var(--coral);color:var(--coral)}
+.asil-d{background:var(--red-bg);border:0.5px solid var(--red);color:var(--red)}
+
+.events-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:48px}
+.events-actions .form-hint{margin-bottom:0}
+
+/* Synthèse */
+.hara-summary{display:grid;grid-template-columns:minmax(180px,1fr) 2fr;gap:16px;margin-bottom:48px}
+.summary-main,.summary-side{background:var(--bg-card);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:20px}
+.summary-main{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.summary-main .asil-badge{min-width:64px;font-size:20px;padding:10px 16px}
+.summary-label{font-size:10.5px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--text-dim)}
+.summary-note{font-size:12px;color:var(--text-muted)}
+
+.asil-spread{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 4px}
+.spread-cell{display:flex;align-items:center;gap:6px;opacity:.4}
+.spread-cell.has-value{opacity:1}
+.spread-count{font-size:14px;font-weight:600;color:var(--text)}
+
+.decomp{margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border-sub)}
+.decomp-line{font-family:monospace;font-size:12px;color:var(--text-muted);margin-top:5px}
+.decomp-note{font-size:11.5px;color:var(--text-dim);margin-top:10px;line-height:1.5}
+
+@media(max-width:600px){
+  .hara-summary{grid-template-columns:1fr}
+}
+
 /* Téléchargement du rapport */
 .btn-download{display:inline-flex;align-items:center;gap:6px;margin-left:auto;font-size:12px;font-weight:500;color:var(--green);background:var(--green-bg);border:0.5px solid var(--green-border);border-radius:6px;padding:5px 11px;white-space:nowrap}
 .btn-download:hover{background:#1d3b30;text-decoration:none}

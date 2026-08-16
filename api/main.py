@@ -42,6 +42,7 @@ from sentinelscan.config import require_github_token  # noqa: E402
 from sentinelscan.queries import InvalidKeyword, normalize_keywords  # noqa: E402
 from sentinelscan.report import build_excel, build_markdown  # noqa: E402
 from sentinelscan.scanner import run_scan  # noqa: E402
+from safetyscope.asil import full_matrix  # noqa: E402
 
 _DOCUMENTS_DIR = _ROOT / "data" / "sample_project"
 _SITE_DIR = _ROOT / "site"
@@ -90,6 +91,21 @@ async def qualitycrew_page():
 @app.get("/sentinelscan")
 async def sentinelscan_page():
     return FileResponse(_SITE_DIR / "sentinelscan.html")
+
+
+@app.get("/hara")
+async def hara_page():
+    return FileResponse(_SITE_DIR / "hara.html")
+
+
+@app.get("/hara/matrix")
+async def hara_matrix():
+    """Table ASIL complète — source de vérité unique.
+
+    La page la charge une fois puis fait ses lookups en local : la cotation
+    reste instantanée sans que la logique soit dupliquée en JavaScript.
+    """
+    return full_matrix()
 
 
 # --------------------------------------------------------------------------
