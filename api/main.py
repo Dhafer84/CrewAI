@@ -42,7 +42,9 @@ from sentinelscan.config import require_github_token  # noqa: E402
 from sentinelscan.queries import InvalidKeyword, normalize_keywords  # noqa: E402
 from sentinelscan.report import build_excel, build_markdown  # noqa: E402
 from sentinelscan.scanner import run_scan  # noqa: E402
+from safetyscope.analysis import InvalidAnalysis, build_analysis  # noqa: E402
 from safetyscope.asil import full_matrix  # noqa: E402
+from safetyscope.report import build_excel as build_hara_excel  # noqa: E402
 
 _DOCUMENTS_DIR = _ROOT / "data" / "sample_project"
 _SITE_DIR = _ROOT / "site"
@@ -106,6 +108,49 @@ async def hara_matrix():
     reste instantanée sans que la logique soit dupliquée en JavaScript.
     """
     return full_matrix()
+
+
+class HaraEventPayload(BaseModel):
+    malfunction: str = ""
+    situation: str = ""
+    severity: int
+    exposure: int
+    controllability: int
+
+
+class HaraReportRequest(BaseModel):
+    item: str = ""
+    events: list[HaraEventPayload] = []
+
+
+@app.post("/hara/report")
+async def hara_report_create(request: Request, payload: HaraReportRequest):
+    """Reconstruit l'analyse côté serveur, puis prépare le classeur.
+
+    Le tableau vient du navigateur : il est revalidé intégralement avant
+    d'être écrit.
+    """
+    try:
+        analysis = build_analysis(payload.item, payload.events)
+    except InvalidAnalysis as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+
+    excel = await asyncio.to_thread(build_hara_excel, analysis)
+    report_id = _store_report(
+        _client_key(request),
+        "hara",
+        excel,
+        "safetyscope_" + analysis.created_at.strftime("%Y%m%d_%H%M") + ".xlsx",
+    )
+    return {"report_id": report_id}
+
+
+@app.get("/hara/report/{report_id}.xlsx")
+async def hara_report_download(request: Request, report_id: str):
+    return _serve_report(
+        request, report_id, "hara",
+        "Rapport expiré ou introuvable. Relancez l'export.",
+    )
 
 
 # --------------------------------------------------------------------------
@@ -290,11 +335,12 @@ async def scan_prepare(request: Request, payload: ScanRequest):
 
 
 # --------------------------------------------------------------------------
-# SentinelScan — rapports Excel
+# Rapports Excel — stockage commun aux outils
 #
-# Le classeur contient les termes recherchés et les URL détectées : il est
-# gardé en mémoire seulement, avec une durée de vie courte, et n'est servi
-# qu'au client qui a lancé le scan. Rien n'est écrit sur disque.
+# Un classeur porte des données de travail (termes recherchés, URL détectées,
+# cotation d'une analyse). Il est gardé en mémoire seulement, avec une durée
+# de vie courte, et n'est servi qu'au client qui l'a produit. Rien n'est
+# écrit sur disque.
 # --------------------------------------------------------------------------
 
 _REPORT_TTL_SECONDS = 1800
@@ -303,31 +349,50 @@ _XLSX_MEDIA_TYPE = (
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
 
-_scan_reports: dict[str, dict] = {}
+_reports: dict[str, dict] = {}
 
 
 def _prune_reports(now: float) -> None:
-    for report_id, entry in list(_scan_reports.items()):
+    for report_id, entry in list(_reports.items()):
         if now - entry["created"] > _REPORT_TTL_SECONDS:
-            del _scan_reports[report_id]
+            del _reports[report_id]
 
-    excess = len(_scan_reports) - _MAX_STORED_REPORTS
+    excess = len(_reports) - _MAX_STORED_REPORTS
     if excess > 0:
-        oldest = sorted(_scan_reports.items(), key=lambda kv: kv[1]["created"])
+        oldest = sorted(_reports.items(), key=lambda kv: kv[1]["created"])
         for report_id, _ in oldest[:excess]:
-            del _scan_reports[report_id]
+            del _reports[report_id]
 
 
-@app.get("/scan/report/{report_id}.xlsx")
-async def scan_report(request: Request, report_id: str):
+def _store_report(client: str, kind: str, data: bytes, filename: str) -> str:
+    now = time.time()
+    _prune_reports(now)
+    report_id = secrets.token_urlsafe(18)
+    _reports[report_id] = {
+        "client": client,
+        "kind": kind,
+        "data": data,
+        "filename": filename,
+        "created": now,
+    }
+    return report_id
+
+
+def _serve_report(request: Request, report_id: str, kind: str, missing_message: str):
+    """Sert un rapport à son propriétaire.
+
+    `kind` cloisonne les outils : une route ne rend que les rapports qu'elle
+    est censée produire, même si le stockage est commun.
+    """
     _prune_reports(time.time())
 
-    entry = _scan_reports.get(report_id)
-    if entry is None or entry["client"] != _client_key(request):
-        return JSONResponse(
-            {"error": "Rapport expiré ou introuvable. Relancez un scan."},
-            status_code=404,
-        )
+    entry = _reports.get(report_id)
+    if (
+        entry is None
+        or entry["client"] != _client_key(request)
+        or entry["kind"] != kind
+    ):
+        return JSONResponse({"error": missing_message}, status_code=404)
 
     return Response(
         content=entry["data"],
@@ -336,6 +401,14 @@ async def scan_report(request: Request, report_id: str):
             "Content-Disposition": f'attachment; filename="{entry["filename"]}"',
             "Cache-Control": "no-store",
         },
+    )
+
+
+@app.get("/scan/report/{report_id}.xlsx")
+async def scan_report(request: Request, report_id: str):
+    return _serve_report(
+        request, report_id, "scan",
+        "Rapport expiré ou introuvable. Relancez un scan.",
     )
 
 
@@ -387,19 +460,14 @@ async def scan_stream(request: Request, t: str = ""):
                 result = await asyncio.to_thread(run_scan, keywords, progress_callback)
 
                 excel = await asyncio.to_thread(build_excel, result)
-                now = time.time()
-                _prune_reports(now)
-                report_id = secrets.token_urlsafe(18)
-                _scan_reports[report_id] = {
-                    "client": client,
-                    "data": excel,
-                    "filename": (
-                        "sentinelscan_"
-                        + result.started_at.strftime("%Y%m%d_%H%M")
-                        + ".xlsx"
-                    ),
-                    "created": now,
-                }
+                report_id = _store_report(
+                    client,
+                    "scan",
+                    excel,
+                    "sentinelscan_"
+                    + result.started_at.strftime("%Y%m%d_%H%M")
+                    + ".xlsx",
+                )
 
                 await queue.put(json.dumps({
                     "type": "done",

@@ -49,7 +49,14 @@
     <span class="form-hint" id="count-hint"></span>
   </div>
 
-  <div class="section-label">Synthèse</div>
+  <div class="summary-head">
+    <div class="section-label" style="margin-bottom:0">Synthèse</div>
+    <button class="btn-download" id="btn-export" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><path d="M12 15V3"/></svg>
+      Exporter en Excel
+    </button>
+  </div>
+  <p class="form-hint" id="export-hint"></p>
   <div class="hara-summary">
     <div class="summary-main">
       <div class="summary-label">ASIL le plus élevé</div>
@@ -205,15 +212,70 @@
     const pairs = maxAsil ? matrix.decompositions[maxAsil] : [];
     if (!pairs || pairs.length === 0) {
       decomp.innerHTML = '';
-      return;
+    } else {
+      decomp.innerHTML = '<div class="summary-label">Décompositions admises</div>'
+        + pairs.map(p => '<div class="decomp-line">' + p[0] + '(' + maxAsil + ')'
+                       + ' + ' + p[1] + '(' + maxAsil + ')</div>').join('')
+        + '<div class="decomp-note">Sous réserve d\'une indépendance suffisante entre les éléments.</div>';
     }
-    decomp.innerHTML = '<div class="summary-label">Décompositions admises</div>'
-      + pairs.map(p => '<div class="decomp-line">' + p[0] + '(' + maxAsil + ')'
-                     + ' + ' + p[1] + '(' + maxAsil + ')</div>').join('')
-      + '<div class="decomp-note">Sous réserve d\'une indépendance suffisante entre les éléments.</div>';
+
+    refreshExport();
   }
 
   btnAdd.addEventListener('click', addEvent);
+
+  // --- Export Excel ---
+  // Seuls les événements réellement cotés partent au serveur, qui revalide
+  // tout de son côté : le tableau vient du navigateur, il n'est pas de
+  // confiance.
+  const btnExport = document.getElementById('btn-export');
+  const exportHint = document.getElementById('export-hint');
+
+  function ratedEvents() {
+    return Array.from(events.children).reduce(function(acc, card) {
+      const v = {};
+      card.querySelectorAll('.rating-select').forEach(s => { v[s.dataset.axis] = s.value; });
+      if (v.s === '' || v.e === '' || v.c === '') return acc;
+      const inputs = card.querySelectorAll('.event-input');
+      acc.push({
+        malfunction: inputs[0].value,
+        situation: inputs[1].value,
+        severity: parseInt(v.s, 10),
+        exposure: parseInt(v.e, 10),
+        controllability: parseInt(v.c, 10)
+      });
+      return acc;
+    }, []);
+  }
+
+  function refreshExport() {
+    btnExport.disabled = ratedEvents().length === 0;
+  }
+
+  btnExport.addEventListener('click', async function() {
+    btnExport.disabled = true;
+    exportHint.textContent = 'Préparation du classeur…';
+    exportHint.className = 'form-hint';
+    try {
+      const resp = await fetch('/hara/report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          item: document.getElementById('item-name').value,
+          events: ratedEvents()
+        })
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.error || 'Export refusé.');
+      exportHint.textContent = 'Classeur prêt — le téléchargement démarre.';
+      window.location.href = '/hara/report/' + encodeURIComponent(data.report_id) + '.xlsx';
+    } catch (err) {
+      exportHint.textContent = err.message;
+      exportHint.className = 'form-hint error';
+    } finally {
+      refreshExport();
+    }
+  });
 })();
 </script>
 </body>
