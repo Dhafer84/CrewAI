@@ -52,6 +52,7 @@ from threatscope.analysis import InvalidAnalysis as InvalidTaraAnalysis  # noqa:
 from threatscope.analysis import analysis_limits  # noqa: E402
 from threatscope.analysis import build_analysis as build_tara_analysis  # noqa: E402
 from threatscope.bridge import bridge_rule  # noqa: E402
+from threatscope.core import suggest_threats  # noqa: E402
 from threatscope.rating import full_scales  # noqa: E402
 from threatscope.report import build_excel as build_tara_excel  # noqa: E402
 from threatscope.treatment import treatment_scales  # noqa: E402
@@ -366,6 +367,111 @@ async def hara_suggest_stream(request: Request, t: str = ""):
             await queue.put(json.dumps({
                 "type": "error",
                 "message": "La proposition a échoué. Vous pouvez saisir les événements à la main.",
+            }))
+        finally:
+            await queue.put(None)
+
+    asyncio.create_task(run())
+    return _sse_response(request, queue, timeout=180.0)
+
+
+# --------------------------------------------------------------------------
+# ThreatScope — proposition de scénarios de menace (optionnelle)
+#
+# Même limiteur que SafetyScope, délibérément : les deux puisent dans le
+# **même quota Groq gratuit**. Deux compteurs séparés donneraient le double
+# d'appels sur une seule enveloppe.
+#
+# La proposition est contextuelle — un actif et une conséquence redoutée
+# précis — parce qu'un balayage STRIDE hors contexte ne produit que des
+# généralités.
+# --------------------------------------------------------------------------
+
+class TaraSuggestRequest(BaseModel):
+    item: str = ""
+    asset: str = ""
+    damage: str = ""
+
+
+@app.post("/tara/suggest")
+async def tara_suggest_prepare(request: Request, payload: TaraSuggestRequest):
+    """Valide le contexte et rend un jeton — rien ne passe par une URL."""
+    client = _client_key(request)
+
+    refusal = _suggest_refusal(client)
+    if refusal:
+        return JSONResponse({"error": refusal}, status_code=429)
+
+    contexte = {
+        "item": payload.item.strip()[:120],
+        "asset": payload.asset.strip()[:300],
+        "damage": payload.damage.strip()[:300],
+    }
+    if len(contexte["asset"]) < 3 and len(contexte["damage"]) < 3:
+        return JSONResponse(
+            {"error": "Décrivez l'actif ou la conséquence redoutée avant de lancer "
+                      "la proposition."},
+            status_code=400,
+        )
+
+    return {"token": _issue_token(client, "tara-suggest", contexte)}
+
+
+@app.get("/tara/suggest/stream")
+async def tara_suggest_stream(request: Request, t: str = ""):
+    queue: asyncio.Queue[str | None] = asyncio.Queue()
+    loop = asyncio.get_event_loop()
+    client = _client_key(request)
+    step = [0]
+
+    def task_callback(_task_output):
+        step[0] += 1
+        loop.call_soon_threadsafe(queue.put_nowait, json.dumps({
+            "type": "step_done", "index": step[0] - 1, "total": 2,
+        }))
+
+    async def run():
+        try:
+            payload = _consume_token(t, client, "tara-suggest")
+            if payload is None:
+                await queue.put(json.dumps({
+                    "type": "error",
+                    "message": "Session expirée. Relancez depuis la page.",
+                }))
+                return
+
+            refusal = _suggest_refusal(client)
+            if refusal:
+                await queue.put(json.dumps({"type": "error", "message": refusal}))
+                return
+
+            if _suggest_semaphore.locked():
+                await queue.put(json.dumps({
+                    "type": "error",
+                    "message": "Une proposition est déjà en cours. Réessayez dans un instant.",
+                }))
+                return
+
+            async with _suggest_semaphore:
+                _last_suggest_by_client[client] = time.time()
+                _suggest_daily_usage["count"] += 1
+                require_llm_key()
+
+                await queue.put(json.dumps({"type": "start"}))
+                suggestions = await asyncio.to_thread(
+                    suggest_threats,
+                    payload["item"], payload["asset"], payload["damage"], task_callback,
+                )
+                await queue.put(json.dumps({
+                    "type": "done",
+                    "suggestions": [
+                        {"threat": s.threat, "path": s.path} for s in suggestions
+                    ],
+                }))
+        except Exception:
+            await queue.put(json.dumps({
+                "type": "error",
+                "message": "La proposition a échoué. Vous pouvez saisir les menaces à la main.",
             }))
         finally:
             await queue.put(None)

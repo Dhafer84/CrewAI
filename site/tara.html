@@ -267,8 +267,13 @@
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>' +
             'Ajouter une menace' +
           '</button>' +
+          '<button class="btn btn-ghost btn-sm btn-suggest btn-suggest-threats">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>' +
+            'Proposer par IA' +
+          '</button>' +
           '<span class="form-hint threat-count" style="margin-bottom:0"></span>' +
         '</div>' +
+        '<p class="form-hint suggest-hint" style="margin-bottom:0"></p>' +
       '</div>';
 
     card.querySelectorAll('.impact-select').forEach(function(sel) {
@@ -282,10 +287,124 @@
     });
 
     damages.appendChild(card);
+    wireSuggest(card);
     if (prefill) applyPrefill(card, prefill);
     addThreat(card);
     refreshCount();
     return card;
+  }
+
+  // --- Proposition de menaces par IA (optionnelle) ------------------------
+  // Contextuelle : elle porte sur l'actif et la conséquence de CETTE carte.
+  // Un balayage STRIDE hors contexte ne produit que des généralités.
+  //
+  // ⚠️ Les menaces proposées arrivent NON COTÉES — ni faisabilité, ni
+  // traitement. C'est le cœur du positionnement de l'outil.
+  const DEFAULT_SUGGEST_HINT =
+    'L\'IA balaie les catégories de menace à partir de l\'actif décrit. '
+    + 'Elle ne cote jamais : la faisabilité et le traitement restent votre jugement.';
+
+  function isBlankThreat(card) {
+    const vide = card.querySelector('.threat-text').value.trim() === ''
+              && card.querySelector('.attack-path').value.trim() === '';
+    const nonCote = Array.from(card.querySelectorAll('.feasibility-select'))
+      .every(s => s.value === '');
+    return vide && nonCote;
+  }
+
+  function wireSuggest(damageCard) {
+    const btn  = damageCard.querySelector('.btn-suggest-threats');
+    const hint = damageCard.querySelector('.suggest-hint');
+    let source = null;
+
+    function setHint(text, isError) {
+      hint.textContent = text;
+      hint.className = 'form-hint suggest-hint' + (isError ? ' error' : '');
+    }
+    setHint(DEFAULT_SUGGEST_HINT);
+
+    function close() {
+      if (source) { source.close(); source = null; }
+      btn.disabled = false;
+    }
+
+    btn.addEventListener('click', async function() {
+      const asset  = damageCard.querySelector('.damage-asset').value.trim();
+      const damage = damageCard.querySelector('.damage-text').value.trim();
+      if (asset.length < 3 && damage.length < 3) {
+        setHint('Décrivez d\'abord l\'actif ou la conséquence redoutée.', true);
+        damageCard.querySelector('.damage-asset').focus();
+        return;
+      }
+
+      btn.disabled = true;
+      setHint('Connexion au moteur…');
+
+      let token;
+      try {
+        const resp = await fetch('/tara/suggest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            item: document.getElementById('item-name').value,
+            asset: asset, damage: damage
+          })
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(data.error || 'Requête refusée.');
+        token = data.token;
+      } catch (err) {
+        setHint(err.message, true);
+        btn.disabled = false;
+        return;
+      }
+
+      source = new EventSource('/tara/suggest/stream?t=' + encodeURIComponent(token));
+
+      source.onmessage = function(evt) {
+        let data;
+        try { data = JSON.parse(evt.data); } catch { return; }
+
+        if (data.type === 'start') {
+          setHint('Balayage des catégories de menace…');
+
+        } else if (data.type === 'step_done') {
+          setHint(data.index === 0
+            ? 'Proposition établie, relecture en cours…'
+            : 'Relecture terminée.');
+
+        } else if (data.type === 'done') {
+          const list = data.suggestions || [];
+          // La carte vide du départ ne doit ni coiffer la liste proposée ni
+          // consommer une des places disponibles.
+          const cards = damageCard.querySelectorAll('.threat-card');
+          if (cards.length === 1 && isBlankThreat(cards[0])) cards[0].remove();
+
+          let added = 0;
+          list.forEach(function(s) {
+            if (addThreat(damageCard, { threat: s.threat, path: s.path })) added += 1;
+          });
+          refreshDamage(damageCard);
+          refreshSummary();
+          setHint(added === 0
+            ? 'Aucune proposition exploitable. Saisissez les menaces à la main.'
+            : added + ' menace(s) ajoutée(s), non cotées — à vous d\'évaluer la faisabilité.');
+          close();
+
+        } else if (data.type === 'error') {
+          setHint(data.message || 'Erreur inconnue.', true);
+          close();
+
+        } else if (data.type === 'close') {
+          close();
+        }
+      };
+
+      source.onerror = function() {
+        setHint('Connexion interrompue.', true);
+        close();
+      };
+    });
   }
 
   // Reprise d'un événement redouté : une **proposition**, jamais un report
@@ -421,6 +540,7 @@
     if (prefill) {
       card.querySelector('.threat-text').value = prefill.threat || '';
       card.querySelector('.attack-path').value = prefill.path || '';
+      card.classList.add('is-suggested');
     }
 
     renumber();

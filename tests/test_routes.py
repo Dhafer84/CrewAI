@@ -330,6 +330,38 @@ def test_a_token_is_single_use_client_bound_and_typed():
     assert _consume_token(typed, "client-a", "scan") is None, "mauvais kind"
 
 
+def test_tara_suggest_validates_before_spending_a_call():
+    """Le contexte est validé **avant** tout appel au LLM.
+
+    On ne teste ici que les branches qui ne consomment rien : un contexte
+    vide, et un jeton inconnu. Lancer une vraie proposition depuis les tests
+    piocherait dans le quota Groq gratuit.
+    """
+    with client("10.0.0.7") as c:
+        vide = c.post("/tara/suggest", json={"item": "X", "asset": "", "damage": ""})
+        assert vide.status_code == 400
+        assert "error" in vide.json()
+
+        bon = c.post("/tara/suggest", json={
+            "item": "Passerelle", "asset": "Passerelle télématique",
+            "damage": "Freinage commandé à distance"})
+        assert bon.status_code == 200
+        assert bon.json()["token"]
+
+        inconnu = c.get("/tara/suggest/stream?t=jeton-invente")
+        assert inconnu.status_code == 200
+        assert '"type": "error"' in inconnu.text
+        assert "expir" in inconnu.text
+
+
+def test_a_suggest_token_is_not_valid_on_the_other_tool():
+    """Cloisonnement par `kind` : un jeton HARA n'ouvre pas le flux TARA."""
+    from api.main import _consume_token, _issue_token
+
+    hara = _issue_token("client-a", "suggest", {"item": "X"})
+    assert _consume_token(hara, "client-a", "tara-suggest") is None
+
+
 def test_unknown_route_is_a_404():
     with client() as c:
         assert c.get("/nexistepas").status_code == 404

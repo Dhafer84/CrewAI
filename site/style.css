@@ -235,6 +235,8 @@ h1 em{color:var(--green);font-style:normal}
 .risk-4{background:var(--coral-bg);border:0.5px solid var(--coral);color:var(--coral)}
 .risk-5{background:var(--red-bg);border:0.5px solid var(--red);color:var(--red)}
 
+.threat-card.is-suggested{border-left:2px solid var(--purple)}
+.suggest-hint{margin-top:8px}
 .damage-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px}
 .btn-ghost.btn-sm{font-size:11.5px;padding:5px 10px}
 
