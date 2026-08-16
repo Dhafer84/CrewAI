@@ -44,6 +44,7 @@ from sentinelscan.report import build_excel, build_markdown  # noqa: E402
 from sentinelscan.scanner import run_scan  # noqa: E402
 from safetyscope.analysis import InvalidAnalysis, build_analysis  # noqa: E402
 from safetyscope.asil import full_matrix  # noqa: E402
+from safetyscope.core import suggest_hazards  # noqa: E402
 from safetyscope.report import build_excel as build_hara_excel  # noqa: E402
 
 _DOCUMENTS_DIR = _ROOT / "data" / "sample_project"
@@ -151,6 +152,129 @@ async def hara_report_download(request: Request, report_id: str):
         request, report_id, "hara",
         "Rapport expiré ou introuvable. Relancez l'export.",
     )
+
+
+# --------------------------------------------------------------------------
+# SafetyScope — proposition d'événements redoutés (optionnelle)
+#
+# Seule partie de l'outil qui appelle un LLM. Elle amorce la réflexion ;
+# elle ne cote jamais S, E ni C.
+# --------------------------------------------------------------------------
+
+_suggest_semaphore = asyncio.Semaphore(1)
+_SUGGEST_COOLDOWN_SECONDS = 60
+_MAX_SUGGESTIONS_PER_DAY = 100
+_last_suggest_by_client: dict[str, float] = {}
+_suggest_daily_usage = {"day": None, "count": 0}
+
+
+class HaraSuggestRequest(BaseModel):
+    item: str = ""
+
+
+def _suggest_refusal(client: str) -> str | None:
+    now = time.time()
+
+    today = datetime.now(timezone.utc).date()
+    if _suggest_daily_usage["day"] != today:
+        _suggest_daily_usage["day"] = today
+        _suggest_daily_usage["count"] = 0
+
+    if _suggest_daily_usage["count"] >= _MAX_SUGGESTIONS_PER_DAY:
+        return "Quota quotidien de la démonstration atteint. Réessayez demain."
+
+    for key, stamp in list(_last_suggest_by_client.items()):
+        if now - stamp > _SUGGEST_COOLDOWN_SECONDS:
+            del _last_suggest_by_client[key]
+
+    last = _last_suggest_by_client.get(client)
+    if last is not None:
+        wait = int(_SUGGEST_COOLDOWN_SECONDS - (now - last))
+        return f"Une proposition par minute. Réessayez dans {wait} s."
+
+    return None
+
+
+@app.post("/hara/suggest")
+async def hara_suggest_prepare(request: Request, payload: HaraSuggestRequest):
+    """Valide l'item et rend un jeton — l'intitulé ne passe pas par une URL."""
+    client = _client_key(request)
+
+    refusal = _suggest_refusal(client)
+    if refusal:
+        return JSONResponse({"error": refusal}, status_code=429)
+
+    item = payload.item.strip()[:120]
+    if len(item) < 3:
+        return JSONResponse(
+            {"error": "Décrivez l'item étudié en quelques mots avant de lancer la proposition."},
+            status_code=400,
+        )
+
+    return {"token": _issue_token(client, "suggest", {"item": item})}
+
+
+@app.get("/hara/suggest/stream")
+async def hara_suggest_stream(request: Request, t: str = ""):
+    queue: asyncio.Queue[str | None] = asyncio.Queue()
+    loop = asyncio.get_event_loop()
+    client = _client_key(request)
+    step = [0]
+
+    def task_callback(_task_output):
+        step[0] += 1
+        loop.call_soon_threadsafe(queue.put_nowait, json.dumps({
+            "type": "step_done", "index": step[0] - 1, "total": 2,
+        }))
+
+    async def run():
+        try:
+            payload = _consume_token(t, client, "suggest")
+            if payload is None:
+                await queue.put(json.dumps({
+                    "type": "error",
+                    "message": "Session expirée. Relancez depuis la page.",
+                }))
+                return
+
+            refusal = _suggest_refusal(client)
+            if refusal:
+                await queue.put(json.dumps({"type": "error", "message": refusal}))
+                return
+
+            if _suggest_semaphore.locked():
+                await queue.put(json.dumps({
+                    "type": "error",
+                    "message": "Une proposition est déjà en cours. Réessayez dans un instant.",
+                }))
+                return
+
+            async with _suggest_semaphore:
+                _last_suggest_by_client[client] = time.time()
+                _suggest_daily_usage["count"] += 1
+                require_llm_key()
+
+                await queue.put(json.dumps({"type": "start"}))
+                suggestions = await asyncio.to_thread(
+                    suggest_hazards, payload["item"], task_callback
+                )
+                await queue.put(json.dumps({
+                    "type": "done",
+                    "suggestions": [
+                        {"malfunction": s.malfunction, "situation": s.situation}
+                        for s in suggestions
+                    ],
+                }))
+        except Exception:
+            await queue.put(json.dumps({
+                "type": "error",
+                "message": "La proposition a échoué. Vous pouvez saisir les événements à la main.",
+            }))
+        finally:
+            await queue.put(None)
+
+    asyncio.create_task(run())
+    return _sse_response(request, queue, timeout=180.0)
 
 
 # --------------------------------------------------------------------------
@@ -298,14 +422,36 @@ def _register_scan(client: str) -> None:
 # l'en-tête Referer.
 # --------------------------------------------------------------------------
 
-_SCAN_TOKEN_TTL_SECONDS = 60
-_scan_tokens: dict[str, dict] = {}
+_TOKEN_TTL_SECONDS = 60
+_tokens: dict[str, dict] = {}
 
 
 def _prune_tokens(now: float) -> None:
-    for token, entry in list(_scan_tokens.items()):
-        if now - entry["created"] > _SCAN_TOKEN_TTL_SECONDS:
-            del _scan_tokens[token]
+    for token, entry in list(_tokens.items()):
+        if now - entry["created"] > _TOKEN_TTL_SECONDS:
+            del _tokens[token]
+
+
+def _issue_token(client: str, kind: str, payload: dict) -> str:
+    now = time.time()
+    _prune_tokens(now)
+    token = secrets.token_urlsafe(18)
+    _tokens[token] = {
+        "client": client, "kind": kind, "payload": payload, "created": now,
+    }
+    return token
+
+
+def _consume_token(token: str, client: str, kind: str) -> dict | None:
+    """Retire le jeton et rend sa charge utile, ou None s'il est invalide.
+
+    Usage unique : un rejeu emprunte la même branche qu'un jeton inconnu.
+    """
+    _prune_tokens(time.time())
+    entry = _tokens.pop(token, None)
+    if entry is None or entry["client"] != client or entry["kind"] != kind:
+        return None
+    return entry["payload"]
 
 
 class ScanRequest(BaseModel):
@@ -326,11 +472,7 @@ async def scan_prepare(request: Request, payload: ScanRequest):
     except InvalidKeyword as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
 
-    now = time.time()
-    _prune_tokens(now)
-
-    token = secrets.token_urlsafe(18)
-    _scan_tokens[token] = {"client": client, "keywords": keywords, "created": now}
+    token = _issue_token(client, "scan", {"keywords": keywords})
     return {"token": token, "keywords": keywords}
 
 
@@ -428,17 +570,15 @@ async def scan_stream(request: Request, t: str = ""):
 
     async def run():
         try:
-            _prune_tokens(time.time())
-            # Jeton à usage unique : consommé dès la première lecture.
-            entry = _scan_tokens.pop(t, None)
-            if entry is None or entry["client"] != client:
+            payload = _consume_token(t, client, "scan")
+            if payload is None:
                 await queue.put(json.dumps({
                     "type": "error",
                     "message": "Session de scan expirée. Relancez depuis la page.",
                 }))
                 return
 
-            keywords = entry["keywords"]
+            keywords = payload["keywords"]
 
             refusal = _rate_limit_message(client)
             if refusal:

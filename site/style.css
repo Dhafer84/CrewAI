@@ -166,6 +166,11 @@ h1 em{color:var(--green);font-style:normal}
 .events-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:48px}
 .events-actions .form-hint{margin-bottom:0}
 
+.btn-suggest{border-color:rgba(160,122,216,.5);color:var(--purple)}
+.btn-suggest:hover:not(:disabled){border-color:var(--purple);color:var(--purple)}
+#suggest-hint{margin-top:-36px;margin-bottom:48px;max-width:640px}
+.event-card.is-suggested{border-left:2px solid var(--purple)}
+
 .summary-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px;flex-wrap:wrap}
 .summary-head .btn-download{margin-left:0;border:none;background:none;cursor:pointer;font-family:inherit;padding:5px 11px;background:var(--purple-bg);border:0.5px solid var(--purple);color:var(--purple);border-radius:6px}
 .summary-head .btn-download:hover:not(:disabled){background:#312a3d}

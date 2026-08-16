@@ -46,8 +46,13 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
       Ajouter un événement
     </button>
+    <button class="btn btn-ghost btn-suggest" id="btn-suggest">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>
+      Proposer par IA
+    </button>
     <span class="form-hint" id="count-hint"></span>
   </div>
+  <p class="form-hint" id="suggest-hint">L'IA propose des événements à partir des mots-guides usuels. Elle ne cote jamais&nbsp;: la sévérité, l'exposition et la contrôlabilité restent votre jugement.</p>
 
   <div class="summary-head">
     <div class="section-label" style="margin-bottom:0">Synthèse</div>
@@ -92,7 +97,6 @@
   const btnAdd   = document.getElementById('btn-add');
   const countEl  = document.getElementById('count-hint');
   let matrix = null;   // table ASIL, chargée une seule fois
-  let seq = 0;
 
   // La logique de détermination vit en Python. On charge sa table une fois et
   // on fait les lookups en local : instantané, sans dupliquer la règle en JS.
@@ -110,9 +114,8 @@
     return 'asil-badge asil-' + (asil ? asil.toLowerCase() : 'none');
   }
 
-  function addEvent() {
-    if (events.children.length >= MAX_EVENTS) return;
-    seq += 1;
+  function addEvent(prefill) {
+    if (events.children.length >= MAX_EVENTS) return null;
     const card = document.createElement('div');
     card.className = 'event-card';
 
@@ -132,7 +135,7 @@
 
     card.innerHTML =
       '<div class="event-head">' +
-        '<span class="event-num">Événement ' + seq + '</span>' +
+        '<span class="event-num"></span>' +
         '<button class="event-del" title="Supprimer" aria-label="Supprimer">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
         '</button>' +
@@ -152,7 +155,24 @@
     });
 
     events.appendChild(card);
+
+    if (prefill) {
+      const inputs = card.querySelectorAll('.event-input');
+      inputs[0].value = prefill.malfunction || '';
+      inputs[1].value = prefill.situation || '';
+      card.classList.add('is-suggested');
+    }
+
     refreshCount();
+    return card;
+  }
+
+  function isBlank(card) {
+    const texts = Array.from(card.querySelectorAll('.event-input'))
+      .every(i => i.value.trim() === '');
+    const unrated = Array.from(card.querySelectorAll('.rating-select'))
+      .every(s => s.value === '');
+    return texts && unrated;
   }
 
   function cardAsil(card) {
@@ -169,7 +189,16 @@
     card.classList.toggle('is-rated', asil !== null);
   }
 
+  // Les numéros suivent la position, pas l'ordre de création : après une
+  // suppression, la liste reste numérotée 1..N.
+  function renumber() {
+    Array.from(events.children).forEach(function(card, index) {
+      card.querySelector('.event-num').textContent = 'Événement ' + (index + 1);
+    });
+  }
+
   function refreshCount() {
+    renumber();
     const n = events.children.length;
     btnAdd.disabled = n >= MAX_EVENTS;
     countEl.textContent = n >= MAX_EVENTS
@@ -222,7 +251,96 @@
     refreshExport();
   }
 
-  btnAdd.addEventListener('click', addEvent);
+  // Sans la lambda, l'objet Event du clic serait pris pour un préremplissage.
+  btnAdd.addEventListener('click', () => addEvent());
+
+  // --- Proposition par IA (optionnelle) ---
+  // Les événements proposés arrivent NON COTÉS : l'IA amorce la réflexion,
+  // elle ne se substitue pas au jugement de l'ingénieur.
+  const btnSuggest  = document.getElementById('btn-suggest');
+  const suggestHint = document.getElementById('suggest-hint');
+  const DEFAULT_SUGGEST_HINT = suggestHint.innerHTML;
+  let suggestEs = null;
+
+  function setSuggestHint(html, isError) {
+    suggestHint.innerHTML = html;
+    suggestHint.className = 'form-hint' + (isError ? ' error' : '');
+  }
+
+  btnSuggest.addEventListener('click', async function() {
+    const item = document.getElementById('item-name').value.trim();
+    if (item.length < 3) {
+      setSuggestHint('Décrivez d\'abord l\'item étudié en quelques mots.', true);
+      document.getElementById('item-name').focus();
+      return;
+    }
+
+    btnSuggest.disabled = true;
+    setSuggestHint('Connexion au moteur…');
+
+    let token;
+    try {
+      const resp = await fetch('/hara/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ item: item })
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.error || 'Requête refusée.');
+      token = data.token;
+    } catch (err) {
+      setSuggestHint(err.message, true);
+      btnSuggest.disabled = false;
+      return;
+    }
+
+    suggestEs = new EventSource('/hara/suggest/stream?t=' + encodeURIComponent(token));
+
+    suggestEs.onmessage = function(evt) {
+      let data;
+      try { data = JSON.parse(evt.data); } catch { return; }
+
+      if (data.type === 'start') {
+        setSuggestHint('Balayage des mots-guides…');
+
+      } else if (data.type === 'step_done') {
+        setSuggestHint(data.index === 0
+          ? 'Proposition établie, relecture en cours…'
+          : 'Relecture terminée.');
+
+      } else if (data.type === 'done') {
+        const list = data.suggestions || [];
+        // La carte vide du départ ne doit pas coiffer la liste proposée ni
+        // consommer une place sur les dix disponibles.
+        const only = events.children.length === 1 ? events.children[0] : null;
+        if (only && isBlank(only)) only.remove();
+
+        let added = 0;
+        list.forEach(function(s) { if (addEvent(s)) added += 1; });
+        refreshSummary();
+        setSuggestHint(added === 0
+          ? 'Aucune proposition exploitable. Saisissez les événements à la main.'
+          : added + ' événement(s) ajouté(s), <strong>non cotés</strong> — à vous de coter S, E et C.');
+        suggestEs.close(); suggestEs = null;
+        btnSuggest.disabled = false;
+
+      } else if (data.type === 'error') {
+        setSuggestHint(data.message || 'Erreur inconnue.', true);
+        suggestEs.close(); suggestEs = null;
+        btnSuggest.disabled = false;
+
+      } else if (data.type === 'close') {
+        if (suggestEs) { suggestEs.close(); suggestEs = null; }
+        btnSuggest.disabled = false;
+      }
+    };
+
+    suggestEs.onerror = function() {
+      setSuggestHint('Connexion interrompue.', true);
+      if (suggestEs) { suggestEs.close(); suggestEs = null; }
+      btnSuggest.disabled = false;
+    };
+  });
 
   // --- Export Excel ---
   // Seuls les événements réellement cotés partent au serveur, qui revalide
