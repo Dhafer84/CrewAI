@@ -34,6 +34,22 @@
     <span><strong>Démonstration pédagogique.</strong> Le barème de potentiel d'attaque employé ici est une <strong>calibration qui nous est propre</strong>&nbsp;: il ne reproduit ni l'ISO/SAE 21434 ni l'ISO 18045, documents sous licence. La norme laisse d'ailleurs chaque organisation définir sa méthode de détermination du risque — celle-ci est donc <em>une</em> méthode, pas <em>la</em> méthode.</span>
   </div>
 
+  <!-- Reprise d'une analyse HARA. Le bandeau nomme son origine ET explique
+       sur place ce qui traverse le pont — la règle ne doit pas être enfouie. -->
+  <div class="bridge-banner" id="bridge-banner" hidden>
+    <div class="bridge-head">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      <span id="bridge-title"></span>
+    </div>
+    <p class="bridge-sub" id="bridge-sub"></p>
+    <div class="bridge-rule" id="bridge-rule"></div>
+    <button class="bridge-clear" id="bridge-clear">Repartir d'une analyse vierge</button>
+  </div>
+
+  <p class="form-hint bridge-absent" id="bridge-absent" hidden>
+    Vous avez déjà mené une analyse HARA&nbsp;? <a href="/hara">SafetyScope</a> peut alimenter cette page&nbsp;: la sévérité de vos événements redoutés y devient l'impact «&nbsp;sécurité des personnes&nbsp;» de vos scénarios de dommage.
+  </p>
+
   <div class="section-label">Item étudié</div>
   <input type="text" id="item-name" class="kw-input item-field" maxlength="120"
          placeholder="ex : Passerelle télématique embarquée" autocomplete="off">
@@ -101,10 +117,84 @@
     .then(data => {
       scales = data;
       document.getElementById('calib-text').textContent = data.calibration;
-      addDamage();
+      applyHandoff();
       refreshSummary();
     })
     .catch(() => { countEl.textContent = 'Impossible de charger le barème.'; });
+
+  // --- Reprise d'une analyse HARA ----------------------------------------
+  // Le transfert est entièrement côté navigateur : sessionStorage, même
+  // origine, aucun aller-retour serveur et rien dans les journaux.
+  const HANDOFF_KEY = 'threatscope.handoff';
+
+  function readHandoff() {
+    let raw;
+    try { raw = sessionStorage.getItem(HANDOFF_KEY); } catch { return null; }
+    if (!raw) return null;
+    let data;
+    try { data = JSON.parse(raw); } catch { return null; }
+    if (!data || data.source !== 'hara' || !Array.isArray(data.events)) return null;
+    const events = data.events.filter(function(ev) {
+      return ev && Number.isInteger(ev.severity)
+             && ev.severity >= 0
+             && ev.severity < scales.haraBridge.severityToImpact.length;
+    });
+    return events.length ? { item: data.item || '', events: events } : null;
+  }
+
+  function applyHandoff() {
+    const handoff = readHandoff();
+    if (!handoff) {
+      document.getElementById('bridge-absent').hidden = false;
+      addDamage();
+      return;
+    }
+
+    if (handoff.item) document.getElementById('item-name').value = handoff.item;
+
+    let added = 0;
+    handoff.events.forEach(function(ev) { if (addDamage(ev)) added += 1; });
+    if (added === 0) addDamage();
+
+    showBridgeBanner(handoff, added);
+  }
+
+  function showBridgeBanner(handoff, added) {
+    const total = handoff.events.length;
+    document.getElementById('bridge-banner').hidden = false;
+
+    document.getElementById('bridge-title').textContent =
+      added + ' événement' + (added > 1 ? 's' : '') + ' redouté' + (added > 1 ? 's' : '')
+      + ' repris de votre analyse HARA'
+      + (handoff.item ? ' — « ' + handoff.item + ' »' : '');
+
+    // Le plafond de la démonstration ne doit jamais escamoter du travail en
+    // silence : si des événements sont restés à la porte, on le dit.
+    document.getElementById('bridge-sub').textContent = added < total
+      ? 'Sur ' + total + ' événements cotés, ' + added + ' ont été repris — cette démonstration '
+        + 'est plafonnée à ' + MAX_DAMAGES + ' scénarios de dommage.'
+      : 'Chaque événement est devenu un scénario de dommage à retravailler. '
+        + 'Rien n\'est coté d\'office : les propositions sont à confirmer.';
+
+    // La règle n'est pas écrite dans cette page : elle est servie par le
+    // moteur, avec sa justification, et seulement affichée ici.
+    const why = scales.haraBridge.why;
+    document.getElementById('bridge-rule').innerHTML =
+      '<div class="bridge-line bridge-yes"><span class="bridge-mark">✓</span>'
+        + '<span><strong>La sévérité traverse</strong> — elle devient l\'impact « sécurité des '
+        + 'personnes ». ' + why.severity + '</span></div>'
+      + '<div class="bridge-line bridge-no"><span class="bridge-mark">✕</span>'
+        + '<span><strong>L\'exposition ne traverse pas.</strong> ' + why.exposure + '</span></div>'
+      + '<div class="bridge-line bridge-no"><span class="bridge-mark">✕</span>'
+        + '<span><strong>La contrôlabilité ne traverse pas.</strong> ' + why.controllability
+        + '</span></div>'
+      + '<div class="bridge-note">' + why.replacement + '</div>';
+  }
+
+  document.getElementById('bridge-clear').addEventListener('click', function() {
+    try { sessionStorage.removeItem(HANDOFF_KEY); } catch (err) { /* rien à faire */ }
+    window.location.reload();
+  });
 
   function optionsFor(levels, formatter) {
     let html = '<option value="">—</option>';
@@ -120,7 +210,7 @@
 
   // --- Scénario de dommage : porte l'impact -------------------------------
 
-  function addDamage() {
+  function addDamage(prefill) {
     if (damages.children.length >= MAX_DAMAGES) return null;
     const card = document.createElement('div');
     card.className = 'damage-card';
@@ -174,9 +264,45 @@
     });
 
     damages.appendChild(card);
+    if (prefill) applyPrefill(card, prefill);
     addThreat(card);
     refreshCount();
     return card;
+  }
+
+  // Reprise d'un événement redouté : une **proposition**, jamais un report
+  // automatique. L'impact sécurité reste vide tant que l'ingénieur n'a pas
+  // confirmé, et les trois autres catégories n'ont aucun équivalent en HARA.
+  function applyPrefill(card, prefill) {
+    card.classList.add('is-from-hara');
+
+    const parts = [prefill.malfunction, prefill.situation]
+      .map(function(part) { return (part || '').trim(); })
+      .filter(function(part) { return part !== ''; });
+    card.querySelector('.damage-text').value = parts.join(' — ');
+
+    const origin = document.createElement('div');
+    origin.className = 'damage-origin';
+    origin.textContent = 'Repris de l\'événement redouté ' + prefill.n
+      + (prefill.asil ? ' — coté ASIL ' + prefill.asil + ' en HARA' : '');
+    card.querySelector('.damage-head').insertAdjacentElement('afterend', origin);
+
+    const impact = scales.haraBridge.severityToImpact[prefill.severity];
+    const proposal = document.createElement('div');
+    proposal.className = 'impact-proposal';
+    proposal.innerHTML =
+      '<span>Sévérité <strong>S' + prefill.severity + '</strong> en HARA → impact sécurité '
+      + 'des personnes proposé : <strong>' + scales.impactOrder[impact] + '</strong></span>'
+      + '<button class="btn-apply" type="button">Appliquer</button>';
+    card.querySelector('.impact-grid').insertAdjacentElement('afterend', proposal);
+
+    proposal.querySelector('.btn-apply').addEventListener('click', function() {
+      const safety = card.querySelector('.impact-select[data-key="safety"]');
+      safety.value = String(impact);
+      safety.dispatchEvent(new Event('change', { bubbles: true }));
+      proposal.classList.add('is-applied');
+      proposal.querySelector('.btn-apply').textContent = 'Appliqué';
+    });
   }
 
   // L'impact retenu est le plus élevé des quatre catégories — mais les quatre

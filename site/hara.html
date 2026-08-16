@@ -75,6 +75,21 @@
     </div>
   </div>
 
+  <!-- Pont vers ThreatScope. Affiché en permanence, même sans cotation : la
+       liaison entre les deux outils doit se voir sans qu'on la cherche. -->
+  <div class="handoff">
+    <div class="handoff-text">
+      <div class="handoff-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        Poursuivre en analyse cybersécurité
+      </div>
+      <p>Une attaque peut provoquer les mêmes dysfonctionnements qu'une panne. <strong>ThreatScope</strong> reprend vos événements redoutés et <strong>leur sévérité</strong> pour amorcer une analyse TARA (ISO/SAE 21434).</p>
+      <p class="handoff-rule">L'exposition et la contrôlabilité, elles, <strong>ne sont pas reprises</strong> : un attaquant choisit son moment, et peut neutraliser le recours du conducteur. Côté sécurité, elles cèdent la place à la faisabilité de l'attaque.</p>
+      <p class="form-hint" id="handoff-hint" style="margin-bottom:0"></p>
+    </div>
+    <button class="btn btn-primary" id="btn-handoff" disabled>Ouvrir dans ThreatScope</button>
+  </div>
+
   <footer>
     <div class="footer-inner">
       <span class="footer-text">SafetyScope · démonstration pédagogique, ne remplace pas la norme</span>
@@ -368,7 +383,64 @@
 
   function refreshExport() {
     btnExport.disabled = ratedEvents().length === 0;
+    refreshHandoff();
   }
+
+  // --- Pont vers ThreatScope (TARA) ---
+  // Tout se passe dans le navigateur : sessionStorage, même origine, aucun
+  // aller-retour serveur. Surtout pas de jeton en query string — la page
+  // charge marked.js depuis un CDN, il partirait dans l'en-tête Referer.
+  const HANDOFF_KEY = 'threatscope.handoff';
+  const btnHandoff  = document.getElementById('btn-handoff');
+  const handoffHint = document.getElementById('handoff-hint');
+
+  function buildHandoff() {
+    const items = [];
+    Array.from(events.children).forEach(function(card, index) {
+      const v = {};
+      card.querySelectorAll('.rating-select').forEach(s => { v[s.dataset.axis] = s.value; });
+      if (v.s === '' || v.e === '' || v.c === '') return;
+      const inputs = card.querySelectorAll('.event-input');
+      // ⚠️ Seule la sévérité traverse le pont. L'exposition et la
+      // contrôlabilité n'ont volontairement AUCUN champ ici : un attaquant
+      // choisit son moment et peut neutraliser le recours du conducteur.
+      // Ce qui n'a pas de champ ne peut pas passer par mégarde.
+      items.push({
+        n: index + 1,
+        malfunction: inputs[0].value,
+        situation: inputs[1].value,
+        severity: parseInt(v.s, 10),
+        asil: cardAsil(card)
+      });
+    });
+    return {
+      source: 'hara',
+      item: document.getElementById('item-name').value,
+      at: Date.now(),
+      events: items
+    };
+  }
+
+  function refreshHandoff() {
+    const n = ratedEvents().length;
+    btnHandoff.disabled = n === 0;
+    handoffHint.textContent = n === 0
+      ? 'Cotez au moins un événement redouté pour poursuivre.'
+      : n === 1
+        ? '1 événement redouté sera repris avec sa sévérité.'
+        : n + ' événements redoutés seront repris avec leur sévérité.';
+  }
+
+  btnHandoff.addEventListener('click', function() {
+    try {
+      sessionStorage.setItem(HANDOFF_KEY, JSON.stringify(buildHandoff()));
+    } catch (err) {
+      handoffHint.textContent = 'Impossible de transmettre l\'analyse à ThreatScope.';
+      handoffHint.className = 'form-hint error';
+      return;
+    }
+    window.location.href = '/tara';
+  });
 
   btnExport.addEventListener('click', async function() {
     btnExport.disabled = true;

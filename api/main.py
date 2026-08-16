@@ -48,6 +48,7 @@ from safetyscope.analysis import InvalidAnalysis, build_analysis  # noqa: E402
 from safetyscope.asil import full_matrix  # noqa: E402
 from safetyscope.core import suggest_hazards  # noqa: E402
 from safetyscope.report import build_excel as build_hara_excel  # noqa: E402
+from threatscope.bridge import bridge_rule  # noqa: E402
 from threatscope.rating import full_scales  # noqa: E402
 
 _DOCUMENTS_DIR = _ROOT / "data" / "sample_project"
@@ -126,8 +127,15 @@ async def tara_scales():
     Même contrat que /hara/matrix : la page charge une fois, puis fait ses
     lookups en local. `feasibilityByPotential` couvre chaque total possible
     pour qu'aucun seuil ne soit réécrit en JavaScript.
+
+    La règle du pont HARA → TARA y est jointe pour la même raison : la page
+    n'écrit nulle part que la sévérité se transfère et que l'exposition et la
+    contrôlabilité ne se transfèrent pas — elle lit la règle et l'affiche.
+    Simple composition : les deux moteurs restent indépendants.
     """
-    return full_scales()
+    scales = full_scales()
+    scales["haraBridge"] = bridge_rule()
+    return scales
 
 
 class HaraEventPayload(BaseModel):
