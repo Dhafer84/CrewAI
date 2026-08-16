@@ -216,7 +216,10 @@ h1 em{color:var(--green);font-style:normal}
 .threat-card{background:#0d1014;border:0.5px solid var(--border-sub);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px}
 .threat-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px}
 .threat-num{font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--text-dim)}
-.threat-card .kw-input{background:var(--bg-card);font-size:12.5px}
+/* Pleine largeur et empilés : .kw-input est en flex/inline-block, sans ça
+   l'intitulé de la menace et le chemin d'attaque se partagent une ligne et
+   se tronquent l'un l'autre. */
+.threat-card .kw-input{background:var(--bg-card);font-size:12.5px;width:100%;margin-bottom:8px}
 .threat-card .rating-select{background:var(--bg-card)}
 .feasibility-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:9px;align-items:end;margin-top:12px}
 .threat-result{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border-sub)}
