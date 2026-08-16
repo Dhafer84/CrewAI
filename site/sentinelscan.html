@@ -78,7 +78,7 @@
 
   <footer>
     <div class="footer-inner">
-      <span class="footer-text">OSINT passif · sources publiques · termes retirés des journaux d'accès</span>
+      <span class="footer-text">OSINT passif · sources publiques · les termes ne transitent jamais par une URL</span>
       <a class="nav-link footer-text" href="/">Tous les outils</a>
     </div>
   </footer>
@@ -153,14 +153,36 @@
       '· ' + findings + ' détection(s) en ' + duration + ' s';
   }
 
-  btn.addEventListener('click', function() {
+  // Les mots-clés partent en POST et sont échangés contre un jeton opaque.
+  // Ils ne figurent donc jamais dans une URL — ni dans les journaux du
+  // serveur, ni dans l'historique du navigateur, ni dans l'en-tête Referer.
+  async function requestToken() {
+    const resp = await fetch('/scan/prepare', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keywords: keywords() })
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(data.error || 'Requête refusée.');
+    return data.token;
+  }
+
+  btn.addEventListener('click', async function() {
     resetUI();
     btn.disabled = true;
     setHint('Connexion au moteur…');
-    progress.classList.add('visible');
 
-    const params = new URLSearchParams({ kw: keywords().join(',') });
-    es = new EventSource('/scan/stream?' + params.toString());
+    let token;
+    try {
+      token = await requestToken();
+    } catch (err) {
+      setHint(err.message, true);
+      refreshButton();
+      return;
+    }
+
+    progress.classList.add('visible');
+    es = new EventSource('/scan/stream?t=' + encodeURIComponent(token));
 
     es.onmessage = function(evt) {
       let data;

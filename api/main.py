@@ -17,14 +17,16 @@ import asyncio
 import hashlib
 import json
 import logging
+import secrets
 import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT / "src"))
@@ -44,14 +46,11 @@ app.mount("/static", StaticFiles(directory=str(_SITE_DIR)), name="static")
 
 
 class _RedactScanKeywords(logging.Filter):
-    """Retire les mots-clés de scan du journal d'accès.
+    """Retire la query string de /scan/stream du journal d'accès.
 
-    Un terme recherché est potentiellement un nom d'entreprise : il n'a rien
-    à faire dans les logs. Le journal garde la trace de l'appel, pas de son
-    contenu.
-
-    ⚠️ Ce filtre ne couvre que uvicorn. En production, nginx journalise aussi
-    l'URL complète — il faut `access_log off;` sur la location /scan/stream.
+    Les mots-clés ne transitent plus par l'URL (ils passent en POST), mais on
+    garde ce filtre pour que le jeton de session n'apparaisse pas non plus.
+    Le journal garde la trace de l'appel, pas de son contenu.
     """
 
     def filter(self, record: logging.LogRecord) -> bool:
@@ -224,11 +223,57 @@ def _register_scan(client: str) -> None:
 
 
 # --------------------------------------------------------------------------
+# SentinelScan — jeton de session
+#
+# Les mots-clés ne transitent JAMAIS par une URL : ils sont postés, échangés
+# contre un jeton opaque à usage unique, et c'est ce jeton qui ouvre le flux
+# SSE. Un terme recherché est potentiellement un nom d'entreprise — il n'a
+# donc rien à faire dans les journaux nginx, l'historique du navigateur ou
+# l'en-tête Referer.
+# --------------------------------------------------------------------------
+
+_SCAN_TOKEN_TTL_SECONDS = 60
+_scan_tokens: dict[str, dict] = {}
+
+
+def _prune_tokens(now: float) -> None:
+    for token, entry in list(_scan_tokens.items()):
+        if now - entry["created"] > _SCAN_TOKEN_TTL_SECONDS:
+            del _scan_tokens[token]
+
+
+class ScanRequest(BaseModel):
+    keywords: list[str] = []
+
+
+@app.post("/scan/prepare")
+async def scan_prepare(request: Request, payload: ScanRequest):
+    """Valide les mots-clés et rend un jeton à usage unique."""
+    client = _client_key(request)
+
+    refusal = _rate_limit_message(client)
+    if refusal:
+        return JSONResponse({"error": refusal}, status_code=429)
+
+    try:
+        keywords = normalize_keywords(payload.keywords)
+    except InvalidKeyword as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+
+    now = time.time()
+    _prune_tokens(now)
+
+    token = secrets.token_urlsafe(18)
+    _scan_tokens[token] = {"client": client, "keywords": keywords, "created": now}
+    return {"token": token, "keywords": keywords}
+
+
+# --------------------------------------------------------------------------
 # SentinelScan — scan
 # --------------------------------------------------------------------------
 
 @app.get("/scan/stream")
-async def scan_stream(request: Request, kw: str = ""):
+async def scan_stream(request: Request, t: str = ""):
     queue: asyncio.Queue[str | None] = asyncio.Queue()
     loop = asyncio.get_event_loop()
 
@@ -239,6 +284,18 @@ async def scan_stream(request: Request, kw: str = ""):
 
     async def run():
         try:
+            _prune_tokens(time.time())
+            # Jeton à usage unique : consommé dès la première lecture.
+            entry = _scan_tokens.pop(t, None)
+            if entry is None or entry["client"] != client:
+                await queue.put(json.dumps({
+                    "type": "error",
+                    "message": "Session de scan expirée. Relancez depuis la page.",
+                }))
+                return
+
+            keywords = entry["keywords"]
+
             refusal = _rate_limit_message(client)
             if refusal:
                 await queue.put(json.dumps({"type": "error", "message": refusal}))
@@ -249,12 +306,6 @@ async def scan_stream(request: Request, kw: str = ""):
                     "type": "error",
                     "message": "Un scan est déjà en cours. Réessayez dans un instant.",
                 }))
-                return
-
-            try:
-                keywords = normalize_keywords(kw.split(","))
-            except InvalidKeyword as exc:
-                await queue.put(json.dumps({"type": "error", "message": str(exc)}))
                 return
 
             async with _scan_semaphore:
