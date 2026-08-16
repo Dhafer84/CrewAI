@@ -42,6 +42,20 @@ def _procedure_lines() -> list[str]:
     ]
 
 
+def homonym_warning(result: ScanResult) -> str | None:
+    """Avertissement quand les constats sentent le terme courant."""
+    if not result.looks_like_common_term:
+        return None
+    return (
+        f"⚠️ **Probable homonymie.** Les {len(result.findings)} détections se "
+        f"répartissent sur {result.distinct_owners} propriétaires distincts — "
+        "la signature d'un terme courant (prénom, mot du langage) plutôt que "
+        "d'un identifiant d'organisation. L'homonymie est le principal piège "
+        "de cette veille. Reprenez avec un terme plus distinctif : nom de "
+        "projet interne, domaine e-mail, référence documentaire."
+    )
+
+
 def build_markdown(result: ScanResult) -> str:
     """Rapport de synthèse en markdown, destiné à l'affichage web."""
     counts = result.count_by_criticality()
@@ -56,6 +70,11 @@ def build_markdown(result: ScanResult) -> str:
         f"exécutée(s) en {result.duration_seconds:.0f} s."
     )
     lines.append("")
+
+    warning = homonym_warning(result)
+    if warning:
+        lines.append(warning)
+        lines.append("")
 
     lines.append("| Criticité | Nombre | Délai de traitement |")
     lines.append("| --- | --- | --- |")
@@ -148,7 +167,14 @@ def build_excel(result: ScanResult) -> bytes:
     summary.append(["Durée", f"{result.duration_seconds:.0f} s"])
     summary.append(["Requêtes exécutées", result.queries_run])
     summary.append(["Détections", len(result.findings)])
+    summary.append(["Propriétaires distincts", result.distinct_owners])
     summary.append([])
+
+    warning = homonym_warning(result)
+    if warning:
+        summary.append([warning.replace("⚠️ ", "").replace("**", "")])
+        summary[summary.max_row][0].font = Font(bold=True, color="B45309")
+        summary.append([])
 
     counts = result.count_by_criticality()
     write_header(summary, ["Criticité", "Nombre", "Délai de traitement"])

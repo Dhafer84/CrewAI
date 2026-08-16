@@ -43,9 +43,9 @@ _TEMPLATE_MARKERS = (
 # des credentials (`salesforceClientCredentials.ts`) n'est pas un fichier
 # de credentials, et `get-api-credentials.Rmd` est une notice.
 _NON_SECRET_EXTENSIONS = (
-    ".ts", ".tsx", ".js", ".jsx", ".py", ".rb", ".go", ".java", ".cs",
-    ".php", ".r", ".rmd", ".sh", ".ps1", ".c", ".cpp", ".rs", ".swift",
-    ".md", ".mdx", ".rst", ".org", ".html", ".adoc",
+    ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py", ".rb", ".go",
+    ".java", ".cs", ".php", ".r", ".rmd", ".sh", ".ps1", ".c", ".cpp",
+    ".rs", ".swift", ".md", ".mdx", ".rst", ".org", ".html", ".adoc",
 )
 
 # Caractères autorisés dans un mot-clé. Tout le reste est retiré pour éviter
@@ -71,8 +71,12 @@ _CODE_PATTERNS = [
     ('"{kw}" filename:.env', "CRITIQUE", "Fichier .env exposé"),
     ('"{kw}" extension:pem', "CRITIQUE", "Clé privée / certificat"),
     ('"{kw}" filename:credentials', "CRITIQUE", "Fichier de credentials"),
-    ('"{kw}" AND "api_key"', "MAJEUR", "Référence à une clé API"),
     ('"{kw}" filename:config', "MAJEUR", "Fichier de configuration"),
+    # Signal faible : GitHub n'offre aucune contrainte de proximité, les deux
+    # termes peuvent être à des milliers de lignes l'un de l'autre. Un tutoriel
+    # qui cite le terme et « api_key » matche autant qu'un vrai fichier. D'où
+    # MINEUR, et un libellé qui dit ce qui a réellement été constaté.
+    ('"{kw}" AND "api_key"', "MINEUR", "Co-occurrence avec « api_key »"),
 ]
 
 # Recherche par NOM de dépôt — signal faible, sert au cadrage.
@@ -145,11 +149,26 @@ def _looks_like_credentials_file(basename: str) -> bool:
     return not basename.endswith(_NON_SECRET_EXTENSIONS)
 
 
-# Validateur de forme, par type de détection. None = pas de contrôle.
+def _looks_like_config_file(basename: str) -> bool:
+    """Un vrai fichier de configuration : `config.yaml`, `names.config`…
+
+    Écarte `ConfigurationForm.tsx`, `Config.java` ou `next.config.mjs`, que
+    `filename:config` remonte alors qu'il s'agit de code.
+    """
+    if "config" not in basename:
+        return False
+    return not basename.endswith(_NON_SECRET_EXTENSIONS)
+
+
+# Validateur de forme, par type de détection.
 _SHAPE_CHECKS = {
     "Fichier .env exposé": _looks_like_env_file,
     "Fichier de credentials": _looks_like_credentials_file,
+    "Fichier de configuration": _looks_like_config_file,
 }
+
+# Un constat douteux est déclassé d'un cran, jamais supprimé.
+_DOWNGRADE = {"CRITIQUE": "MINEUR", "MAJEUR": "MINEUR"}
 
 
 def refine_criticality(criticality: str, detection: str, path: str) -> tuple[str, str]:
@@ -167,21 +186,22 @@ def refine_criticality(criticality: str, detection: str, path: str) -> tuple[str
     Returns:
         Le couple (criticité, libellé) ajusté.
     """
-    if criticality != "CRITIQUE":
+    downgraded = _DOWNGRADE.get(criticality)
+    if downgraded is None:
         return criticality, detection
 
     lowered = path.lower()
     basename = lowered.rsplit("/", 1)[-1]
 
     if any(marker in lowered for marker in _TEMPLATE_MARKERS):
-        return "MINEUR", f"{detection} — modèle ou exemple"
+        return downgraded, f"{detection} — modèle ou exemple"
 
     check = _SHAPE_CHECKS.get(detection)
     if check and not check(basename):
-        return "MINEUR", f"{detection} — nom de fichier non concluant"
+        return downgraded, f"{detection} — nom de fichier non concluant"
 
     if basename.endswith(_NON_SECRET_EXTENSIONS):
-        return "MINEUR", f"{detection} — code source ou documentation"
+        return downgraded, f"{detection} — code source ou documentation"
 
     return criticality, detection
 

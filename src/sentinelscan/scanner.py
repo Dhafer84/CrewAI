@@ -52,6 +52,23 @@ class ScanResult:
             counts[finding.criticality] = counts.get(finding.criticality, 0) + 1
         return counts
 
+    @property
+    def distinct_owners(self) -> int:
+        return len({f.owner.lower() for f in self.findings})
+
+    @property
+    def looks_like_common_term(self) -> bool:
+        """Beaucoup de constats éparpillés sur beaucoup de propriétaires ?
+
+        C'est la signature d'un terme courant — prénom, mot du langage — et
+        non d'un identifiant d'organisation. L'homonymie est le principal
+        piège de cette veille : mieux vaut le dire que laisser croire à une
+        exposition massive.
+        """
+        if len(self.findings) < 10:
+            return False
+        return self.distinct_owners / len(self.findings) > 0.5
+
 
 def run_scan(keywords: list[str], progress_callback=None) -> ScanResult:
     """Lance un scan de veille sur les mots-clés fournis.
