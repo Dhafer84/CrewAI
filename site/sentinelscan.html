@@ -224,7 +224,12 @@
           dl.hidden = false;
         }
         results.classList.add('visible');
-        setHint('Scan terminé. Chaque constat reste à qualifier.');
+        if (data.incomplete > 0) {
+          setHint('Couverture incomplète — GitHub a abandonné ' + data.incomplete
+                + ' requête(s). Ne concluez pas à une absence d\'exposition.', true);
+        } else {
+          setHint('Scan terminé. Chaque constat reste à qualifier.');
+        }
         es.close(); es = null; refreshButton();
         results.scrollIntoView({ behavior: 'smooth', block: 'start' });
 

@@ -37,6 +37,8 @@ class ScanResult:
     finished_at: datetime | None = None
     findings: list[Finding] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
+    # Requêtes que GitHub n'a pas menées à terme (champ incomplete_results).
+    incomplete_queries: list[str] = field(default_factory=list)
     queries_run: int = 0
     queries_total: int = 0
 
@@ -55,6 +57,14 @@ class ScanResult:
     @property
     def distinct_owners(self) -> int:
         return len({f.owner.lower() for f in self.findings})
+
+    @property
+    def coverage_is_incomplete(self) -> bool:
+        """GitHub a-t-il abandonné au moins une requête en cours de route ?
+
+        Tant que c'est vrai, une absence de détection ne prouve rien.
+        """
+        return bool(self.incomplete_queries)
 
     @property
     def looks_like_common_term(self) -> bool:
@@ -114,9 +124,12 @@ def run_scan(keywords: list[str], progress_callback=None) -> ScanResult:
 
         try:
             if query.kind == "code":
-                hits = github.search_code(query.expression)
+                outcome = github.search_code(query.expression)
             else:
-                hits = github.search_repositories(query.expression)
+                outcome = github.search_repositories(query.expression)
+            hits = outcome.hits
+            if outcome.incomplete:
+                result.incomplete_queries.append(query.detection)
         except github.GitHubError as exc:
             result.errors.append(f"{query.detection} — {exc}")
             emit({"type": "query_error", "index": index, "message": str(exc)})

@@ -32,6 +32,20 @@ class Hit:
     url: str
 
 
+@dataclass(frozen=True)
+class SearchOutcome:
+    """Résultat d'une requête, avec l'état de complétude annoncé par GitHub.
+
+    `incomplete` reprend le champ `incomplete_results` de l'API : GitHub
+    interrompt une recherche trop longue et répond 200 avec une liste vide ou
+    partielle. Ignorer ce champ reviendrait à présenter un abandon de GitHub
+    comme une absence d'exposition — le pire faux négatif pour cet outil.
+    """
+
+    hits: list[Hit]
+    incomplete: bool
+
+
 class GitHubError(RuntimeError):
     """Échec d'appel à l'API GitHub, formulé pour l'utilisateur final."""
 
@@ -75,7 +89,7 @@ def _get(endpoint: str, query: str) -> dict:
     raise GitHubError(f"Réponse GitHub inattendue (HTTP {response.status_code}).")
 
 
-def search_code(query: str) -> list[Hit]:
+def search_code(query: str) -> SearchOutcome:
     """Recherche dans le contenu des fichiers des dépôts publics."""
     payload = _get("/search/code", query)
 
@@ -90,10 +104,10 @@ def search_code(query: str) -> list[Hit]:
                 url=item.get("html_url", ""),
             )
         )
-    return hits
+    return SearchOutcome(hits, bool(payload.get("incomplete_results")))
 
 
-def search_repositories(query: str) -> list[Hit]:
+def search_repositories(query: str) -> SearchOutcome:
     """Recherche par nom / description de dépôt public."""
     payload = _get("/search/repositories", query)
 
@@ -107,7 +121,7 @@ def search_repositories(query: str) -> list[Hit]:
                 url=item.get("html_url", ""),
             )
         )
-    return hits
+    return SearchOutcome(hits, bool(payload.get("incomplete_results")))
 
 
 def pace_code_search() -> None:

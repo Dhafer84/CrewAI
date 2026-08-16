@@ -476,6 +476,7 @@ async def scan_stream(request: Request, t: str = ""):
                     "duration": round(result.duration_seconds),
                     "report": build_markdown(result),
                     "report_id": report_id,
+                    "incomplete": len(result.incomplete_queries),
                 }))
         except RuntimeError as exc:
             # Jeton GitHub absent : message explicite, pas de trace technique.

@@ -42,6 +42,26 @@ def _procedure_lines() -> list[str]:
     ]
 
 
+def coverage_warning(result: ScanResult) -> str | None:
+    """Avertissement quand GitHub n'a pas mené toutes les requêtes à terme.
+
+    C'est le plus important des avertissements : sans lui, un abandon de
+    GitHub se lit comme une absence d'exposition.
+    """
+    if not result.coverage_is_incomplete:
+        return None
+
+    incomplete = len(result.incomplete_queries)
+    return (
+        f"⚠️ **Couverture incomplète.** GitHub n'a pas mené à terme "
+        f"{incomplete} requête(s) sur {result.queries_run} : sa recherche a "
+        "dépassé le délai qu'il s'accorde et il a répondu par un résultat "
+        "partiel. **Sur ces requêtes, l'absence de détection ne prouve rien.** "
+        "Relancez le scan pour obtenir une couverture complète avant de "
+        "conclure quoi que ce soit."
+    )
+
+
 def homonym_warning(result: ScanResult) -> str | None:
     """Avertissement quand les constats sentent le terme courant."""
     if not result.looks_like_common_term:
@@ -70,6 +90,13 @@ def build_markdown(result: ScanResult) -> str:
         f"exécutée(s) en {result.duration_seconds:.0f} s."
     )
     lines.append("")
+
+    # La couverture passe avant tout le reste : elle conditionne la lecture
+    # de l'ensemble du rapport.
+    coverage = coverage_warning(result)
+    if coverage:
+        lines.append(coverage)
+        lines.append("")
 
     warning = homonym_warning(result)
     if warning:
@@ -168,10 +195,15 @@ def build_excel(result: ScanResult) -> bytes:
     summary.append(["Requêtes exécutées", result.queries_run])
     summary.append(["Détections", len(result.findings)])
     summary.append(["Propriétaires distincts", result.distinct_owners])
+    summary.append([
+        "Couverture",
+        "INCOMPLÈTE" if result.coverage_is_incomplete else "Complète",
+    ])
     summary.append([])
 
-    warning = homonym_warning(result)
-    if warning:
+    for warning in (coverage_warning(result), homonym_warning(result)):
+        if not warning:
+            continue
         summary.append([warning.replace("⚠️ ", "").replace("**", "")])
         summary[summary.max_row][0].font = Font(bold=True, color="B45309")
         summary.append([])
@@ -216,7 +248,14 @@ def build_excel(result: ScanResult) -> bytes:
     write_header(coverage, ["Source", "Méthode d'interrogation", "Statut"])
     for row in COVERAGE:
         coverage.append(list(row))
-    autosize(coverage, [26, 46, 28])
+
+    if result.incomplete_queries:
+        coverage.append([])
+        coverage.append(["Requêtes abandonnées par GitHub (résultat partiel)"])
+        coverage[coverage.max_row][0].font = Font(bold=True, color="B45309")
+        for detection in result.incomplete_queries:
+            coverage.append([detection, "Résultat incomplet — ne rien conclure"])
+    autosize(coverage, [40, 46, 28])
 
     # --- Limites ---
     limits = workbook.create_sheet("Limites")
