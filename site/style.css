@@ -261,6 +261,19 @@ h1 em{color:var(--green);font-style:normal}
   .damage-card{padding:16px 14px}
 }
 
+/* ─── PAGE DE GARDE : APPARIEMENT DES OUTILS ET PARTI PRIS ───
+   La liaison entre SafetyScope et ThreatScope doit se voir dès le catalogue.
+   Tout tient DANS la carte : la grille auto-fill n'est pas touchée. */
+.tool-pair{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-dim);margin-top:14px;padding-top:12px;border-top:0.5px solid var(--border-sub)}
+.tool-pair svg{width:13px;height:13px;flex-shrink:0}
+.tool-card:hover .tool-pair{color:var(--text-muted)}
+
+.stance{background:var(--bg-card);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:22px 24px;margin-bottom:56px}
+.stance p{font-size:13.5px;line-height:1.75;color:var(--text-muted);margin-bottom:14px}
+.stance p:last-child{margin-bottom:0}
+.stance strong{color:var(--text)}
+.stance-pair{padding-top:16px;border-top:0.5px solid var(--border-sub)}
+
 /* ─── TRAITEMENT DU RISQUE ET OBJECTIFS DE CYBERSÉCURITÉ ───
    Le bout de la chaîne : une TARA produit des exigences, pas un chiffre. */
 .treatment{margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border-sub)}

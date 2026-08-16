@@ -116,6 +116,24 @@ def test_every_page_is_served():
             assert marker in resp.text, f"{path} ne contient pas « {marker} »"
 
 
+def test_the_catalogue_links_to_every_tool():
+    """Ajouter un outil sans sa carte le rendrait invisible depuis la page de garde.
+
+    C'est le genre d'oubli qu'aucun test de moteur ne verrait, et que
+    personne ne remarque avant qu'un visiteur ne le signale.
+    """
+    with client() as c:
+        accueil = c.get("/").text
+    for path, nom in (("/qualitycrew", "QualityCrew"), ("/sentinelscan", "SentinelScan"),
+                      ("/hara", "SafetyScope"), ("/tara", "ThreatScope")):
+        assert f'href="{path}"' in accueil, f"la carte vers {path} manque"
+        assert nom in accueil, f"le nom « {nom} » manque"
+
+    # La liaison entre les deux outils appariés doit se voir dès le catalogue.
+    assert "S'enchaîne avec ThreatScope" in accueil
+    assert "Reprend la sévérité de votre HARA" in accueil
+
+
 def test_stylesheet_is_reachable_at_the_path_pages_use():
     """Les pages demandent /static/style.css — le montage doit y répondre."""
     with client() as c:

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Outils Qualité &amp; Sécurité — Industrie automobile</title>
-  <meta name="description" content="Outils de démonstration Qualité et Sécurité pour l'industrie automobile et l'embarqué : audit de conformité par agents IA, veille de fuite d'information.">
+  <meta name="description" content="Outils de démonstration Qualité et Sécurité pour l'industrie automobile et l'embarqué : audit de conformité par agents IA, veille de fuite d'information, analyse HARA / ASIL, analyse de menaces TARA.">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -91,11 +91,48 @@
         <span class="tag">HARA</span>
         <span class="tag">Sans attente</span>
       </div>
+      <span class="tool-pair">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        S'enchaîne avec ThreatScope
+      </span>
       <span class="tool-cta">Coter un item
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </span>
     </a>
 
+    <!-- Outil — ThreatScope -->
+    <a class="tool-card is-live" href="/tara">
+      <div class="tool-head">
+        <span class="tool-icon icon-coral">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2 4 6v6c0 5 3.4 9.4 8 10 4.6-.6 8-5 8-10V6z"/><path d="M12 8v4M12 16h.01"/></svg>
+        </span>
+        <span class="tool-status status-live"><span class="dot dot-done"></span>En ligne</span>
+      </div>
+      <h2 class="tool-name">ThreatScope</h2>
+      <p class="tool-desc">Analyse de menaces et de risques cybersécurité. La faisabilité d'une attaque se cote sur cinq critères, le risque en découle immédiatement. La chaîne va jusqu'aux objectifs de cybersécurité — une TARA produit des exigences, pas un chiffre.</p>
+      <div class="tool-tags">
+        <span class="tag">ISO/SAE 21434</span>
+        <span class="tag">TARA</span>
+        <span class="tag">UN R155</span>
+      </div>
+      <span class="tool-pair">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+        Reprend la sévérité de votre HARA
+      </span>
+      <span class="tool-cta">Analyser les menaces
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </span>
+    </a>
+
+  </div>
+
+  <!-- Le positionnement ne se devine pas : à quatre outils dont deux sans IA
+       obligatoire, il doit être écrit. -->
+  <div class="section-label">Parti pris</div>
+  <div class="stance">
+    <p><strong>Deux de ces outils ne font appel à aucune intelligence artificielle pour produire leur résultat.</strong> Déterminer un ASIL ou une valeur de risque, ce sont des tables de décision : la réponse est exacte et instantanée. Y glisser un modèle de langage n'ajouterait qu'une latence et une incertitude.</p>
+    <p>L'IA intervient là où elle est réellement utile — balayer méthodiquement des mots-guides pour amorcer une réflexion — et <strong>jamais pour coter</strong>. Savoir quand ne pas utiliser un LLM fait partie du métier.</p>
+    <p class="stance-pair"><strong>SafetyScope et ThreatScope se parlent.</strong> La sévérité d'un événement redouté devient l'impact « sécurité des personnes » d'un scénario de dommage. L'exposition et la contrôlabilité, elles, ne traversent pas : un attaquant choisit son moment, et peut neutraliser le recours du conducteur.</p>
   </div>
 
   <footer>
