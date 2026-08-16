@@ -1,9 +1,12 @@
-"""Backend FastAPI — démo live QualityCrew.
+"""Backend FastAPI — site de démos Qualité & Sécurité.
 
-Expose deux choses :
-  GET /              → index.html
-  GET /audit/stream  → SSE : événements de progression + rapport final
+  GET /              → page de garde (catalogue d'outils)
+  GET /qualitycrew   → démo d'audit ASPICE / ISO 26262
+  GET /sentinelscan  → veille de fuite d'information
+  GET /audit/stream  → SSE : progression des agents + rapport final
   GET /static/*      → assets CSS
+
+Enveloppe mince : aucune logique métier ici, tout est dans src/.
 
 Un seul audit à la fois (Semaphore). Pas d'input utilisateur :
 l'audit tourne toujours sur data/sample_project/.
@@ -33,9 +36,32 @@ app.mount("/static", StaticFiles(directory=str(_SITE_DIR)), name="static")
 _audit_semaphore = asyncio.Semaphore(1)
 
 
+# Catalogue des pages. Ajouter un outil = ajouter une entrée ici et sa carte
+# dans site/index.html — rien d'autre à toucher.
+_PAGES = {
+    "/": "index.html",
+    "/qualitycrew": "qualitycrew.html",
+    "/sentinelscan": "sentinelscan.html",
+}
+
+
+def _serve(filename: str):
+    return FileResponse(_SITE_DIR / filename)
+
+
 @app.get("/")
 async def index():
-    return FileResponse(_SITE_DIR / "index.html")
+    return _serve(_PAGES["/"])
+
+
+@app.get("/qualitycrew")
+async def qualitycrew_page():
+    return _serve(_PAGES["/qualitycrew"])
+
+
+@app.get("/sentinelscan")
+async def sentinelscan_page():
+    return _serve(_PAGES["/sentinelscan"])
 
 
 @app.get("/audit/stream")

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SentinelScan — Veille de fuite d'information</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+
+  <nav>
+    <a class="nav-back" href="/">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Tous les outils
+    </a>
+    <a class="nav-link" href="https://github.com/Dhafer84/CrewAI" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      GitHub
+    </a>
+  </nav>
+
+  <section class="hero">
+    <div class="badge badge-amber">
+      <span class="dot dot-running"></span>
+      Démo interactive en construction
+    </div>
+    <h1>Sentinel<em>Scan</em></h1>
+    <p class="subtitle">Veille passive de fuite d'information sur les dépôts publics. Le moteur est opérationnel et testé ; l'interface de scan en ligne arrive prochainement.</p>
+  </section>
+
+  <div class="section-label">Principe</div>
+  <div class="report-box">
+    <div class="report-body">
+      <p>L'outil interroge l'API de recherche publique de GitHub — la seule plateforme grand public qui indexe le <strong>contenu</strong> des fichiers, et non seulement les noms de dépôts. À partir de termes distinctifs (nom d'entreprise, nom de projet interne, domaine e-mail), il identifie les expositions et les classe par criticité.</p>
+
+      <h3>Échelle de criticité</h3>
+      <table>
+        <thead><tr><th>Niveau</th><th>Signification</th><th>Délai de traitement</th></tr></thead>
+        <tbody>
+          <tr><td>CRITIQUE</td><td>Secret, credential, clé privée</td><td>24 h</td></tr>
+          <tr><td>MAJEUR</td><td>Code ou information interne identifiable</td><td>5 jours ouvrés</td></tr>
+          <tr><td>MINEUR</td><td>Mention indirecte, contexte à qualifier</td><td>15 jours</td></tr>
+          <tr><td>INFO</td><td>Signal faible, veille</td><td>au fil de l'eau</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Règles de conception</h3>
+      <ul>
+        <li><strong>La valeur d'un secret n'est jamais lue, affichée ni stockée.</strong> Seules les métadonnées circulent : dépôt, chemin, URL, criticité. Un secret trouvé se révoque, il ne se teste jamais.</li>
+        <li><strong>Sources publiques exclusivement.</strong> Le jeton d'accès est créé sans aucune permission — s'il fuite, l'impact est nul.</li>
+        <li><strong>Aucun constat n'est supprimé silencieusement.</strong> Un résultat douteux est déclassé avec son motif : c'est à l'analyste de qualifier, pas à l'outil de trancher seul.</li>
+      </ul>
+
+      <h3>Limites assumées</h3>
+      <p>Une veille dont on connaît les limites vaut mieux qu'une veille dont on croit à tort qu'elle est exhaustive. GitHub n'indexe que la branche par défaut, les Gists et Pastebin n'ont pas d'API de recherche, et un dépôt supprimé survit dans ses forks. Le rapport généré documente explicitement ce périmètre.</p>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-inner">
+      <span class="footer-text">Projet de démonstration · OSINT passif, sources publiques</span>
+      <a class="nav-link footer-text" href="/">Tous les outils</a>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
