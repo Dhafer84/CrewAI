@@ -1,6 +1,12 @@
 """Tests de la détermination ASIL.
 
-Exécutable sans pytest :  .venv/bin/python3 tests/test_asil.py
+Exécutable sans pytest :  .venv/bin/python3 -B tests/test_asil.py
+
+Le drapeau `-B` n'est pas décoratif. CPython valide son cache bytecode sur la
+taille du source et sa date à la seconde près : deux versions de même taille
+écrites dans la même seconde sont indistinguables pour lui, et un `.pyc`
+périmé fait alors mentir les tests. `-B` n'écrit aucun cache, donc rien ne
+périme.
 
 La table de référence ci-dessous est écrite **à la main**, ligne par ligne,
 et non recalculée à partir de la formule du module. Un test qui re-dériverait
