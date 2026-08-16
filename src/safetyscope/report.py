@@ -7,6 +7,8 @@ démarche (objectif de sécurité, état sûr, responsable).
 
 from io import BytesIO
 
+from xlsxsafe import harden
+
 from .analysis import HaraAnalysis
 from .asil import (
     ASIL_ORDER,
@@ -145,6 +147,11 @@ def build_excel(analysis: HaraAnalysis) -> bytes:
         for cell in row:
             cell.alignment = Alignment(vertical="top", wrap_text=True)
     autosize(limits, [52, 58])
+
+    # Un intitulé saisi par l'utilisateur peut commencer par « = » : openpyxl
+    # l'écrirait comme une formule. Balayage complet juste avant l'écriture,
+    # pour qu'une ligne ajoutée un jour plus haut soit couverte sans y penser.
+    harden(workbook)
 
     buffer = BytesIO()
     workbook.save(buffer)

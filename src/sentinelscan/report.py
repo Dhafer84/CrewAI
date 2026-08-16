@@ -7,6 +7,8 @@ croit à tort qu'elle est exhaustive.
 
 from io import BytesIO
 
+from xlsxsafe import harden
+
 from .queries import CRITICALITY_ORDER, CRITICALITY_SLA
 from .scanner import ScanResult
 
@@ -273,6 +275,12 @@ def build_excel(result: ScanResult) -> bytes:
     else:
         errors.append(["Aucune erreur — couverture complète sur le périmètre interrogé."])
     autosize(errors, [100])
+
+    # ⚠️ Nom de dépôt, propriétaire et chemin viennent de GitHub, donc de
+    # tiers : quelqu'un peut nommer un dépôt public « =HYPERLINK(...) » et
+    # attendre qu'un scan le remonte. La victime serait l'analyste qui ouvre
+    # ce classeur. Balayage complet juste avant l'écriture.
+    harden(workbook)
 
     buffer = BytesIO()
     workbook.save(buffer)
