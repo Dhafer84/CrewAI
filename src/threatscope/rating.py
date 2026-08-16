@@ -299,6 +299,12 @@ def full_scales() -> dict:
             for key, (name, levels) in PARAMETERS.items()
         },
         "maxPotential": MAX_POTENTIAL,
+        # Table complète potentiel → faisabilité, un cran par point. L'interface
+        # y fait un simple lookup : les seuils ne sont **jamais** réécrits en
+        # JavaScript, ils ne vivent qu'ici.
+        "feasibilityByPotential": [
+            feasibility_from_potential(points) for points in range(MAX_POTENTIAL + 1)
+        ],
         # Bornes hautes de chaque palier, pour que l'interface puisse expliquer
         # le passage d'un niveau à l'autre au lieu de le subir.
         "feasibilityThresholds": [

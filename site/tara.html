@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThreatScope — Analyse de menaces et de risques TARA</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+
+  <nav>
+    <a class="nav-back" href="/">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Tous les outils
+    </a>
+    <a class="nav-link" href="https://github.com/Dhafer84/CrewAI" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      GitHub
+    </a>
+  </nav>
+
+  <section class="hero">
+    <div class="badge badge-purple">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>
+      Cotation instantanée — aucun temps d'attente
+    </div>
+    <h1>Threat<em>Scope</em></h1>
+    <p class="subtitle">Analyse de menaces et de risques cybersécurité, dans l'esprit de la démarche TARA de l'ISO/SAE 21434. La faisabilité d'une attaque se cote, elle ne se devine pas&nbsp;: le résultat est <strong>déterministe et immédiat</strong>, sans intelligence artificielle.</p>
+  </section>
+
+  <div class="disclaimer">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+    <span><strong>Démonstration pédagogique.</strong> Le barème de potentiel d'attaque employé ici est une <strong>calibration qui nous est propre</strong>&nbsp;: il ne reproduit ni l'ISO/SAE 21434 ni l'ISO 18045, documents sous licence. La norme laisse d'ailleurs chaque organisation définir sa méthode de détermination du risque — celle-ci est donc <em>une</em> méthode, pas <em>la</em> méthode.</span>
+  </div>
+
+  <div class="section-label">Item étudié</div>
+  <input type="text" id="item-name" class="kw-input item-field" maxlength="120"
+         placeholder="ex : Passerelle télématique embarquée" autocomplete="off">
+
+  <div class="section-label" style="margin-top:40px">Scénarios de dommage</div>
+  <p class="form-hint" style="margin-bottom:16px">Chaque scénario de dommage porte la cotation d'<strong>impact</strong> — quatre catégories, toutes à renseigner. Les scénarios de menace qu'il contient portent la <strong>faisabilité de l'attaque</strong>. Le risque naît du croisement des deux.</p>
+  <div id="damages"></div>
+
+  <div class="events-actions">
+    <button class="btn btn-ghost" id="btn-add-damage">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      Ajouter un scénario de dommage
+    </button>
+    <span class="form-hint" id="count-hint"></span>
+  </div>
+
+  <details class="calib">
+    <summary>Comment ce barème est calibré</summary>
+    <p id="calib-text"></p>
+  </details>
+
+  <div class="section-label" style="margin-top:44px">Synthèse</div>
+  <div class="tara-summary">
+    <div class="summary-main">
+      <div class="summary-label">Risque le plus élevé</div>
+      <div class="risk-badge risk-none" id="max-risk">—</div>
+      <div class="summary-note" id="rated-note">Aucun chemin d'attaque coté</div>
+    </div>
+    <div class="summary-side">
+      <div class="summary-label">Répartition des valeurs de risque</div>
+      <div class="risk-spread" id="spread"></div>
+      <div class="treatment-note" id="treatment-note"></div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-inner">
+      <span class="footer-text">ThreatScope · démonstration pédagogique, ne remplace pas la norme</span>
+      <a class="nav-link footer-text" href="/">Tous les outils</a>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+(function() {
+  const MAX_DAMAGES = 6;
+  const MAX_THREATS = 4;
+
+  // Ordre d'affichage figé côté page ; les libellés, eux, viennent du serveur.
+  const IMPACT_KEYS = ['safety', 'financial', 'operational', 'privacy'];
+  const FEASIBILITY_KEYS = ['time', 'expertise', 'knowledge', 'window', 'equipment'];
+
+  const damages = document.getElementById('damages');
+  const btnAdd  = document.getElementById('btn-add-damage');
+  const countEl = document.getElementById('count-hint');
+  let scales = null;   // barème + matrice, chargés une seule fois
+
+  // Le barème et la matrice vivent en Python. On les charge une fois et on
+  // fait les lookups en local : instantané, sans dupliquer la règle en JS.
+  // `feasibilityByPotential` couvre chaque total possible — aucun seuil n'est
+  // réécrit ici.
+  fetch('/tara/scales')
+    .then(r => r.json())
+    .then(data => {
+      scales = data;
+      document.getElementById('calib-text').textContent = data.calibration;
+      addDamage();
+      refreshSummary();
+    })
+    .catch(() => { countEl.textContent = 'Impossible de charger le barème.'; });
+
+  function optionsFor(levels, formatter) {
+    let html = '<option value="">—</option>';
+    levels.forEach(function(entry, index) {
+      html += '<option value="' + index + '">' + formatter(entry, index) + '</option>';
+    });
+    return html;
+  }
+
+  function riskClass(risk) {
+    return 'risk-badge risk-' + (risk === null ? 'none' : risk);
+  }
+
+  // --- Scénario de dommage : porte l'impact -------------------------------
+
+  function addDamage() {
+    if (damages.children.length >= MAX_DAMAGES) return null;
+    const card = document.createElement('div');
+    card.className = 'damage-card';
+
+    let selects = '';
+    IMPACT_KEYS.forEach(function(key) {
+      const options = optionsFor(
+        scales.impactOrder.map(function(label) { return { label: label }; }),
+        function(entry) { return entry.label; }
+      );
+      selects +=
+        '<label class="rating">' +
+          '<span class="rating-label">' + scales.impactCategories[key] + '</span>' +
+          '<select class="rating-select impact-select" data-key="' + key + '">' + options + '</select>' +
+        '</label>';
+    });
+
+    card.innerHTML =
+      '<div class="damage-head">' +
+        '<span class="damage-num"></span>' +
+        '<button class="event-del" title="Supprimer" aria-label="Supprimer ce scénario de dommage">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+        '</button>' +
+      '</div>' +
+      '<input type="text" class="kw-input event-input damage-asset" maxlength="120" placeholder="Actif concerné — ex : calculateur de freinage">' +
+      '<input type="text" class="kw-input event-input damage-text" maxlength="180" placeholder="Conséquence redoutée — ex : freinage commandé sans action du conducteur">' +
+      '<div class="impact-grid">' + selects +
+        '<div class="rating-result"><span class="rating-label">Impact retenu</span>' +
+        '<span class="impact-badge" data-role="impact">—</span></div>' +
+      '</div>' +
+      '<div class="threats">' +
+        '<div class="threats-label">Scénarios de menace</div>' +
+        '<div class="threat-list"></div>' +
+        '<div class="damage-actions">' +
+          '<button class="btn btn-ghost btn-sm btn-add-threat">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>' +
+            'Ajouter une menace' +
+          '</button>' +
+          '<span class="form-hint threat-count" style="margin-bottom:0"></span>' +
+        '</div>' +
+      '</div>';
+
+    card.querySelectorAll('.impact-select').forEach(function(sel) {
+      sel.addEventListener('change', function() { refreshDamage(card); refreshSummary(); });
+    });
+    card.querySelector('.event-del').addEventListener('click', function() {
+      card.remove(); renumber(); refreshCount(); refreshSummary();
+    });
+    card.querySelector('.btn-add-threat').addEventListener('click', function() {
+      addThreat(card); refreshSummary();
+    });
+
+    damages.appendChild(card);
+    addThreat(card);
+    refreshCount();
+    return card;
+  }
+
+  // L'impact retenu est le plus élevé des quatre catégories — mais les quatre
+  // doivent avoir été regardées, y compris pour dire « négligeable ».
+  function damageImpact(card) {
+    let max = -1;
+    const selects = card.querySelectorAll('.impact-select');
+    for (const sel of selects) {
+      if (sel.value === '') return null;
+      max = Math.max(max, parseInt(sel.value, 10));
+    }
+    return max < 0 ? null : max;
+  }
+
+  function refreshDamage(card) {
+    const impact = damageImpact(card);
+    const badge = card.querySelector('[data-role="impact"]');
+    badge.className = 'impact-badge' + (impact === null ? '' : ' has-value');
+    badge.textContent = impact === null ? '—' : scales.impactOrder[impact];
+    card.classList.toggle('is-rated', impact !== null);
+    card.querySelectorAll('.threat-card').forEach(function(threat) {
+      refreshThreat(card, threat);
+    });
+  }
+
+  // --- Scénario de menace : porte la faisabilité --------------------------
+
+  function addThreat(damageCard, prefill) {
+    const list = damageCard.querySelector('.threat-list');
+    if (list.children.length >= MAX_THREATS) return null;
+
+    const card = document.createElement('div');
+    card.className = 'threat-card';
+
+    let selects = '';
+    FEASIBILITY_KEYS.forEach(function(key) {
+      const parameter = scales.parameters[key];
+      const options = optionsFor(parameter.levels, function(entry) {
+        return entry.label + ' — ' + entry.points + ' pt';
+      });
+      selects +=
+        '<label class="rating">' +
+          '<span class="rating-label">' + parameter.label + '</span>' +
+          '<select class="rating-select feasibility-select" data-key="' + key + '">' + options + '</select>' +
+        '</label>';
+    });
+
+    card.innerHTML =
+      '<div class="threat-head">' +
+        '<span class="threat-num"></span>' +
+        '<button class="event-del" title="Supprimer" aria-label="Supprimer ce scénario de menace">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+        '</button>' +
+      '</div>' +
+      '<input type="text" class="kw-input threat-text" maxlength="180" placeholder="Menace — ex : élévation de privilèges via l\'interface de diagnostic">' +
+      '<input type="text" class="kw-input attack-path" maxlength="220" placeholder="Chemin d\'attaque — ex : accès au port OBD, puis contournement de l\'authentification UDS">' +
+      '<div class="feasibility-grid">' + selects + '</div>' +
+      '<div class="threat-result">' +
+        '<span class="potential-note" data-role="potential">Faisabilité non cotée</span>' +
+        '<div class="rating-result"><span class="rating-label">Risque</span>' +
+        '<span class="' + riskClass(null) + '" data-role="risk">—</span></div>' +
+      '</div>';
+
+    card.querySelectorAll('.feasibility-select').forEach(function(sel) {
+      sel.addEventListener('change', function() {
+        refreshThreat(damageCard, card); refreshSummary();
+      });
+    });
+    card.querySelector('.event-del').addEventListener('click', function() {
+      card.remove(); renumber(); refreshThreatCount(damageCard); refreshSummary();
+    });
+
+    list.appendChild(card);
+
+    if (prefill) {
+      card.querySelector('.threat-text').value = prefill.threat || '';
+      card.querySelector('.attack-path').value = prefill.path || '';
+    }
+
+    renumber();
+    refreshThreatCount(damageCard);
+    return card;
+  }
+
+  function threatPotential(card) {
+    let total = 0;
+    const selects = card.querySelectorAll('.feasibility-select');
+    for (const sel of selects) {
+      if (sel.value === '') return null;
+      const parameter = scales.parameters[sel.dataset.key];
+      total += parameter.levels[parseInt(sel.value, 10)].points;
+    }
+    return total;
+  }
+
+  function threatFeasibility(card) {
+    const potential = threatPotential(card);
+    return potential === null ? null : scales.feasibilityByPotential[potential];
+  }
+
+  function threatRisk(damageCard, threatCard) {
+    const impact = damageImpact(damageCard);
+    const feasibility = threatFeasibility(threatCard);
+    if (impact === null || feasibility === null) return null;
+    return scales.risk['I' + impact + 'F' + feasibility];
+  }
+
+  function refreshThreat(damageCard, threatCard) {
+    const potential = threatPotential(threatCard);
+    const feasibility = threatFeasibility(threatCard);
+    const impact = damageImpact(damageCard);
+    const note = threatCard.querySelector('[data-role="potential"]');
+
+    if (potential === null) {
+      note.textContent = 'Faisabilité non cotée';
+    } else {
+      note.textContent = potential + ' / ' + scales.maxPotential + ' pt · faisabilité '
+                       + scales.feasibilityOrder[feasibility].toLowerCase()
+                       + (impact === null ? ' · impact du dommage non coté' : '');
+    }
+
+    const risk = threatRisk(damageCard, threatCard);
+    const badge = threatCard.querySelector('[data-role="risk"]');
+    badge.className = riskClass(risk);
+    badge.textContent = risk === null ? '—' : risk;
+  }
+
+  // --- Numérotation et compteurs -----------------------------------------
+
+  // Les numéros suivent la position, pas l'ordre de création : après une
+  // suppression, les listes restent numérotées 1..N.
+  function renumber() {
+    Array.from(damages.children).forEach(function(card, index) {
+      card.querySelector('.damage-num').textContent = 'Scénario de dommage ' + (index + 1);
+      Array.from(card.querySelectorAll('.threat-card')).forEach(function(threat, position) {
+        threat.querySelector('.threat-num').textContent = 'Menace ' + (index + 1) + '.' + (position + 1);
+      });
+    });
+  }
+
+  function refreshThreatCount(damageCard) {
+    const list = damageCard.querySelector('.threat-list');
+    const n = list.children.length;
+    damageCard.querySelector('.btn-add-threat').disabled = n >= MAX_THREATS;
+    damageCard.querySelector('.threat-count').textContent =
+      n >= MAX_THREATS ? MAX_THREATS + ' menaces maximum' : n + ' / ' + MAX_THREATS;
+  }
+
+  function refreshCount() {
+    renumber();
+    const n = damages.children.length;
+    btnAdd.disabled = n >= MAX_DAMAGES;
+    countEl.textContent = n >= MAX_DAMAGES
+      ? MAX_DAMAGES + ' scénarios de dommage maximum pour cette démonstration.'
+      : n + ' / ' + MAX_DAMAGES + ' scénarios de dommage';
+  }
+
+  // --- Synthèse -----------------------------------------------------------
+
+  function refreshSummary() {
+    const counts = {};
+    for (let value = scales.riskRange[0]; value <= scales.riskRange[1]; value++) counts[value] = 0;
+
+    let rated = 0, maxRisk = null, toTreat = 0;
+
+    Array.from(damages.children).forEach(function(damageCard) {
+      damageCard.querySelectorAll('.threat-card').forEach(function(threatCard) {
+        const risk = threatRisk(damageCard, threatCard);
+        if (risk === null) return;
+        rated += 1;
+        counts[risk] += 1;
+        if (maxRisk === null || risk > maxRisk) maxRisk = risk;
+        if (risk > 1) toTreat += 1;
+      });
+    });
+
+    const badge = document.getElementById('max-risk');
+    badge.className = riskClass(maxRisk);
+    badge.textContent = maxRisk === null ? '—' : maxRisk;
+
+    document.getElementById('rated-note').textContent = rated === 0
+      ? 'Aucun chemin d\'attaque coté'
+      : rated + ' chemin' + (rated > 1 ? 's' : '') + ' d\'attaque coté' + (rated > 1 ? 's' : '');
+
+    const spread = document.getElementById('spread');
+    spread.innerHTML = '';
+    for (let value = scales.riskRange[0]; value <= scales.riskRange[1]; value++) {
+      const cell = document.createElement('div');
+      cell.className = 'spread-cell' + (counts[value] ? ' has-value' : '');
+      cell.innerHTML = '<span class="risk-badge risk-' + value + ' badge-sm">' + value + '</span>'
+                     + '<span class="spread-count">' + counts[value] + '</span>';
+      spread.appendChild(cell);
+    }
+
+    // Un risque de 1 peut être retenu sans autre forme de procès ; tout le
+    // reste demande une décision de traitement explicite et justifiée.
+    document.getElementById('treatment-note').textContent = rated === 0
+      ? 'Cotez un impact et une faisabilité pour obtenir une valeur de risque.'
+      : toTreat === 0
+        ? 'Aucun risque n\'appelle de traitement : tous sont à 1.'
+        : toTreat + ' risque' + (toTreat > 1 ? 's' : '') + ' au-dessus de 1 — '
+          + (toTreat > 1 ? 'ils appellent' : 'il appelle')
+          + ' une décision de traitement explicite.';
+  }
+
+  // Sans la lambda, l'objet Event du clic serait pris pour un préremplissage.
+  btnAdd.addEventListener('click', function() { addDamage(); refreshSummary(); });
+})();
+</script>
+</body>
+</html>

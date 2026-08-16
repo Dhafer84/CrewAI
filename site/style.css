@@ -198,6 +198,64 @@ h1 em{color:var(--green);font-style:normal}
   .hara-summary{grid-template-columns:1fr}
 }
 
+/* ─── THREATSCOPE (TARA) ───
+   Deux niveaux imbriqués : le scénario de dommage porte l'impact, le
+   scénario de menace porte la faisabilité. Le risque naît du croisement,
+   il s'affiche donc sur la carte de menace. */
+.damage-card{background:var(--bg-card);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;margin-bottom:14px;transition:border-color .15s}
+.damage-card.is-rated{border-color:var(--border-sub);background:var(--bg-card-hover)}
+.damage-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.damage-num{font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--text-dim)}
+
+.impact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;align-items:end;margin-top:12px}
+.impact-badge{display:inline-flex;align-items:center;justify-content:center;min-width:92px;padding:6px 12px;border-radius:6px;font-size:12.5px;font-weight:600;background:#0d1014;border:0.5px solid var(--border);color:var(--text-dim);text-align:center}
+.impact-badge.has-value{background:var(--purple-bg);border-color:var(--purple);color:var(--purple)}
+
+.threats{margin-top:18px;padding-left:14px;border-left:2px solid var(--border)}
+.threats-label{font-size:10.5px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px}
+.threat-card{background:#0d1014;border:0.5px solid var(--border-sub);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px}
+.threat-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px}
+.threat-num{font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--text-dim)}
+.threat-card .kw-input{background:var(--bg-card);font-size:12.5px}
+.threat-card .rating-select{background:var(--bg-card)}
+.feasibility-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:9px;align-items:end;margin-top:12px}
+.threat-result{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border-sub)}
+.threat-result .rating-result{flex-direction:row;align-items:center;gap:8px}
+.potential-note{font-size:11.5px;color:var(--text-dim);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+.risk-badge{display:inline-flex;align-items:center;justify-content:center;min-width:34px;padding:5px 11px;border-radius:6px;font-size:14px;font-weight:600;letter-spacing:.4px}
+.risk-badge.badge-sm{min-width:26px;padding:2px 7px;font-size:11px}
+.risk-none{background:#0d1014;border:0.5px solid var(--border);color:var(--text-dim)}
+.risk-1{background:#1a1d24;border:0.5px solid var(--border);color:var(--text-muted)}
+.risk-2{background:var(--blue-bg);border:0.5px solid var(--blue);color:var(--blue)}
+.risk-3{background:var(--amber-bg);border:0.5px solid var(--amber);color:var(--amber)}
+.risk-4{background:var(--coral-bg);border:0.5px solid var(--coral);color:var(--coral)}
+.risk-5{background:var(--red-bg);border:0.5px solid var(--red);color:var(--red)}
+
+.damage-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px}
+.btn-ghost.btn-sm{font-size:11.5px;padding:5px 10px}
+
+/* Le raisonnement de calibration est montré, pas caché : c'est ce qui rend
+   un barème propre défendable. */
+.calib{background:var(--bg-card);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 16px}
+.calib summary{font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;list-style:none}
+.calib summary::-webkit-details-marker{display:none}
+.calib summary::before{content:'▸ ';color:var(--text-dim)}
+.calib[open] summary::before{content:'▾ '}
+.calib summary:hover{color:var(--text)}
+.calib p{margin-top:12px;font-size:12.5px;line-height:1.7;color:var(--text-muted);white-space:pre-line}
+
+.tara-summary{display:grid;grid-template-columns:minmax(180px,1fr) 2fr;gap:16px;margin-bottom:48px}
+.tara-summary .summary-main .risk-badge{min-width:60px;font-size:20px;padding:10px 16px}
+.risk-spread{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 4px}
+.treatment-note{margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border-sub);font-size:12px;color:var(--text-muted)}
+
+@media(max-width:600px){
+  .tara-summary{grid-template-columns:1fr}
+  .threats{padding-left:10px}
+  .damage-card{padding:16px 14px}
+}
+
 /* Téléchargement du rapport */
 .btn-download{display:inline-flex;align-items:center;gap:6px;margin-left:auto;font-size:12px;font-weight:500;color:var(--green);background:var(--green-bg);border:0.5px solid var(--green-border);border-radius:6px;padding:5px 11px;white-space:nowrap}
 .btn-download:hover{background:#1d3b30;text-decoration:none}

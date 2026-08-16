@@ -234,6 +234,26 @@ def test_full_scales_matches_the_functions():
     assert served_max == MAX_POTENTIAL
 
 
+def test_served_feasibility_table_covers_every_point():
+    """L'interface fait un lookup — les seuils ne doivent jamais être réécrits en JS.
+
+    La table servie couvre donc chaque total possible, et doit coller au
+    moteur point par point.
+    """
+    served = full_scales()["feasibilityByPotential"]
+    assert len(served) == MAX_POTENTIAL + 1
+
+    for potential, expected in EXPECTED_FEASIBILITY.items():
+        assert served[potential] == expected, f"{potential} points mal servis"
+
+    # Le lookup client doit rendre exactement ce que rendrait le moteur.
+    for potential in range(MAX_POTENTIAL + 1):
+        assert served[potential] == feasibility_from_potential(potential)
+
+    # Un niveau de faisabilité ne peut que baisser quand le coût monte.
+    assert served == sorted(served, reverse=True)
+
+
 def main() -> int:
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failures = 0

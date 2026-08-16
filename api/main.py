@@ -3,6 +3,8 @@
   GET /              → page de garde (catalogue d'outils)
   GET /qualitycrew   → démo d'audit ASPICE / ISO 26262
   GET /sentinelscan  → démo de veille de fuite d'information
+  GET /hara          → SafetyScope, analyse HARA / ASIL
+  GET /tara          → ThreatScope, analyse TARA / risque cybersécurité
   GET /audit/stream  → SSE : progression des agents + rapport final
   GET /scan/stream   → SSE : progression du scan + rapport final
   GET /static/*      → assets CSS
@@ -46,6 +48,7 @@ from safetyscope.analysis import InvalidAnalysis, build_analysis  # noqa: E402
 from safetyscope.asil import full_matrix  # noqa: E402
 from safetyscope.core import suggest_hazards  # noqa: E402
 from safetyscope.report import build_excel as build_hara_excel  # noqa: E402
+from threatscope.rating import full_scales  # noqa: E402
 
 _DOCUMENTS_DIR = _ROOT / "data" / "sample_project"
 _SITE_DIR = _ROOT / "site"
@@ -109,6 +112,22 @@ async def hara_matrix():
     reste instantanée sans que la logique soit dupliquée en JavaScript.
     """
     return full_matrix()
+
+
+@app.get("/tara")
+async def tara_page():
+    return FileResponse(_SITE_DIR / "tara.html")
+
+
+@app.get("/tara/scales")
+async def tara_scales():
+    """Barème de potentiel d'attaque + matrice de risque — source de vérité unique.
+
+    Même contrat que /hara/matrix : la page charge une fois, puis fait ses
+    lookups en local. `feasibilityByPotential` couvre chaque total possible
+    pour qu'aucun seuil ne soit réécrit en JavaScript.
+    """
+    return full_scales()
 
 
 class HaraEventPayload(BaseModel):
