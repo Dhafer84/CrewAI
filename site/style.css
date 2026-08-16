@@ -126,6 +126,12 @@ h1 em{color:var(--green);font-style:normal}
 .crit-mineur .crit-val{color:var(--blue)}
 .crit-info .crit-val{color:var(--text-muted)}
 
+/* Téléchargement du rapport */
+.btn-download{display:inline-flex;align-items:center;gap:6px;margin-left:auto;font-size:12px;font-weight:500;color:var(--green);background:var(--green-bg);border:0.5px solid var(--green-border);border-radius:6px;padding:5px 11px;white-space:nowrap}
+.btn-download:hover{background:#1d3b30;text-decoration:none}
+.btn-download svg{width:14px;height:14px}
+.btn-download[hidden]{display:none}
+
 /* SECTION LABELS */
 .section-label{font-size:11px;font-weight:600;letter-spacing:.9px;color:var(--text-dim);text-transform:uppercase;margin-bottom:16px}
 

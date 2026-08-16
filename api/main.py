@@ -24,7 +24,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import (
+    FileResponse,
+    JSONResponse,
+    Response,
+    StreamingResponse,
+)
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -35,7 +40,7 @@ from qualitycrew.config import require_llm_key  # noqa: E402
 from qualitycrew.core import run_audit  # noqa: E402
 from sentinelscan.config import require_github_token  # noqa: E402
 from sentinelscan.queries import InvalidKeyword, normalize_keywords  # noqa: E402
-from sentinelscan.report import build_markdown  # noqa: E402
+from sentinelscan.report import build_excel, build_markdown  # noqa: E402
 from sentinelscan.scanner import run_scan  # noqa: E402
 
 _DOCUMENTS_DIR = _ROOT / "data" / "sample_project"
@@ -269,6 +274,56 @@ async def scan_prepare(request: Request, payload: ScanRequest):
 
 
 # --------------------------------------------------------------------------
+# SentinelScan — rapports Excel
+#
+# Le classeur contient les termes recherchés et les URL détectées : il est
+# gardé en mémoire seulement, avec une durée de vie courte, et n'est servi
+# qu'au client qui a lancé le scan. Rien n'est écrit sur disque.
+# --------------------------------------------------------------------------
+
+_REPORT_TTL_SECONDS = 1800
+_MAX_STORED_REPORTS = 20
+_XLSX_MEDIA_TYPE = (
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+
+_scan_reports: dict[str, dict] = {}
+
+
+def _prune_reports(now: float) -> None:
+    for report_id, entry in list(_scan_reports.items()):
+        if now - entry["created"] > _REPORT_TTL_SECONDS:
+            del _scan_reports[report_id]
+
+    excess = len(_scan_reports) - _MAX_STORED_REPORTS
+    if excess > 0:
+        oldest = sorted(_scan_reports.items(), key=lambda kv: kv[1]["created"])
+        for report_id, _ in oldest[:excess]:
+            del _scan_reports[report_id]
+
+
+@app.get("/scan/report/{report_id}.xlsx")
+async def scan_report(request: Request, report_id: str):
+    _prune_reports(time.time())
+
+    entry = _scan_reports.get(report_id)
+    if entry is None or entry["client"] != _client_key(request):
+        return JSONResponse(
+            {"error": "Rapport expiré ou introuvable. Relancez un scan."},
+            status_code=404,
+        )
+
+    return Response(
+        content=entry["data"],
+        media_type=_XLSX_MEDIA_TYPE,
+        headers={
+            "Content-Disposition": f'attachment; filename="{entry["filename"]}"',
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+# --------------------------------------------------------------------------
 # SentinelScan — scan
 # --------------------------------------------------------------------------
 
@@ -315,12 +370,28 @@ async def scan_stream(request: Request, t: str = ""):
                 await queue.put(json.dumps({"type": "start", "keywords": keywords}))
                 result = await asyncio.to_thread(run_scan, keywords, progress_callback)
 
+                excel = await asyncio.to_thread(build_excel, result)
+                now = time.time()
+                _prune_reports(now)
+                report_id = secrets.token_urlsafe(18)
+                _scan_reports[report_id] = {
+                    "client": client,
+                    "data": excel,
+                    "filename": (
+                        "sentinelscan_"
+                        + result.started_at.strftime("%Y%m%d_%H%M")
+                        + ".xlsx"
+                    ),
+                    "created": now,
+                }
+
                 await queue.put(json.dumps({
                     "type": "done",
                     "counts": result.count_by_criticality(),
                     "findings": len(result.findings),
                     "duration": round(result.duration_seconds),
                     "report": build_markdown(result),
+                    "report_id": report_id,
                 }))
         except RuntimeError as exc:
             # Jeton GitHub absent : message explicite, pas de trace technique.

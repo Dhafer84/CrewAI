@@ -71,6 +71,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         <span class="report-title">Rapport de veille</span>
         <span class="report-date" id="scan-date"></span>
+        <a class="btn-download" id="dl-excel" href="#" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><path d="M12 15V3"/></svg>
+          Excel
+        </a>
       </div>
       <div class="report-body" id="scan-report"></div>
     </div>
@@ -122,6 +126,7 @@
     list.innerHTML = '';
     critGrid.innerHTML = '';
     document.getElementById('scan-report').innerHTML = '';
+    document.getElementById('dl-excel').hidden = true;
     progress.classList.remove('visible');
     results.classList.remove('visible');
   }
@@ -213,6 +218,11 @@
       } else if (data.type === 'done') {
         showCounts(data.counts, data.findings, data.duration);
         document.getElementById('scan-report').innerHTML = marked.parse(data.report || '');
+        if (data.report_id) {
+          const dl = document.getElementById('dl-excel');
+          dl.href = '/scan/report/' + encodeURIComponent(data.report_id) + '.xlsx';
+          dl.hidden = false;
+        }
         results.classList.add('visible');
         setHint('Scan terminé. Chaque constat reste à qualifier.');
         es.close(); es = null; refreshButton();
