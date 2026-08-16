@@ -8,6 +8,10 @@ python-dotenv==1.2.2
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
 
+# SentinelScan — client API GitHub + rapport Excel
+requests==2.32.3
+openpyxl==3.1.5
+
 # Lecture de documents (utile seulement si les documents source
 # passent en .docx/.pdf plus tard — la v1 travaille en .md)
 # python-docx==1.1.2
