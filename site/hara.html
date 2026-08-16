@@ -34,6 +34,11 @@
     <span><strong>Démonstration pédagogique.</strong> Cet outil implémente la logique de détermination, avec des formulations qui nous sont propres. Il ne reproduit pas le texte de l'ISO 26262, document sous licence, et ne s'y substitue en aucun cas.</span>
   </div>
 
+  <div class="draft-banner" id="draft-banner" hidden>
+    <span id="draft-text"></span>
+    <button class="bridge-clear" id="draft-clear">Repartir d'une analyse vierge</button>
+  </div>
+
   <div class="section-label">Item étudié</div>
   <input type="text" id="item-name" class="kw-input item-field" maxlength="120"
          placeholder="ex : Freinage régénératif" autocomplete="off">
@@ -117,7 +122,12 @@
   // on fait les lookups en local : instantané, sans dupliquer la règle en JS.
   fetch('/hara/matrix')
     .then(r => r.json())
-    .then(data => { matrix = data; addEvent(); refreshSummary(); })
+    .then(data => {
+      matrix = data;
+      if (!restoreDraft()) addEvent();
+      refreshSummary();
+      watchForChanges();
+    })
     .catch(() => { countEl.textContent = 'Impossible de charger la table ASIL.'; });
 
   function lookup(s, e, c) {
@@ -264,10 +274,116 @@
     }
 
     refreshExport();
+    // Couvre les changements de structure — carte ajoutée ou supprimée — que
+    // les écouteurs de saisie ne voient pas.
+    scheduleSave();
   }
 
   // Sans la lambda, l'objet Event du clic serait pris pour un préremplissage.
   btnAdd.addEventListener('click', () => addEvent());
+
+  // --- Autosauvegarde du brouillon ---------------------------------------
+  // Entièrement dans le navigateur : aucune requête, rien sur le serveur.
+  // `sessionStorage` et non `localStorage` — le brouillon meurt à la fermeture
+  // de l'onglet, rien ne traîne sur un poste partagé.
+  const DRAFT_KEY = 'safetyscope.draft';
+  const SAVE_DELAY = 500;
+  let saveTimer = null;
+  let restoring = false;
+
+  // Capture **tout**, y compris les événements à peine entamés : ce sont
+  // justement ceux qu'on est en train de saisir. `ratedEvents()` les filtre.
+  function snapshot() {
+    return {
+      v: 1,
+      at: Date.now(),
+      item: document.getElementById('item-name').value,
+      events: Array.from(events.children).map(function(card) {
+        const inputs = card.querySelectorAll('.event-input');
+        const axes = {};
+        card.querySelectorAll('.rating-select').forEach(function(sel) {
+          axes[sel.dataset.axis] = sel.value;
+        });
+        return {
+          malfunction: inputs[0].value,
+          situation: inputs[1].value,
+          axes: axes,
+          suggested: card.classList.contains('is-suggested')
+        };
+      })
+    };
+  }
+
+  function isWorthSaving(snap) {
+    if (snap.item.trim()) return true;
+    return snap.events.some(function(e) {
+      return e.malfunction.trim() || e.situation.trim()
+        || Object.keys(e.axes).some(function(k) { return e.axes[k] !== ''; });
+    });
+  }
+
+  function saveDraft() {
+    if (restoring) return;
+    const snap = snapshot();
+    try {
+      if (isWorthSaving(snap)) sessionStorage.setItem(DRAFT_KEY, JSON.stringify(snap));
+      else sessionStorage.removeItem(DRAFT_KEY);
+    } catch (err) { /* quota, navigation privée : ne jamais casser la saisie */ }
+  }
+
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveDraft, SAVE_DELAY);
+  }
+
+  function watchForChanges() {
+    ['input', 'change'].forEach(function(type) {
+      events.addEventListener(type, scheduleSave);
+      document.getElementById('item-name').addEventListener(type, scheduleSave);
+    });
+  }
+
+  function restoreDraft() {
+    let snap;
+    try { snap = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || 'null'); } catch { return false; }
+    if (!snap || snap.v !== 1 || !Array.isArray(snap.events) || !snap.events.length) {
+      return false;
+    }
+
+    restoring = true;
+    document.getElementById('item-name').value = snap.item || '';
+
+    let restored = 0;
+    snap.events.forEach(function(e) {
+      const card = addEvent();
+      if (!card) return;
+      restored += 1;
+      const inputs = card.querySelectorAll('.event-input');
+      inputs[0].value = e.malfunction || '';
+      inputs[1].value = e.situation || '';
+      card.querySelectorAll('.rating-select').forEach(function(sel) {
+        sel.value = (e.axes || {})[sel.dataset.axis] || '';
+      });
+      if (e.suggested) card.classList.add('is-suggested');
+      refreshCard(card);
+    });
+
+    restoring = false;
+    if (restored === 0) return false;
+
+    document.getElementById('draft-banner').hidden = false;
+    document.getElementById('draft-text').textContent =
+      'Brouillon restauré — ' + restored + ' événement' + (restored > 1 ? 's' : '')
+      + ' redouté' + (restored > 1 ? 's' : '')
+      + '. Votre saisie n\'a jamais quitté ce navigateur et disparaîtra à la '
+      + 'fermeture de l\'onglet.';
+    return true;
+  }
+
+  document.getElementById('draft-clear').addEventListener('click', function() {
+    try { sessionStorage.removeItem(DRAFT_KEY); } catch (err) { /* rien à faire */ }
+    window.location.reload();
+  });
 
   // --- Proposition par IA (optionnelle) ---
   // Les événements proposés arrivent NON COTÉS : l'IA amorce la réflexion,

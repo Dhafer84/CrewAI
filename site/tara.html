@@ -135,8 +135,9 @@
       MAX_DAMAGES = data.limits.damages;
       MAX_THREATS = data.limits.threatsPerDamage;
       document.getElementById('calib-text').textContent = data.calibration;
-      applyHandoff();
+      bootstrap();
       refreshSummary();
+      watchForChanges();
     })
     .catch(() => { countEl.textContent = 'Impossible de charger le barème.'; });
 
@@ -158,6 +159,19 @@
              && ev.severity < scales.haraBridge.severityToImpact.length;
     });
     return events.length ? { item: data.item || '', events: events } : null;
+  }
+
+  // ⚠️ **Le brouillon prime toujours sur la reprise HARA.** Sans cette règle,
+  // un rafraîchissement après vingt minutes de travail réimporterait la HARA
+  // par-dessus : l'autosauvegarde aggraverait le problème qu'elle règle.
+  // Et une fois le brouillon en place, la reprise est consommée — elle ne
+  // peut plus revenir écraser quoi que ce soit.
+  function bootstrap() {
+    if (restoreDraft()) {
+      try { sessionStorage.removeItem(HANDOFF_KEY); } catch (err) { /* rien à faire */ }
+      return;
+    }
+    applyHandoff();
   }
 
   function applyHandoff() {
@@ -194,10 +208,14 @@
       : 'Chaque événement est devenu un scénario de dommage à retravailler. '
         + 'Rien n\'est coté d\'office : les propositions sont à confirmer.';
 
-    // La règle n'est pas écrite dans cette page : elle est servie par le
-    // moteur, avec sa justification, et seulement affichée ici.
+    document.getElementById('bridge-rule').innerHTML = bridgeRuleHtml();
+  }
+
+  // La règle n'est pas écrite dans cette page : elle est servie par le moteur,
+  // avec sa justification, et seulement affichée ici.
+  function bridgeRuleHtml() {
     const why = scales.haraBridge.why;
-    document.getElementById('bridge-rule').innerHTML =
+    return (
       '<div class="bridge-line bridge-yes"><span class="bridge-mark">✓</span>'
         + '<span><strong>La sévérité traverse</strong> — elle devient l\'impact « sécurité des '
         + 'personnes ». ' + why.severity + '</span></div>'
@@ -206,13 +224,179 @@
       + '<div class="bridge-line bridge-no"><span class="bridge-mark">✕</span>'
         + '<span><strong>La contrôlabilité ne traverse pas.</strong> ' + why.controllability
         + '</span></div>'
-      + '<div class="bridge-note">' + why.replacement + '</div>';
+      + '<div class="bridge-note">' + why.replacement + '</div>'
+    );
   }
 
   document.getElementById('bridge-clear').addEventListener('click', function() {
-    try { sessionStorage.removeItem(HANDOFF_KEY); } catch (err) { /* rien à faire */ }
+    try {
+      sessionStorage.removeItem(HANDOFF_KEY);
+      sessionStorage.removeItem(DRAFT_KEY);
+    } catch (err) { /* rien à faire */ }
     window.location.reload();
   });
+
+  // --- Autosauvegarde du brouillon ---------------------------------------
+  // Entièrement dans le navigateur : aucune requête, rien sur le serveur.
+  //
+  // `sessionStorage` et non `localStorage`, délibérément : le brouillon meurt
+  // à la fermeture de l'onglet. Sur un poste partagé, rien ne traîne — et sur
+  // un outil où l'on tape de vrais noms d'actifs, ça compte.
+  const DRAFT_KEY = 'threatscope.draft';
+  const SAVE_DELAY = 500;
+  let saveTimer = null;
+  let restoring = false;
+
+  // ⚠️ Capture **tout**, y compris les cartes à peine entamées. Réutiliser
+  // `collectDamages()` serait tentant et faux : cette fonction filtre ce qui
+  // n'est pas entièrement coté — c'est-à-dire précisément ce qu'on est en
+  // train de saisir.
+  function snapshot() {
+    return {
+      v: 1,
+      at: Date.now(),
+      item: document.getElementById('item-name').value,
+      damages: Array.from(damages.children).map(function(card) {
+        const impacts = {};
+        card.querySelectorAll('.impact-select').forEach(function(sel) {
+          impacts[sel.dataset.key] = sel.value;
+        });
+        return {
+          asset: card.querySelector('.damage-asset').value,
+          description: card.querySelector('.damage-text').value,
+          impacts: impacts,
+          origin: card.dataset.origin || '',
+          originSeverity: card.dataset.originSeverity === undefined
+            ? '' : card.dataset.originSeverity,
+          originAsil: card.dataset.originAsil || '',
+          proposalApplied: !!card.querySelector('.impact-proposal.is-applied'),
+          threats: Array.from(card.querySelectorAll('.threat-card')).map(function(t) {
+            const levels = {};
+            t.querySelectorAll('.feasibility-select').forEach(function(sel) {
+              levels[sel.dataset.key] = sel.value;
+            });
+            return {
+              description: t.querySelector('.threat-text').value,
+              path: t.querySelector('.attack-path').value,
+              levels: levels,
+              decision: t.querySelector('.treatment-select').value,
+              written: t.querySelector('.treatment-input').value,
+              suggested: t.classList.contains('is-suggested')
+            };
+          })
+        };
+      })
+    };
+  }
+
+  // Une page vierge ne mérite pas d'être enregistrée : sinon un simple passage
+  // sur /tara ferait croire à un brouillon au retour suivant.
+  function isWorthSaving(snap) {
+    if (snap.item.trim()) return true;
+    return snap.damages.some(function(d) {
+      if (d.asset.trim() || d.description.trim() || d.origin) return true;
+      if (Object.keys(d.impacts).some(function(k) { return d.impacts[k] !== ''; })) return true;
+      return d.threats.some(function(t) {
+        return t.description.trim() || t.path.trim() || t.decision || t.written.trim()
+          || Object.keys(t.levels).some(function(k) { return t.levels[k] !== ''; });
+      });
+    });
+  }
+
+  function saveDraft() {
+    if (restoring) return;
+    const snap = snapshot();
+    try {
+      if (isWorthSaving(snap)) sessionStorage.setItem(DRAFT_KEY, JSON.stringify(snap));
+      else sessionStorage.removeItem(DRAFT_KEY);
+    } catch (err) { /* quota, navigation privée : ne jamais casser la saisie */ }
+  }
+
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveDraft, SAVE_DELAY);
+  }
+
+  function watchForChanges() {
+    ['input', 'change'].forEach(function(type) {
+      damages.addEventListener(type, scheduleSave);
+      document.getElementById('item-name').addEventListener(type, scheduleSave);
+    });
+  }
+
+  function restoreDraft() {
+    let snap;
+    try { snap = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || 'null'); } catch { return false; }
+    if (!snap || snap.v !== 1 || !Array.isArray(snap.damages) || !snap.damages.length) {
+      return false;
+    }
+
+    restoring = true;
+    document.getElementById('item-name').value = snap.item || '';
+
+    let restored = 0, fromHara = 0;
+    snap.damages.forEach(function(d) {
+      const card = addDamage();
+      if (!card) return;
+      restored += 1;
+      card.querySelector('.damage-asset').value = d.asset || '';
+      card.querySelector('.damage-text').value = d.description || '';
+
+      const severity = parseInt(d.originSeverity, 10);
+      const bornes = scales.haraBridge.severityToImpact.length;
+      if (d.origin && Number.isInteger(severity) && severity >= 0 && severity < bornes) {
+        fromHara += 1;
+        markOrigin(card, d.origin, severity, d.originAsil, d.proposalApplied);
+      }
+
+      card.querySelectorAll('.impact-select').forEach(function(sel) {
+        sel.value = (d.impacts || {})[sel.dataset.key] || '';
+      });
+
+      // La carte fraîche porte une menace vide : on la remplace par celles
+      // enregistrées, y compris à moitié remplies.
+      card.querySelectorAll('.threat-card').forEach(function(t) { t.remove(); });
+      (d.threats || []).forEach(function(ts) {
+        const t = addThreat(card);
+        if (!t) return;
+        t.querySelector('.threat-text').value = ts.description || '';
+        t.querySelector('.attack-path').value = ts.path || '';
+        t.querySelectorAll('.feasibility-select').forEach(function(sel) {
+          sel.value = (ts.levels || {})[sel.dataset.key] || '';
+        });
+        const decision = scales.treatment.options[ts.decision] ? ts.decision : '';
+        t.querySelector('.treatment-select').value = decision;
+        const input = t.querySelector('.treatment-input');
+        // Poser la nature attendue AVANT le rafraîchissement, sinon celui-ci
+        // prendrait le champ pour un changement de décision et le viderait.
+        input.dataset.requires = decision
+          ? scales.treatment.options[decision].requires : '';
+        input.value = ts.written || '';
+        if (ts.suggested) t.classList.add('is-suggested');
+      });
+      if (card.querySelectorAll('.threat-card').length === 0) addThreat(card);
+      refreshThreatCount(card);
+      refreshDamage(card);
+    });
+
+    restoring = false;
+    if (restored === 0) return false;
+
+    showDraftBanner(restored, fromHara);
+    return true;
+  }
+
+  function showDraftBanner(restored, fromHara) {
+    document.getElementById('bridge-banner').hidden = false;
+    document.getElementById('bridge-title').textContent =
+      'Brouillon restauré — ' + restored + ' scénario' + (restored > 1 ? 's' : '')
+      + ' de dommage';
+    document.getElementById('bridge-sub').textContent =
+      'Votre saisie a été retrouvée telle que vous l\'aviez laissée. Elle n\'a jamais '
+      + 'quitté ce navigateur et disparaîtra à la fermeture de l\'onglet.';
+    // La règle du pont n'est rappelée que si une carte en vient réellement.
+    document.getElementById('bridge-rule').innerHTML = fromHara ? bridgeRuleHtml() : '';
+  }
 
   function optionsFor(levels, formatter) {
     let html = '<option value="">—</option>';
@@ -411,32 +595,35 @@
   // automatique. L'impact sécurité reste vide tant que l'ingénieur n'a pas
   // confirmé, et les trois autres catégories n'ont aucun équivalent en HARA.
   function applyPrefill(card, prefill) {
-    card.classList.add('is-from-hara');
-    // Traçabilité conservée sur la carte : elle doit se retrouver dans le
-    // classeur exporté, sinon la liaison entre les deux outils n'existe que
-    // le temps de l'affichage.
-    card.dataset.origin = 'Événement redouté ' + prefill.n;
-    card.dataset.originSeverity = prefill.severity;
-    card.dataset.originAsil = prefill.asil || '';
-
     const parts = [prefill.malfunction, prefill.situation]
       .map(function(part) { return (part || '').trim(); })
       .filter(function(part) { return part !== ''; });
     card.querySelector('.damage-text').value = parts.join(' — ');
+    markOrigin(card, 'Événement redouté ' + prefill.n, prefill.severity, prefill.asil);
+  }
+
+  // Traçabilité et proposition de sévérité. Séparé du préremplissage pour que
+  // la restauration d'un brouillon puisse les reposer sans rejouer l'import.
+  function markOrigin(card, label, severity, asil, applied) {
+    card.classList.add('is-from-hara');
+    card.dataset.origin = label;
+    card.dataset.originSeverity = severity;
+    card.dataset.originAsil = asil || '';
 
     const origin = document.createElement('div');
     origin.className = 'damage-origin';
-    origin.textContent = 'Repris de l\'événement redouté ' + prefill.n
-      + (prefill.asil ? ' — coté ASIL ' + prefill.asil + ' en HARA' : '');
+    origin.textContent = 'Repris de l\'' + label.charAt(0).toLowerCase() + label.slice(1)
+      + (asil ? ' — coté ASIL ' + asil + ' en HARA' : '');
     card.querySelector('.damage-head').insertAdjacentElement('afterend', origin);
 
-    const impact = scales.haraBridge.severityToImpact[prefill.severity];
+    const impact = scales.haraBridge.severityToImpact[severity];
     const proposal = document.createElement('div');
-    proposal.className = 'impact-proposal';
+    proposal.className = 'impact-proposal' + (applied ? ' is-applied' : '');
     proposal.innerHTML =
-      '<span>Sévérité <strong>S' + prefill.severity + '</strong> en HARA → impact sécurité '
+      '<span>Sévérité <strong>S' + severity + '</strong> en HARA → impact sécurité '
       + 'des personnes proposé : <strong>' + scales.impactOrder[impact] + '</strong></span>'
-      + '<button class="btn-apply" type="button">Appliquer</button>';
+      + '<button class="btn-apply" type="button">'
+      + (applied ? 'Appliqué' : 'Appliquer') + '</button>';
     card.querySelector('.impact-grid').insertAdjacentElement('afterend', proposal);
 
     proposal.querySelector('.btn-apply').addEventListener('click', function() {
@@ -765,6 +952,9 @@
 
     refreshGoals();
     refreshExport();
+    // Couvre les changements de structure — carte ajoutée ou supprimée — que
+    // les écouteurs de saisie ne voient pas.
+    scheduleSave();
   }
 
   // Le bout de la chaîne : ce que l'analyse fabrique réellement.

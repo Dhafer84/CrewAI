@@ -33,8 +33,10 @@ _LIMITS = [
      "Cette indépendance doit être démontrée, pas postulée"),
     ("Aucun objectif de sécurité n'est généré automatiquement",
      "Sa formulation et l'état sûr associé restent à rédiger"),
-    ("Aucune donnée n'est conservée",
-     "Ce classeur est le seul artefact produit — pensez à l'archiver"),
+    ("Aucune donnée ne quitte votre navigateur",
+     "Rien n'est enregistré sur le serveur, et le brouillon local disparaît à la "
+     "fermeture de l'onglet — ce classeur est le seul artefact durable, pensez à "
+     "l'archiver"),
 ]
 
 

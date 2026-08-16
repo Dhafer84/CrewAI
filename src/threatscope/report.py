@@ -46,8 +46,10 @@ _LIMITS = [
      "L'analyse de chemins d'une TARA réelle va plus loin"),
     ("La sévérité reprise d'une HARA est une proposition",
      "L'exposition et la contrôlabilité, elles, ne traversent jamais le pont"),
-    ("Aucune donnée n'est conservée",
-     "Ce classeur est le seul artefact produit — pensez à l'archiver"),
+    ("Aucune donnée ne quitte votre navigateur",
+     "Rien n'est enregistré sur le serveur, et le brouillon local disparaît à la "
+     "fermeture de l'onglet — ce classeur est le seul artefact durable, pensez à "
+     "l'archiver"),
 ]
 
 # Colonnes laissées vides pour le suivi projet : c'est à l'équipe de les
