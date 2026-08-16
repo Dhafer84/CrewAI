@@ -9,7 +9,10 @@ fastapi==0.115.5
 uvicorn[standard]==0.32.1
 
 # SentinelScan — client API GitHub + rapport Excel
-requests==2.32.3
+# requests n'est pas épinglé : c'est déjà une dépendance de crewai-tools, qui
+# impose >=2.33.0. Un pin exact ici rejouerait le conflit à chaque montée de
+# version de crewai-tools.
+requests>=2.33.0
 openpyxl==3.1.5
 
 # Lecture de documents (utile seulement si les documents source
