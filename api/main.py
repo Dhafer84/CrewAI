@@ -48,8 +48,12 @@ from safetyscope.analysis import InvalidAnalysis, build_analysis  # noqa: E402
 from safetyscope.asil import full_matrix  # noqa: E402
 from safetyscope.core import suggest_hazards  # noqa: E402
 from safetyscope.report import build_excel as build_hara_excel  # noqa: E402
+from threatscope.analysis import InvalidAnalysis as InvalidTaraAnalysis  # noqa: E402
+from threatscope.analysis import analysis_limits  # noqa: E402
+from threatscope.analysis import build_analysis as build_tara_analysis  # noqa: E402
 from threatscope.bridge import bridge_rule  # noqa: E402
 from threatscope.rating import full_scales  # noqa: E402
+from threatscope.report import build_excel as build_tara_excel  # noqa: E402
 from threatscope.treatment import treatment_scales  # noqa: E402
 
 _DOCUMENTS_DIR = _ROOT / "data" / "sample_project"
@@ -137,7 +141,71 @@ async def tara_scales():
     scales = full_scales()
     scales["haraBridge"] = bridge_rule()
     scales["treatment"] = treatment_scales()
+    scales["limits"] = analysis_limits()
     return scales
+
+
+class TaraThreatPayload(BaseModel):
+    description: str = ""
+    path: str = ""
+    time: int
+    expertise: int
+    knowledge: int
+    window: int
+    equipment: int
+    decision: str = ""
+    goal: str = ""
+    rationale: str = ""
+
+
+class TaraDamagePayload(BaseModel):
+    asset: str = ""
+    description: str = ""
+    safety: int
+    financial: int
+    operational: int
+    privacy: int
+    threats: list[TaraThreatPayload] = []
+    origin: str = ""
+    origin_severity: int = -1
+    origin_asil: str = ""
+
+
+class TaraReportRequest(BaseModel):
+    item: str = ""
+    damages: list[TaraDamagePayload] = []
+
+
+@app.post("/tara/report")
+async def tara_report_create(request: Request, payload: TaraReportRequest):
+    """Reconstruit le dossier côté serveur, puis prépare le classeur.
+
+    Le tableau vient du navigateur : cotations revalidées, et complétude des
+    traitements **recalculée** — l'indicateur de la page est une commodité
+    d'affichage, pas une source de vérité. Un dossier incomplet n'est pas
+    refusé pour autant : le classeur dit ce qui manque.
+    """
+    try:
+        analysis = build_tara_analysis(payload.item, payload.damages)
+    except InvalidTaraAnalysis as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+
+    excel = await asyncio.to_thread(build_tara_excel, analysis)
+    report_id = _store_report(
+        _client_key(request),
+        "tara",
+        excel,
+        "threatscope_" + analysis.created_at.strftime("%Y%m%d_%H%M") + ".xlsx",
+    )
+    return {"report_id": report_id}
+
+
+@app.get("/tara/report/{report_id}.xlsx")
+async def tara_report_download(request: Request, report_id: str):
+    return _serve_report(
+        request, report_id, "tara",
+        "Rapport expiré ou introuvable. Relancez l'export.",
+    )
 
 
 class HaraEventPayload(BaseModel):

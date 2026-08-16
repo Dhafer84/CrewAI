@@ -71,7 +71,14 @@
     <p id="calib-text"></p>
   </details>
 
-  <div class="section-label" style="margin-top:44px">Synthèse</div>
+  <div class="summary-head" style="margin-top:44px">
+    <div class="section-label" style="margin-bottom:0">Synthèse</div>
+    <button class="btn-download" id="btn-export" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><path d="M12 15V3"/></svg>
+      Exporter en Excel
+    </button>
+  </div>
+  <p class="form-hint" id="export-hint"></p>
   <div class="tara-summary">
     <div class="summary-main">
       <div class="summary-label">Risque le plus élevé</div>
@@ -102,8 +109,11 @@
 
 <script>
 (function() {
-  const MAX_DAMAGES = 6;
-  const MAX_THREATS = 4;
+  // Les plafonds viennent du moteur (`analysis_limits()`), comme le barème :
+  // un plafond décidé à deux endroits finit par diverger, et c'est le serveur
+  // qui refuse pour de bon.
+  let MAX_DAMAGES = 6;
+  let MAX_THREATS = 4;
 
   // Ordre d'affichage figé côté page ; les libellés, eux, viennent du serveur.
   const IMPACT_KEYS = ['safety', 'financial', 'operational', 'privacy'];
@@ -122,6 +132,8 @@
     .then(r => r.json())
     .then(data => {
       scales = data;
+      MAX_DAMAGES = data.limits.damages;
+      MAX_THREATS = data.limits.threatsPerDamage;
       document.getElementById('calib-text').textContent = data.calibration;
       applyHandoff();
       refreshSummary();
@@ -281,6 +293,12 @@
   // confirmé, et les trois autres catégories n'ont aucun équivalent en HARA.
   function applyPrefill(card, prefill) {
     card.classList.add('is-from-hara');
+    // Traçabilité conservée sur la carte : elle doit se retrouver dans le
+    // classeur exporté, sinon la liaison entre les deux outils n'existe que
+    // le temps de l'affichage.
+    card.dataset.origin = 'Événement redouté ' + prefill.n;
+    card.dataset.originSeverity = prefill.severity;
+    card.dataset.originAsil = prefill.asil || '';
 
     const parts = [prefill.malfunction, prefill.situation]
       .map(function(part) { return (part || '').trim(); })
@@ -626,6 +644,7 @@
             : 'Les ' + toTreat + ' risques à traiter sont tranchés et justifiés.';
 
     refreshGoals();
+    refreshExport();
   }
 
   // Le bout de la chaîne : ce que l'analyse fabrique réellement.
@@ -658,6 +677,88 @@
 
   // Sans la lambda, l'objet Event du clic serait pris pour un préremplissage.
   btnAdd.addEventListener('click', function() { addDamage(); refreshSummary(); });
+
+  // --- Export Excel -------------------------------------------------------
+  // Seuls les chemins d'attaque réellement cotés partent au serveur, qui
+  // revalide tout de son côté — cotations ET complétude des traitements. Le
+  // tableau vient du navigateur, il n'est pas de confiance.
+  const btnExport  = document.getElementById('btn-export');
+  const exportHint = document.getElementById('export-hint');
+
+  function collectDamages() {
+    const out = [];
+    Array.from(damages.children).forEach(function(damageCard) {
+      const impact = damageImpact(damageCard);
+      if (impact === null) return;
+
+      const threats = [];
+      damageCard.querySelectorAll('.threat-card').forEach(function(threatCard) {
+        if (threatFeasibility(threatCard) === null) return;
+        const t = threatTreatment(damageCard, threatCard);
+        const levels = {};
+        threatCard.querySelectorAll('.feasibility-select').forEach(function(sel) {
+          levels[sel.dataset.key] = parseInt(sel.value, 10);
+        });
+        const requires = t.option ? t.option.requires : '';
+        threats.push({
+          description: threatCard.querySelector('.threat-text').value,
+          path: threatCard.querySelector('.attack-path').value,
+          time: levels.time, expertise: levels.expertise, knowledge: levels.knowledge,
+          window: levels.window, equipment: levels.equipment,
+          decision: t.decision,
+          goal: requires === 'goal' ? t.value : '',
+          rationale: requires === 'rationale' ? t.value : ''
+        });
+      });
+      if (threats.length === 0) return;
+
+      const impacts = {};
+      damageCard.querySelectorAll('.impact-select').forEach(function(sel) {
+        impacts[sel.dataset.key] = parseInt(sel.value, 10);
+      });
+      out.push({
+        asset: damageCard.querySelector('.damage-asset').value,
+        description: damageCard.querySelector('.damage-text').value,
+        safety: impacts.safety, financial: impacts.financial,
+        operational: impacts.operational, privacy: impacts.privacy,
+        origin: damageCard.dataset.origin || '',
+        origin_severity: damageCard.dataset.originSeverity === undefined
+          ? -1 : parseInt(damageCard.dataset.originSeverity, 10),
+        origin_asil: damageCard.dataset.originAsil || '',
+        threats: threats
+      });
+    });
+    return out;
+  }
+
+  function refreshExport() {
+    btnExport.disabled = collectDamages().length === 0;
+  }
+
+  btnExport.addEventListener('click', async function() {
+    btnExport.disabled = true;
+    exportHint.textContent = 'Préparation du classeur…';
+    exportHint.className = 'form-hint';
+    try {
+      const resp = await fetch('/tara/report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          item: document.getElementById('item-name').value,
+          damages: collectDamages()
+        })
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.error || 'Export refusé.');
+      exportHint.textContent = 'Classeur prêt — le téléchargement démarre.';
+      window.location.href = '/tara/report/' + encodeURIComponent(data.report_id) + '.xlsx';
+    } catch (err) {
+      exportHint.textContent = err.message;
+      exportHint.className = 'form-hint error';
+    } finally {
+      refreshExport();
+    }
+  });
 })();
 </script>
 </body>

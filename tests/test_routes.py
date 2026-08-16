@@ -78,6 +78,8 @@ TARA_CONTRACT = [
     "treatment.options.reduce.hint",
     "treatment.options.reduce.requires",
     "treatment.options.reduce.prompt",
+    "limits.damages",
+    "limits.threatsPerDamage",
 ]
 
 # Contrat de /hara/matrix : lu par site/hara.html.
@@ -182,6 +184,70 @@ def test_hara_report_roundtrip_and_no_formula():
         if cell.data_type == "f"
     ]
     assert not formules, f"des formules sont servies par la route : {formules}"
+
+
+def test_tara_report_roundtrip_carries_the_hara_link():
+    """L'export TARA, tel que la page l'emprunte — traçabilité comprise."""
+    corps = {"item": "Freinage régénératif", "damages": [{
+        "asset": "Calculateur de freinage",
+        "description": "Commande de freinage injectée",
+        "safety": 3, "financial": 0, "operational": 0, "privacy": 0,
+        "origin": "Événement redouté 2", "origin_severity": 3, "origin_asil": "D",
+        "threats": [{
+            "description": "=1+1", "path": "Port OBD",
+            "time": 1, "expertise": 1, "knowledge": 0, "window": 1, "equipment": 0,
+            "decision": "reduce", "goal": "Authentifier le diagnostic", "rationale": "",
+        }],
+    }]}
+    with client() as c:
+        resp = c.post("/tara/report", json=corps)
+        assert resp.status_code == 200, resp.text
+        xlsx = c.get(f"/tara/report/{resp.json()['report_id']}.xlsx")
+        assert xlsx.status_code == 200
+
+    workbook = openpyxl.load_workbook(BytesIO(xlsx.content))
+    assert "Tableau TARA" in workbook.sheetnames
+    assert "Barème appliqué" in workbook.sheetnames
+
+    texte = "\n".join(
+        str(cell.value)
+        for sheet in workbook.worksheets
+        for row in sheet.iter_rows()
+        for cell in row
+        if cell.value is not None
+    )
+    assert "Événement redouté 2" in texte, "la traçabilité vers la HARA a disparu"
+    assert "ASIL D" in texte
+    assert "Authentifier le diagnostic" in texte
+
+    formules = [
+        f"{sheet.title}!{cell.coordinate}"
+        for sheet in workbook.worksheets
+        for row in sheet.iter_rows()
+        for cell in row
+        if cell.data_type == "f"
+    ]
+    assert not formules, f"des formules sont servies par la route : {formules}"
+
+
+def test_tara_report_refuses_a_dossier_it_cannot_trust():
+    """Cotation hors bornes et plafonds : le serveur tranche, pas la page."""
+    menace = {"description": "M", "path": "P", "time": 1, "expertise": 1,
+              "knowledge": 0, "window": 1, "equipment": 0}
+    dommage = {"asset": "A", "description": "D", "safety": 3, "financial": 0,
+               "operational": 0, "privacy": 0, "threats": [menace]}
+
+    mauvais = [
+        {"item": "x", "damages": []},
+        {"item": "x", "damages": [dict(dommage, safety=9)]},
+        {"item": "x", "damages": [dict(dommage, threats=[])]},
+        {"item": "x", "damages": [dict(dommage, threats=[dict(menace, decision="ignorer")])]},
+        {"item": "x", "damages": [dommage] * 7},
+    ]
+    with client() as c:
+        for corps in mauvais:
+            code = c.post("/tara/report", json=corps).status_code
+            assert 400 <= code < 500, f"{corps} → {code}, attendu un 4xx"
 
 
 def test_a_report_is_not_served_to_another_client():
