@@ -25,7 +25,28 @@ CRITICALITY_SLA = {
 GENERIC_TERMS = {
     "aes", "api", "app", "test", "demo", "dev", "prod", "data", "code",
     "admin", "user", "web", "http", "json", "null", "true", "false",
+    # Noms d'entreprise fictifs universels : présents dans des milliers de
+    # fichiers d'exemple, ils ne remontent que du bruit.
+    "acme", "acme-corp", "acmecorp", "contoso", "example", "example-corp",
+    "foobar", "mycompany", "yourcompany", "initech", "widgets",
 }
+
+# Marqueurs de fichier-modèle, cherchés dans le CHEMIN COMPLET. Un
+# `.env.example` ou un `templates/.env.x` est publié volontairement et ne
+# contient pas de secret — le classer CRITIQUE, c'est crier au loup.
+_TEMPLATE_MARKERS = (
+    "example", "sample", "template", "dist", "mock", "fixture",
+    "dummy", "specimen", "placeholder", "demo", "/doc", "/test",
+)
+
+# Extensions de code source ou de documentation. Un fichier qui *manipule*
+# des credentials (`salesforceClientCredentials.ts`) n'est pas un fichier
+# de credentials, et `get-api-credentials.Rmd` est une notice.
+_NON_SECRET_EXTENSIONS = (
+    ".ts", ".tsx", ".js", ".jsx", ".py", ".rb", ".go", ".java", ".cs",
+    ".php", ".r", ".rmd", ".sh", ".ps1", ".c", ".cpp", ".rs", ".swift",
+    ".md", ".mdx", ".rst", ".org", ".html", ".adoc",
+)
 
 # Caractères autorisés dans un mot-clé. Tout le reste est retiré pour éviter
 # qu'un utilisateur n'injecte des qualifiers GitHub (org:, path:, …) dans la
@@ -99,6 +120,70 @@ def normalize_keywords(raw_keywords: list[str]) -> list[str]:
         raise InvalidKeyword("Aucun mot-clé exploitable fourni.")
 
     return seen[:MAX_KEYWORDS]
+
+
+def _looks_like_env_file(basename: str) -> bool:
+    """Un vrai fichier d'environnement : `.env`, `.env.local`, `prod.env`…
+
+    Écarte `event.envelope.json` ou `.env.md` que `filename:.env` remonte.
+    """
+    return (
+        basename == ".env"
+        or basename.startswith(".env.")
+        or basename.endswith(".env")
+        or basename == ".envrc"
+    )
+
+
+def _looks_like_credentials_file(basename: str) -> bool:
+    """Un vrai magasin de credentials : `credentials`, `credentials.json`…
+
+    Écarte le code source qui manipule des credentials.
+    """
+    if "credential" not in basename:
+        return False
+    return not basename.endswith(_NON_SECRET_EXTENSIONS)
+
+
+# Validateur de forme, par type de détection. None = pas de contrôle.
+_SHAPE_CHECKS = {
+    "Fichier .env exposé": _looks_like_env_file,
+    "Fichier de credentials": _looks_like_credentials_file,
+}
+
+
+def refine_criticality(criticality: str, detection: str, path: str) -> tuple[str, str]:
+    """Réévalue un constat d'après le chemin réel du fichier.
+
+    GitHub applique le qualifier `filename:` de façon large : `filename:.env`
+    remonte aussi `.env.example`, `.env.md` ou `event.envelope.json`, et
+    `filename:credentials` remonte le code source qui *manipule* des
+    credentials. Sans ce filtre, le rapport classe CRITIQUE des fichiers qui
+    ne contiennent aucun secret — et un rapport qui crie au loup ne sert à rien.
+
+    Un constat n'est jamais supprimé : il est déclassé en MINEUR avec le motif.
+    C'est à l'analyste de qualifier, pas à l'outil de décider seul.
+
+    Returns:
+        Le couple (criticité, libellé) ajusté.
+    """
+    if criticality != "CRITIQUE":
+        return criticality, detection
+
+    lowered = path.lower()
+    basename = lowered.rsplit("/", 1)[-1]
+
+    if any(marker in lowered for marker in _TEMPLATE_MARKERS):
+        return "MINEUR", f"{detection} — modèle ou exemple"
+
+    check = _SHAPE_CHECKS.get(detection)
+    if check and not check(basename):
+        return "MINEUR", f"{detection} — nom de fichier non concluant"
+
+    if basename.endswith(_NON_SECRET_EXTENSIONS):
+        return "MINEUR", f"{detection} — code source ou documentation"
+
+    return criticality, detection
 
 
 def build_queries(keywords: list[str]) -> list[Query]:

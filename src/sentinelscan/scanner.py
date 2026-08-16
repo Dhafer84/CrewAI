@@ -9,7 +9,12 @@ from datetime import datetime, timezone
 
 from . import github
 from .config import require_github_token
-from .queries import CRITICALITY_ORDER, build_queries, normalize_keywords
+from .queries import (
+    CRITICALITY_ORDER,
+    build_queries,
+    normalize_keywords,
+    refine_criticality,
+)
 
 
 @dataclass(frozen=True)
@@ -111,10 +116,14 @@ def run_scan(keywords: list[str], progress_callback=None) -> ScanResult:
             if key in seen:
                 continue
             seen.add(key)
+
+            criticality, detection = refine_criticality(
+                query.criticality, query.detection, hit.path
+            )
             result.findings.append(
                 Finding(
-                    criticality=query.criticality,
-                    detection=query.detection,
+                    criticality=criticality,
+                    detection=detection,
                     repo=hit.repo,
                     owner=hit.owner,
                     path=hit.path,
