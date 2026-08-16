@@ -21,49 +21,198 @@
   </nav>
 
   <section class="hero">
-    <div class="badge badge-amber">
-      <span class="dot dot-running"></span>
-      Démo interactive en construction
+    <div class="badge badge-blue">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      Démo live — OSINT passif
     </div>
     <h1>Sentinel<em>Scan</em></h1>
-    <p class="subtitle">Veille passive de fuite d'information sur les dépôts publics. Le moteur est opérationnel et testé ; l'interface de scan en ligne arrive prochainement.</p>
+    <p class="subtitle">Veille de fuite d'information sur les dépôts publics GitHub. Saisissez des termes distinctifs — nom d'entreprise, projet interne, domaine e-mail — l'outil identifie les expositions et les classe par criticité.</p>
   </section>
 
-  <div class="section-label">Principe</div>
-  <div class="report-box">
-    <div class="report-body">
-      <p>L'outil interroge l'API de recherche publique de GitHub — la seule plateforme grand public qui indexe le <strong>contenu</strong> des fichiers, et non seulement les noms de dépôts. À partir de termes distinctifs (nom d'entreprise, nom de projet interne, domaine e-mail), il identifie les expositions et les classe par criticité.</p>
+  <!-- Avertissement d'usage — à accepter avant tout scan -->
+  <div class="warn-box">
+    <div class="warn-head">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+      Conditions d'usage
+    </div>
+    <ul class="warn-list">
+      <li>Ne scannez qu'un <strong>périmètre dont vous avez la responsabilité</strong>. Identifier les expositions d'un tiers sans mandat vous engage.</li>
+      <li>Sources <strong>publiques exclusivement</strong> — rien n'est tenté sur un dépôt privé.</li>
+      <li>La valeur d'un secret n'est <strong>jamais lue, affichée ni stockée</strong>. Seules les métadonnées sont remontées.</li>
+      <li>Si un secret est exposé : <strong>révoquez-le</strong>. Ne le testez pas — c'est un accès non autorisé, même s'il appartient à votre employeur.</li>
+    </ul>
+    <label class="warn-accept">
+      <input type="checkbox" id="accept">
+      <span>J'ai compris et je scanne un périmètre dont j'ai la responsabilité.</span>
+    </label>
+  </div>
 
-      <h3>Échelle de criticité</h3>
-      <table>
-        <thead><tr><th>Niveau</th><th>Signification</th><th>Délai de traitement</th></tr></thead>
-        <tbody>
-          <tr><td>CRITIQUE</td><td>Secret, credential, clé privée</td><td>24 h</td></tr>
-          <tr><td>MAJEUR</td><td>Code ou information interne identifiable</td><td>5 jours ouvrés</td></tr>
-          <tr><td>MINEUR</td><td>Mention indirecte, contexte à qualifier</td><td>15 jours</td></tr>
-          <tr><td>INFO</td><td>Signal faible, veille</td><td>au fil de l'eau</td></tr>
-        </tbody>
-      </table>
+  <div class="section-label">Termes de recherche</div>
+  <div class="scan-form">
+    <input type="text" id="kw-input" class="kw-input" maxlength="120"
+           placeholder="ex : mon-entreprise, projet-interne" autocomplete="off" spellcheck="false">
+    <button class="btn btn-primary" id="btn-scan" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      Lancer le scan
+    </button>
+  </div>
+  <p class="form-hint" id="form-hint">3 termes maximum, séparés par des virgules. Les termes trop génériques sont refusés — ils ne remontent que du bruit. Comptez environ 90 s.</p>
 
-      <h3>Règles de conception</h3>
-      <ul>
-        <li><strong>La valeur d'un secret n'est jamais lue, affichée ni stockée.</strong> Seules les métadonnées circulent : dépôt, chemin, URL, criticité. Un secret trouvé se révoque, il ne se teste jamais.</li>
-        <li><strong>Sources publiques exclusivement.</strong> Le jeton d'accès est créé sans aucune permission — s'il fuite, l'impact est nul.</li>
-        <li><strong>Aucun constat n'est supprimé silencieusement.</strong> Un résultat douteux est déclassé avec son motif : c'est à l'analyste de qualifier, pas à l'outil de trancher seul.</li>
-      </ul>
+  <div class="scan-progress" id="scan-progress">
+    <div class="section-label">Progression</div>
+    <div class="progress-list" id="progress-list"></div>
+  </div>
 
-      <h3>Limites assumées</h3>
-      <p>Une veille dont on connaît les limites vaut mieux qu'une veille dont on croit à tort qu'elle est exhaustive. GitHub n'indexe que la branche par défaut, les Gists et Pastebin n'ont pas d'API de recherche, et un dépôt supprimé survit dans ses forks. Le rapport généré documente explicitement ce périmètre.</p>
+  <div class="scan-results" id="scan-results">
+    <div class="section-label">Résultat</div>
+    <div class="crit-grid" id="crit-grid"></div>
+    <div class="report-box">
+      <div class="report-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span class="report-title">Rapport de veille</span>
+        <span class="report-date" id="scan-date"></span>
+      </div>
+      <div class="report-body" id="scan-report"></div>
     </div>
   </div>
 
   <footer>
     <div class="footer-inner">
-      <span class="footer-text">Projet de démonstration · OSINT passif, sources publiques</span>
+      <span class="footer-text">OSINT passif · sources publiques · termes retirés des journaux d'accès</span>
       <a class="nav-link footer-text" href="/">Tous les outils</a>
     </div>
   </footer>
 
 </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script>
+(function() {
+  const accept   = document.getElementById('accept');
+  const input    = document.getElementById('kw-input');
+  const btn      = document.getElementById('btn-scan');
+  const hint     = document.getElementById('form-hint');
+  const progress = document.getElementById('scan-progress');
+  const list     = document.getElementById('progress-list');
+  const results  = document.getElementById('scan-results');
+  const critGrid = document.getElementById('crit-grid');
+  const CRIT     = ['CRITIQUE', 'MAJEUR', 'MINEUR', 'INFO'];
+  let es = null;
+
+  function keywords() {
+    return input.value.split(',').map(s => s.trim()).filter(Boolean);
+  }
+
+  function refreshButton() {
+    btn.disabled = !accept.checked || keywords().length === 0 || es !== null;
+  }
+
+  accept.addEventListener('change', refreshButton);
+  input.addEventListener('input', refreshButton);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !btn.disabled) btn.click();
+  });
+
+  function setHint(msg, isError) {
+    hint.textContent = msg;
+    hint.className = 'form-hint' + (isError ? ' error' : '');
+  }
+
+  function resetUI() {
+    list.innerHTML = '';
+    critGrid.innerHTML = '';
+    document.getElementById('scan-report').innerHTML = '';
+    progress.classList.remove('visible');
+    results.classList.remove('visible');
+  }
+
+  function rowFor(index) {
+    let row = document.getElementById('q-' + index);
+    if (!row) {
+      row = document.createElement('div');
+      row.className = 'progress-row';
+      row.id = 'q-' + index;
+      row.innerHTML = '<span class="dot dot-running"></span>'
+                    + '<span class="q-label"></span>'
+                    + '<span class="q-result"></span>';
+      list.appendChild(row);
+    }
+    return row;
+  }
+
+  function showCounts(counts, findings, duration) {
+    critGrid.innerHTML = '';
+    CRIT.forEach(level => {
+      const box = document.createElement('div');
+      box.className = 'crit-box crit-' + level.toLowerCase();
+      box.innerHTML = '<div class="crit-val">' + (counts[level] || 0) + '</div>'
+                    + '<div class="crit-label">' + level + '</div>';
+      critGrid.appendChild(box);
+    });
+    document.getElementById('scan-date').textContent =
+      '· ' + findings + ' détection(s) en ' + duration + ' s';
+  }
+
+  btn.addEventListener('click', function() {
+    resetUI();
+    btn.disabled = true;
+    setHint('Connexion au moteur…');
+    progress.classList.add('visible');
+
+    const params = new URLSearchParams({ kw: keywords().join(',') });
+    es = new EventSource('/scan/stream?' + params.toString());
+
+    es.onmessage = function(evt) {
+      let data;
+      try { data = JSON.parse(evt.data); } catch { return; }
+
+      if (data.type === 'start') {
+        setHint('Scan en cours sur : ' + data.keywords.join(', '));
+
+      } else if (data.type === 'query_start') {
+        const row = rowFor(data.index);
+        row.querySelector('.q-label').textContent =
+          data.keyword + ' — ' + data.detection;
+        setHint('Requête ' + (data.index + 1) + '/' + data.total + '…');
+
+      } else if (data.type === 'query_done') {
+        const row = rowFor(data.index);
+        row.querySelector('.dot').className = 'dot dot-done';
+        row.querySelector('.q-result').textContent =
+          data.found > 0 ? data.found + ' détection(s)' : '—';
+        if (data.found > 0) row.classList.add('has-hits');
+
+      } else if (data.type === 'query_error') {
+        const row = rowFor(data.index);
+        row.querySelector('.dot').className = 'dot dot-error';
+        row.querySelector('.q-result').textContent = 'échec';
+        row.classList.add('has-error');
+
+      } else if (data.type === 'done') {
+        showCounts(data.counts, data.findings, data.duration);
+        document.getElementById('scan-report').innerHTML = marked.parse(data.report || '');
+        results.classList.add('visible');
+        setHint('Scan terminé. Chaque constat reste à qualifier.');
+        es.close(); es = null; refreshButton();
+        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      } else if (data.type === 'error') {
+        setHint(data.message || 'Erreur inconnue.', true);
+        progress.classList.remove('visible');
+        es.close(); es = null; refreshButton();
+
+      } else if (data.type === 'close') {
+        if (es) { es.close(); es = null; refreshButton(); }
+      }
+    };
+
+    es.onerror = function() {
+      setHint('Connexion interrompue.', true);
+      if (es) { es.close(); es = null; }
+      refreshButton();
+    };
+  });
+})();
+</script>
 </body>
 </html>

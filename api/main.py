@@ -2,23 +2,28 @@
 
   GET /              → page de garde (catalogue d'outils)
   GET /qualitycrew   → démo d'audit ASPICE / ISO 26262
-  GET /sentinelscan  → veille de fuite d'information
+  GET /sentinelscan  → démo de veille de fuite d'information
   GET /audit/stream  → SSE : progression des agents + rapport final
+  GET /scan/stream   → SSE : progression du scan + rapport final
   GET /static/*      → assets CSS
 
 Enveloppe mince : aucune logique métier ici, tout est dans src/.
 
-Un seul audit à la fois (Semaphore). Pas d'input utilisateur :
-l'audit tourne toujours sur data/sample_project/.
+Une exécution à la fois par outil (Semaphore). L'audit tourne toujours sur
+data/sample_project/ ; le scan prend des mots-clés fournis par l'utilisateur.
 """
 
 import asyncio
+import hashlib
 import json
+import logging
 import sys
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 _ROOT = Path(__file__).resolve().parent.parent
@@ -26,6 +31,10 @@ sys.path.insert(0, str(_ROOT / "src"))
 
 from qualitycrew.config import require_llm_key  # noqa: E402
 from qualitycrew.core import run_audit  # noqa: E402
+from sentinelscan.config import require_github_token  # noqa: E402
+from sentinelscan.queries import InvalidKeyword, normalize_keywords  # noqa: E402
+from sentinelscan.report import build_markdown  # noqa: E402
+from sentinelscan.scanner import run_scan  # noqa: E402
 
 _DOCUMENTS_DIR = _ROOT / "data" / "sample_project"
 _SITE_DIR = _ROOT / "site"
@@ -33,87 +42,70 @@ _SITE_DIR = _ROOT / "site"
 app = FastAPI(docs_url=None, redoc_url=None)
 app.mount("/static", StaticFiles(directory=str(_SITE_DIR)), name="static")
 
+
+class _RedactScanKeywords(logging.Filter):
+    """Retire les mots-clés de scan du journal d'accès.
+
+    Un terme recherché est potentiellement un nom d'entreprise : il n'a rien
+    à faire dans les logs. Le journal garde la trace de l'appel, pas de son
+    contenu.
+
+    ⚠️ Ce filtre ne couvre que uvicorn. En production, nginx journalise aussi
+    l'URL complète — il faut `access_log off;` sur la location /scan/stream.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        args = record.args
+        if isinstance(args, tuple) and len(args) >= 3:
+            path = args[2]
+            if isinstance(path, str) and path.startswith("/scan/stream"):
+                record.args = args[:2] + ("/scan/stream",) + args[3:]
+        return True
+
+
+logging.getLogger("uvicorn.access").addFilter(_RedactScanKeywords())
+
 _audit_semaphore = asyncio.Semaphore(1)
+_scan_semaphore = asyncio.Semaphore(1)
 
 
-# Catalogue des pages. Ajouter un outil = ajouter une entrée ici et sa carte
-# dans site/index.html — rien d'autre à toucher.
-_PAGES = {
-    "/": "index.html",
-    "/qualitycrew": "qualitycrew.html",
-    "/sentinelscan": "sentinelscan.html",
-}
-
-
-def _serve(filename: str):
-    return FileResponse(_SITE_DIR / filename)
-
+# --------------------------------------------------------------------------
+# Pages
+# --------------------------------------------------------------------------
 
 @app.get("/")
 async def index():
-    return _serve(_PAGES["/"])
+    return FileResponse(_SITE_DIR / "index.html")
 
 
 @app.get("/qualitycrew")
 async def qualitycrew_page():
-    return _serve(_PAGES["/qualitycrew"])
+    return FileResponse(_SITE_DIR / "qualitycrew.html")
 
 
 @app.get("/sentinelscan")
 async def sentinelscan_page():
-    return _serve(_PAGES["/sentinelscan"])
+    return FileResponse(_SITE_DIR / "sentinelscan.html")
 
 
-@app.get("/audit/stream")
-async def audit_stream(request: Request):
-    if _audit_semaphore.locked():
-        return JSONResponse(
-            {"error": "Un audit est déjà en cours. Réessayez dans quelques instants."},
-            status_code=429,
-        )
+# --------------------------------------------------------------------------
+# Plomberie SSE commune
+# --------------------------------------------------------------------------
 
-    queue: asyncio.Queue[str | None] = asyncio.Queue()
-    loop = asyncio.get_event_loop()
-    task_index = [0]
+def _sse_response(request: Request, queue: "asyncio.Queue[str | None]", timeout: float):
+    """Transforme une file d'événements JSON en flux SSE.
 
-    def task_callback(task_output):
-        idx = task_index[0]
-        task_index[0] += 1
-        event = {
-            "type": "task_done",
-            "index": idx,
-            "agent": task_output.agent,
-            "output": task_output.raw,
-        }
-        loop.call_soon_threadsafe(queue.put_nowait, json.dumps(event))
-
-    async def run():
-        async with _audit_semaphore:
-            try:
-                await queue.put(json.dumps({"type": "start"}))
-                require_llm_key()
-                report = await asyncio.to_thread(
-                    run_audit, _DOCUMENTS_DIR, None, task_callback
-                )
-                await queue.put(json.dumps({"type": "done", "report": report}))
-            except Exception as exc:
-                await queue.put(json.dumps({
-                    "type": "error",
-                    "message": "L'audit a échoué. Vérifiez la clé API et relancez.",
-                }))
-            finally:
-                await queue.put(None)
-
-    asyncio.create_task(run())
+    `None` dans la file signale la fin du traitement.
+    """
 
     async def event_gen():
         while True:
             if await request.is_disconnected():
                 break
             try:
-                item = await asyncio.wait_for(queue.get(), timeout=180.0)
+                item = await asyncio.wait_for(queue.get(), timeout=timeout)
             except asyncio.TimeoutError:
-                yield 'data: {"type":"error","message":"Timeout"}\n\n'
+                yield 'data: {"type":"error","message":"Délai dépassé."}\n\n'
                 break
             if item is None:
                 yield 'data: {"type":"close"}\n\n'
@@ -125,3 +117,170 @@ async def audit_stream(request: Request):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+# --------------------------------------------------------------------------
+# QualityCrew — audit
+# --------------------------------------------------------------------------
+
+@app.get("/audit/stream")
+async def audit_stream(request: Request):
+    queue: asyncio.Queue[str | None] = asyncio.Queue()
+    loop = asyncio.get_event_loop()
+    task_index = [0]
+
+    def task_callback(task_output):
+        idx = task_index[0]
+        task_index[0] += 1
+        loop.call_soon_threadsafe(queue.put_nowait, json.dumps({
+            "type": "task_done",
+            "index": idx,
+            "agent": task_output.agent,
+            "output": task_output.raw,
+        }))
+
+    async def run():
+        if _audit_semaphore.locked():
+            await queue.put(json.dumps({
+                "type": "error",
+                "message": "Un audit est déjà en cours. Réessayez dans quelques instants.",
+            }))
+            await queue.put(None)
+            return
+
+        async with _audit_semaphore:
+            try:
+                await queue.put(json.dumps({"type": "start"}))
+                require_llm_key()
+                report = await asyncio.to_thread(
+                    run_audit, _DOCUMENTS_DIR, None, task_callback
+                )
+                await queue.put(json.dumps({"type": "done", "report": report}))
+            except Exception:
+                await queue.put(json.dumps({
+                    "type": "error",
+                    "message": "L'audit a échoué. Vérifiez la clé API et relancez.",
+                }))
+            finally:
+                await queue.put(None)
+
+    asyncio.create_task(run())
+    return _sse_response(request, queue, timeout=180.0)
+
+
+# --------------------------------------------------------------------------
+# SentinelScan — rate limiting
+# --------------------------------------------------------------------------
+
+_SCAN_COOLDOWN_SECONDS = 180
+_MAX_SCANS_PER_DAY = 50
+
+# Les IP ne sont jamais conservées en clair : on n'indexe que leur empreinte,
+# suffisante pour limiter la cadence. Rien n'est persisté sur disque, et les
+# mots-clés recherchés ne sont jamais journalisés.
+_last_scan_by_client: dict[str, float] = {}
+_daily_usage = {"day": None, "count": 0}
+
+
+def _client_key(request: Request) -> str:
+    header = request.headers.get("x-real-ip") or request.headers.get("x-forwarded-for")
+    raw = header.split(",")[0].strip() if header else (
+        request.client.host if request.client else "unknown"
+    )
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+
+
+def _rate_limit_message(client: str) -> str | None:
+    """Retourne le motif de refus, ou None si le scan peut démarrer."""
+    now = time.time()
+
+    today = datetime.now(timezone.utc).date()
+    if _daily_usage["day"] != today:
+        _daily_usage["day"] = today
+        _daily_usage["count"] = 0
+
+    if _daily_usage["count"] >= _MAX_SCANS_PER_DAY:
+        return (
+            "Quota quotidien de la démonstration atteint — l'API GitHub est "
+            "limitée. Réessayez demain."
+        )
+
+    # Purge des entrées expirées : la table ne grossit pas indéfiniment.
+    for key, stamp in list(_last_scan_by_client.items()):
+        if now - stamp > _SCAN_COOLDOWN_SECONDS:
+            del _last_scan_by_client[key]
+
+    last = _last_scan_by_client.get(client)
+    if last is not None:
+        wait = int(_SCAN_COOLDOWN_SECONDS - (now - last))
+        return f"Un scan toutes les 3 minutes. Réessayez dans {wait} s."
+
+    return None
+
+
+def _register_scan(client: str) -> None:
+    _last_scan_by_client[client] = time.time()
+    _daily_usage["count"] += 1
+
+
+# --------------------------------------------------------------------------
+# SentinelScan — scan
+# --------------------------------------------------------------------------
+
+@app.get("/scan/stream")
+async def scan_stream(request: Request, kw: str = ""):
+    queue: asyncio.Queue[str | None] = asyncio.Queue()
+    loop = asyncio.get_event_loop()
+
+    def progress_callback(event: dict) -> None:
+        loop.call_soon_threadsafe(queue.put_nowait, json.dumps(event))
+
+    client = _client_key(request)
+
+    async def run():
+        try:
+            refusal = _rate_limit_message(client)
+            if refusal:
+                await queue.put(json.dumps({"type": "error", "message": refusal}))
+                return
+
+            if _scan_semaphore.locked():
+                await queue.put(json.dumps({
+                    "type": "error",
+                    "message": "Un scan est déjà en cours. Réessayez dans un instant.",
+                }))
+                return
+
+            try:
+                keywords = normalize_keywords(kw.split(","))
+            except InvalidKeyword as exc:
+                await queue.put(json.dumps({"type": "error", "message": str(exc)}))
+                return
+
+            async with _scan_semaphore:
+                _register_scan(client)
+                require_github_token()
+
+                await queue.put(json.dumps({"type": "start", "keywords": keywords}))
+                result = await asyncio.to_thread(run_scan, keywords, progress_callback)
+
+                await queue.put(json.dumps({
+                    "type": "done",
+                    "counts": result.count_by_criticality(),
+                    "findings": len(result.findings),
+                    "duration": round(result.duration_seconds),
+                    "report": build_markdown(result),
+                }))
+        except RuntimeError as exc:
+            # Jeton GitHub absent : message explicite, pas de trace technique.
+            await queue.put(json.dumps({"type": "error", "message": str(exc)}))
+        except Exception:
+            await queue.put(json.dumps({
+                "type": "error",
+                "message": "Le scan a échoué. Réessayez dans quelques instants.",
+            }))
+        finally:
+            await queue.put(None)
+
+    asyncio.create_task(run())
+    return _sse_response(request, queue, timeout=240.0)
