@@ -50,6 +50,7 @@ from safetyscope.core import suggest_hazards  # noqa: E402
 from safetyscope.report import build_excel as build_hara_excel  # noqa: E402
 from threatscope.bridge import bridge_rule  # noqa: E402
 from threatscope.rating import full_scales  # noqa: E402
+from threatscope.treatment import treatment_scales  # noqa: E402
 
 _DOCUMENTS_DIR = _ROOT / "data" / "sample_project"
 _SITE_DIR = _ROOT / "site"
@@ -135,6 +136,7 @@ async def tara_scales():
     """
     scales = full_scales()
     scales["haraBridge"] = bridge_rule()
+    scales["treatment"] = treatment_scales()
     return scales
 
 

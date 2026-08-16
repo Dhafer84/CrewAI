@@ -259,6 +259,32 @@ h1 em{color:var(--green);font-style:normal}
   .damage-card{padding:16px 14px}
 }
 
+/* ─── TRAITEMENT DU RISQUE ET OBJECTIFS DE CYBERSÉCURITÉ ───
+   Le bout de la chaîne : une TARA produit des exigences, pas un chiffre. */
+.treatment{margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border-sub)}
+.treatment[hidden]{display:none}
+.treatment-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}
+.treatment-state{font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:2px 8px;border-radius:4px}
+.treatment-state.is-ok{background:var(--green-bg);border:0.5px solid var(--green-border);color:var(--green)}
+.treatment-state.is-todo{background:var(--amber-bg);border:0.5px solid var(--amber);color:var(--amber)}
+.treatment .treatment-select{width:100%;max-width:320px}
+.treatment-hint{font-size:11.5px;color:var(--text-dim);line-height:1.55;margin-top:7px}
+.treatment-input{width:100%;margin-top:8px;font-size:12.5px}
+.treatment-input[hidden]{display:none}
+.treatment-input.is-goal{border-color:var(--green-border)}
+.threat-card .treatment.is-incomplete .treatment-head .rating-label{color:var(--amber)}
+
+.goal{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:baseline;background:var(--bg-card);border:0.5px solid var(--border);border-left:2px solid var(--green-border);border-radius:var(--radius);padding:11px 14px;margin-bottom:8px}
+.goal-ref{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;font-weight:600;color:var(--green)}
+.goal-text{font-size:13px;color:var(--text);line-height:1.55}
+.goal-src{font-size:11px;color:var(--text-dim);white-space:nowrap}
+.treatment-note.is-todo{color:var(--amber)}
+
+@media(max-width:600px){
+  .goal{grid-template-columns:1fr;gap:4px}
+  .goal-src{white-space:normal}
+}
+
 /* ─── PONT HARA → TARA ───
    La liaison entre les deux outils doit se voir sans qu'on la cherche :
    appel côté HARA, bandeau côté TARA, et la règle de transfert affichée

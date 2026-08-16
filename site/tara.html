@@ -85,6 +85,12 @@
     </div>
   </div>
 
+  <!-- Le bout de la chaîne. Une TARA ne produit pas un chiffre, elle produit
+       des exigences — autant les montrer comme telles. -->
+  <div class="section-label" style="margin-top:44px">Objectifs de cybersécurité produits</div>
+  <p class="form-hint" id="goals-hint" style="margin-bottom:16px"></p>
+  <div id="goals-list"></div>
+
   <footer>
     <div class="footer-inner">
       <span class="footer-text">ThreatScope · démonstration pédagogique, ne remplace pas la norme</span>
@@ -364,12 +370,29 @@
         '<span class="potential-note" data-role="potential">Faisabilité non cotée</span>' +
         '<div class="rating-result"><span class="rating-label">Risque</span>' +
         '<span class="' + riskClass(null) + '" data-role="risk">—</span></div>' +
+      '</div>' +
+      // Le traitement n'apparaît qu'une fois le risque connu : décider avant
+      // d'avoir coté n'aurait aucun sens.
+      '<div class="treatment" data-role="treatment" hidden>' +
+        '<div class="treatment-head">' +
+          '<span class="rating-label">Traitement du risque</span>' +
+          '<span class="treatment-state" data-role="state"></span>' +
+        '</div>' +
+        '<select class="rating-select treatment-select">' + treatmentOptions() + '</select>' +
+        '<p class="treatment-hint" data-role="t-hint"></p>' +
+        '<input type="text" class="kw-input treatment-input" data-role="t-input" maxlength="240" hidden>' +
       '</div>';
 
     card.querySelectorAll('.feasibility-select').forEach(function(sel) {
       sel.addEventListener('change', function() {
         refreshThreat(damageCard, card); refreshSummary();
       });
+    });
+    card.querySelector('.treatment-select').addEventListener('change', function() {
+      refreshTreatment(damageCard, card); refreshSummary();
+    });
+    card.querySelector('.treatment-input').addEventListener('input', function() {
+      refreshTreatment(damageCard, card); refreshSummary();
     });
     card.querySelector('.event-del').addEventListener('click', function() {
       card.remove(); renumber(); refreshThreatCount(damageCard); refreshSummary();
@@ -428,6 +451,94 @@
     const badge = threatCard.querySelector('[data-role="risk"]');
     badge.className = riskClass(risk);
     badge.textContent = risk === null ? '—' : risk;
+
+    refreshTreatment(damageCard, threatCard);
+  }
+
+  // --- Traitement du risque -----------------------------------------------
+  // Une TARA ne produit pas un chiffre, elle produit des exigences. Le seuil
+  // de décision et ce que chaque option oblige à écrire viennent du moteur :
+  // rien de tout cela n'est réécrit ici.
+
+  function treatmentOptions() {
+    let html = '<option value="">— décision non prise</option>';
+    scales.treatment.order.forEach(function(key) {
+      html += '<option value="' + key + '">' + scales.treatment.options[key].label + '</option>';
+    });
+    return html;
+  }
+
+  function threatTreatment(damageCard, threatCard) {
+    const risk = threatRisk(damageCard, threatCard);
+    const decision = threatCard.querySelector('.treatment-select').value;
+    const value = threatCard.querySelector('.treatment-input').value.trim();
+    const option = decision ? scales.treatment.options[decision] : null;
+    const needed = risk !== null && risk > scales.treatment.decisionThreshold;
+    return {
+      risk: risk,
+      decision: decision,
+      option: option,
+      value: value,
+      needed: needed,
+      complete: option ? value !== '' : !needed
+    };
+  }
+
+  function refreshTreatment(damageCard, threatCard) {
+    const block = threatCard.querySelector('[data-role="treatment"]');
+    const state = threatCard.querySelector('[data-role="state"]');
+    const hint  = threatCard.querySelector('[data-role="t-hint"]');
+    const input = threatCard.querySelector('[data-role="t-input"]');
+    // Décider avant d'avoir coté n'aurait aucun sens.
+    const risk = threatRisk(damageCard, threatCard);
+    block.hidden = risk === null;
+    if (risk === null) return;
+
+    const decision = threatCard.querySelector('.treatment-select').value;
+    const option = decision ? scales.treatment.options[decision] : null;
+
+    // ⚠️ Un objectif de cybersécurité n'est pas une justification. Changer de
+    // nature de décision vide le champ, plutôt que de recycler en silence un
+    // texte qui ne veut plus dire la même chose — et de compter pour complet
+    // un traitement que personne n'a justifié.
+    const nature = option ? option.requires : '';
+    if (input.dataset.requires !== nature) {
+      input.value = '';
+      input.dataset.requires = nature;
+    }
+
+    const t = threatTreatment(damageCard, threatCard);
+
+    if (t.option) {
+      hint.textContent = t.option.hint;
+      input.hidden = false;
+      input.placeholder = t.option.prompt;
+      input.classList.toggle('is-goal', t.option.requires === 'goal');
+    } else {
+      hint.textContent = t.needed
+        ? 'Un risque au-dessus de ' + scales.treatment.decisionThreshold
+          + ' doit être tranché explicitement — et l\'écrit qui va avec.'
+        : 'Un risque de ' + t.risk + ' peut être retenu sans autre forme de procès.';
+      input.hidden = true;
+    }
+
+    state.textContent = t.complete ? 'complet' : 'à compléter';
+    state.className = 'treatment-state ' + (t.complete ? 'is-ok' : 'is-todo');
+    block.classList.toggle('is-incomplete', !t.complete);
+  }
+
+  // Seule la réduction du risque fabrique une exigence : c'est la sortie utile
+  // de toute la démarche, et elle mérite d'être montrée comme telle.
+  function collectGoals() {
+    const goals = [];
+    Array.from(damages.children).forEach(function(damageCard, di) {
+      Array.from(damageCard.querySelectorAll('.threat-card')).forEach(function(threatCard, ti) {
+        const t = threatTreatment(damageCard, threatCard);
+        if (!t.option || t.option.requires !== 'goal' || t.value === '') return;
+        goals.push({ ref: (di + 1) + '.' + (ti + 1), risk: t.risk, text: t.value });
+      });
+    });
+    return goals;
   }
 
   // --- Numérotation et compteurs -----------------------------------------
@@ -466,7 +577,7 @@
     const counts = {};
     for (let value = scales.riskRange[0]; value <= scales.riskRange[1]; value++) counts[value] = 0;
 
-    let rated = 0, maxRisk = null, toTreat = 0;
+    let rated = 0, maxRisk = null, toTreat = 0, incomplete = 0;
 
     Array.from(damages.children).forEach(function(damageCard) {
       damageCard.querySelectorAll('.threat-card').forEach(function(threatCard) {
@@ -475,7 +586,8 @@
         rated += 1;
         counts[risk] += 1;
         if (maxRisk === null || risk > maxRisk) maxRisk = risk;
-        if (risk > 1) toTreat += 1;
+        if (risk > scales.treatment.decisionThreshold) toTreat += 1;
+        if (!threatTreatment(damageCard, threatCard).complete) incomplete += 1;
       });
     });
 
@@ -499,13 +611,49 @@
 
     // Un risque de 1 peut être retenu sans autre forme de procès ; tout le
     // reste demande une décision de traitement explicite et justifiée.
-    document.getElementById('treatment-note').textContent = rated === 0
+    const treatmentNote = document.getElementById('treatment-note');
+    treatmentNote.className = 'treatment-note' + (incomplete ? ' is-todo' : '');
+    treatmentNote.textContent = rated === 0
       ? 'Cotez un impact et une faisabilité pour obtenir une valeur de risque.'
-      : toTreat === 0
-        ? 'Aucun risque n\'appelle de traitement : tous sont à 1.'
-        : toTreat + ' risque' + (toTreat > 1 ? 's' : '') + ' au-dessus de 1 — '
-          + (toTreat > 1 ? 'ils appellent' : 'il appelle')
-          + ' une décision de traitement explicite.';
+      : incomplete > 0
+        ? incomplete + ' traitement' + (incomplete > 1 ? 's' : '') + ' à compléter sur '
+          + toTreat + ' risque' + (toTreat > 1 ? 's' : '') + ' au-dessus de '
+          + scales.treatment.decisionThreshold + '.'
+        : toTreat === 0
+          ? 'Aucun risque n\'appelle de traitement.'
+          : toTreat === 1
+            ? 'Le risque à traiter est tranché et justifié.'
+            : 'Les ' + toTreat + ' risques à traiter sont tranchés et justifiés.';
+
+    refreshGoals();
+  }
+
+  // Le bout de la chaîne : ce que l'analyse fabrique réellement.
+  function refreshGoals() {
+    const goals = collectGoals();
+    const list = document.getElementById('goals-list');
+    const hint = document.getElementById('goals-hint');
+
+    list.innerHTML = goals.map(function(goal, index) {
+      return '<div class="goal">'
+           + '<span class="goal-ref">OC-' + (index + 1) + '</span>'
+           + '<span class="goal-text">' + escapeHtml(goal.text) + '</span>'
+           + '<span class="goal-src">menace ' + goal.ref + ' · risque '
+           + goal.risk + '</span></div>';
+    }).join('');
+
+    hint.textContent = goals.length === 0
+      ? 'Aucun pour l\'instant. Un objectif naît d\'une décision de réduire un risque — '
+        + 'c\'est la sortie utile de la démarche : une TARA produit des exigences, pas un chiffre.'
+      : goals.length + ' objectif' + (goals.length > 1 ? 's' : '')
+        + ' de cybersécurité, à verser aux exigences du projet.';
+  }
+
+  // Le texte vient d'un champ de saisie : il ne s'injecte pas dans du HTML.
+  function escapeHtml(text) {
+    const node = document.createElement('span');
+    node.textContent = text;
+    return node.innerHTML;
   }
 
   // Sans la lambda, l'objet Event du clic serait pris pour un préremplissage.
