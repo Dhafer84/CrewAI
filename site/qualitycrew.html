@@ -38,16 +38,16 @@
 
   <div class="stats">
     <div class="stat">
-      <div class="stat-val green">75%</div>
-      <div class="stat-label">Taux de détection mesuré</div>
+      <div class="stat-val green">12/12</div>
+      <div class="stat-label">Défauts détectés sur le jeu de démonstration</div>
     </div>
     <div class="stat">
-      <div class="stat-val">~33s</div>
-      <div class="stat-label">Durée d'exécution</div>
+      <div class="stat-val" id="stat-duree">—</div>
+      <div class="stat-label" id="stat-duree-label">Durée du dernier audit</div>
     </div>
     <div class="stat">
-      <div class="stat-val amber">2</div>
-      <div class="stat-label">Non-conformités critiques</div>
+      <div class="stat-val amber">15</div>
+      <div class="stat-label">Points de contrôle vérifiés (CHK-01 à CHK-15)</div>
     </div>
   </div>
 
@@ -78,6 +78,7 @@
       <div class="agent-status status-wait" id="status-0">
         <span class="dot dot-wait" id="dot-0"></span>
         <span id="status-text-0">En attente</span>
+        <span class="agent-time" id="time-0"></span>
       </div>
     </div>
     <div class="task-output" id="output-0"></div>
@@ -106,6 +107,7 @@
       <div class="agent-status status-wait" id="status-1">
         <span class="dot dot-wait" id="dot-1"></span>
         <span id="status-text-1">En attente</span>
+        <span class="agent-time" id="time-1"></span>
       </div>
     </div>
     <div class="task-output" id="output-1"></div>
@@ -134,6 +136,7 @@
       <div class="agent-status status-wait" id="status-2">
         <span class="dot dot-wait" id="dot-2"></span>
         <span id="status-text-2">En attente</span>
+        <span class="agent-time" id="time-2"></span>
       </div>
     </div>
     <div class="task-output" id="output-2"></div>
@@ -162,6 +165,7 @@
       <div class="agent-status status-wait" id="status-3">
         <span class="dot dot-wait" id="dot-3"></span>
         <span id="status-text-3">En attente</span>
+        <span class="agent-time" id="time-3"></span>
       </div>
     </div>
     <div class="task-output" id="output-3"></div>
@@ -213,11 +217,49 @@
     text.textContent = labels[state] || state;
   }
 
+  // Chronométrage réel. La durée dépend du modèle et de la charge de l'API :
+  // l'afficher en dur — c'était « ~33 s » — finit toujours par mentir. Depuis
+  // le changement de modèle du 20/08/2026, un audit prend environ 100 s.
+  const chrono = { total: 0, agent: 0, horloge: null };
+
+  function formatDuree(ms) {
+    const s = ms / 1000;
+    return (s < 10 ? s.toFixed(1) : Math.round(s)) + ' s';
+  }
+
+  function demarrerChrono() {
+    chrono.total = chrono.agent = Date.now();
+    const el = document.getElementById('stat-duree');
+    document.getElementById('stat-duree-label').textContent = 'Durée — audit en cours';
+    clearInterval(chrono.horloge);
+    chrono.horloge = setInterval(function() {
+      el.textContent = formatDuree(Date.now() - chrono.total);
+    }, 200);
+  }
+
+  function arreterChrono(libelle) {
+    clearInterval(chrono.horloge);
+    chrono.horloge = null;
+    if (chrono.total) {
+      document.getElementById('stat-duree').textContent = formatDuree(Date.now() - chrono.total);
+    }
+    document.getElementById('stat-duree-label').textContent = libelle;
+  }
+
+  // Le temps d'un agent : depuis la fin du précédent, pas depuis le départ.
+  function marquerAgent(idx) {
+    const el = document.getElementById('time-' + idx);
+    if (el) el.textContent = formatDuree(Date.now() - chrono.agent);
+    chrono.agent = Date.now();
+  }
+
   function resetUI() {
     for (let i = 0; i < 4; i++) {
       setAgentStatus(i, 'wait');
       const out = document.getElementById('output-' + i);
       if (out) { out.textContent = ''; out.classList.remove('visible'); }
+      const tps = document.getElementById('time-' + i);
+      if (tps) tps.textContent = '';
     }
     document.getElementById('report-section').classList.remove('visible');
     document.getElementById('report-content').innerHTML = '';
@@ -290,10 +332,12 @@
       try { data = JSON.parse(evt.data); } catch { return; }
 
       if (data.type === 'start') {
+        demarrerChrono();
         setAgentStatus(0, 'running');
         setStatus('Agent 1/4 en cours…');
       } else if (data.type === 'task_done') {
         const idx = data.index;
+        marquerAgent(idx);
         setAgentStatus(idx, 'done');
         showOutput(idx, data.output || '');
         if (idx < 3) {
@@ -301,11 +345,20 @@
           setStatus('Agent ' + (idx + 2) + '/4 en cours…');
         }
       } else if (data.type === 'done') {
+        arreterChrono('Durée du dernier audit');
         clearStatus();
         btn.disabled = false;
         showReport(data.report || '');
         es.close(); es = null;
       } else if (data.type === 'error') {
+        arreterChrono('Durée avant interruption');
+        // Laisser un agent sur « En cours… » alors que tout est arrêté donne
+        // l'impression qu'il travaille encore. On le remet en attente.
+        for (let i = 0; i < 4; i++) {
+          if (document.getElementById('status-text-' + i).textContent === 'En cours…') {
+            setAgentStatus(i, 'wait');
+          }
+        }
         setStatus(data.message || 'Erreur inconnue.', true);
         btn.disabled = false;
         es.close(); es = null;
