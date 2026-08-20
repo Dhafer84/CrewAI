@@ -83,6 +83,11 @@ class _RedactScanKeywords(logging.Filter):
 
 logging.getLogger("uvicorn.access").addFilter(_RedactScanKeywords())
 
+# Les flux SSE rendent un message neutre au visiteur ; la cause réelle doit
+# rester quelque part, sinon une panne est indiagnosticable (vécu le
+# 20/08/2026 : Groq avait retiré le modèle, le site disait « vérifiez la clé »).
+_log = logging.getLogger("qualitycrew")
+
 _audit_semaphore = asyncio.Semaphore(1)
 _scan_semaphore = asyncio.Semaphore(1)
 
@@ -364,6 +369,7 @@ async def hara_suggest_stream(request: Request, t: str = ""):
                     ],
                 }))
         except Exception:
+            _log.exception("Proposition HARA interrompue")
             await queue.put(json.dumps({
                 "type": "error",
                 "message": "La proposition a échoué. Vous pouvez saisir les événements à la main.",
@@ -469,6 +475,7 @@ async def tara_suggest_stream(request: Request, t: str = ""):
                     ],
                 }))
         except Exception:
+            _log.exception("Proposition TARA interrompue")
             await queue.put(json.dumps({
                 "type": "error",
                 "message": "La proposition a échoué. Vous pouvez saisir les menaces à la main.",
@@ -549,9 +556,10 @@ async def audit_stream(request: Request):
                 )
                 await queue.put(json.dumps({"type": "done", "report": report}))
             except Exception:
+                _log.exception("Audit interrompu")
                 await queue.put(json.dumps({
                     "type": "error",
-                    "message": "L'audit a échoué. Vérifiez la clé API et relancez.",
+                    "message": "L'audit n'a pas abouti. Réessayez dans un instant.",
                 }))
             finally:
                 await queue.put(None)
@@ -825,6 +833,7 @@ async def scan_stream(request: Request, t: str = ""):
             # Jeton GitHub absent : message explicite, pas de trace technique.
             await queue.put(json.dumps({"type": "error", "message": str(exc)}))
         except Exception:
+            _log.exception("Scan interrompu")
             await queue.put(json.dumps({
                 "type": "error",
                 "message": "Le scan a échoué. Réessayez dans quelques instants.",

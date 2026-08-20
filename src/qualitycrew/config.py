@@ -46,7 +46,7 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
-LLM_MODEL = os.getenv("LLM_MODEL", "groq/llama-3.3-70b-versatile")
+LLM_MODEL = os.getenv("LLM_MODEL", "groq/openai/gpt-oss-120b")
 
 
 def require_llm_key() -> None:
