@@ -223,12 +223,40 @@
     document.getElementById('report-content').innerHTML = '';
   }
 
+  // Tronquer du markdown au caractère près disloque les tableaux : une ligne
+  // coupée en son milieu ne se rend plus, et un tableau amputé de sa ligne de
+  // séparation « |---|---| » n'est plus un tableau pour marked — juste une
+  // bouillie de barres verticales. C'est ce que produisait l'aperçu du
+  // vérificateur de conformité, dont la sortie est justement un long tableau.
+  const APERCU_MAX = 1200;
+
+  function truncateMarkdown(text) {
+    const trimmed = text.trim();
+    if (trimmed.length <= APERCU_MAX) return trimmed;
+
+    // 1. Couper sur une frontière de ligne, jamais au milieu.
+    let coupe = trimmed.slice(0, APERCU_MAX);
+    const fin = coupe.lastIndexOf('\n');
+    if (fin > 0) coupe = coupe.slice(0, fin);
+
+    // 2. Si le morceau se termine par un tableau privé de sa ligne de
+    //    séparation, retirer ces lignes plutôt que les rendre illisibles.
+    const lignes = coupe.split('\n');
+    const estTableau = l => l.trim().startsWith('|');
+    const estSeparateur = l => /^\s*\|[\s:|-]+\|\s*$/.test(l);
+    let debut = lignes.length;
+    while (debut > 0 && estTableau(lignes[debut - 1])) debut -= 1;
+    if (debut < lignes.length && !lignes.slice(debut).some(estSeparateur)) {
+      lignes.length = debut;
+    }
+
+    return lignes.join('\n').trimEnd() + '\n\n…';
+  }
+
   function showOutput(idx, text) {
     const out = document.getElementById('output-' + idx);
     if (!out) return;
-    const trimmed = text.trim();
-    const truncated = trimmed.slice(0, 600) + (trimmed.length > 600 ? '…' : '');
-    out.innerHTML = marked.parse(truncated);
+    out.innerHTML = marked.parse(truncateMarkdown(text));
     out.classList.add('visible');
   }
 

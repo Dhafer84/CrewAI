@@ -19,6 +19,24 @@ load_dotenv()
 _original_litellm_completion = litellm.completion
 _RATE_LIMIT_NAMES = ("ratelimiterror", "rate_limit_exceeded", "rate limit")
 
+# ⚠️ Distinguer la cadence (par minute) du quota (par jour). Attendre 60 s a du
+# sens sur un dépassement de TPM ; sur un TPD épuisé, Groq répond « réessayez
+# dans 38 minutes » et les 7 tentatives ne font qu'ajouter 4 minutes d'attente
+# avant un échec certain — en brûlant du quota de requêtes au passage.
+DAILY_QUOTA_MARKS = ("tokens per day", "requests per day", "(tpd)", "(rpd)")
+
+
+def is_daily_quota(exc: BaseException) -> bool:
+    """Le quota quotidien de l'API est-il épuisé ? Remonte la chaîne des causes."""
+    vu = set()
+    while exc is not None and id(exc) not in vu:
+        vu.add(id(exc))
+        texte = str(exc).lower()
+        if any(marque in texte for marque in DAILY_QUOTA_MARKS):
+            return True
+        exc = exc.__cause__ or exc.__context__
+    return False
+
 
 def _completion_strip_cache_breakpoint(**kwargs):
     for msg in kwargs.get("messages", []):
@@ -31,6 +49,8 @@ def _completion_strip_cache_breakpoint(**kwargs):
         try:
             return _original_litellm_completion(**kwargs)
         except Exception as exc:
+            if is_daily_quota(exc):
+                raise            # réessayer ne servirait qu'à faire patienter
             name = type(exc).__name__.lower() + str(exc).lower()
             if any(k in name for k in _RATE_LIMIT_NAMES) and attempt < 6:
                 import time

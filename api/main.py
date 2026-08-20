@@ -38,7 +38,7 @@ from pydantic import BaseModel
 _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT / "src"))
 
-from qualitycrew.config import require_llm_key  # noqa: E402
+from qualitycrew.config import is_daily_quota, require_llm_key  # noqa: E402
 from qualitycrew.core import run_audit  # noqa: E402
 from sentinelscan.config import require_github_token  # noqa: E402
 from sentinelscan.queries import InvalidKeyword, normalize_keywords  # noqa: E402
@@ -87,6 +87,20 @@ logging.getLogger("uvicorn.access").addFilter(_RedactScanKeywords())
 # rester quelque part, sinon une panne est indiagnosticable (vécu le
 # 20/08/2026 : Groq avait retiré le modèle, le site disait « vérifiez la clé »).
 _log = logging.getLogger("qualitycrew")
+
+# Un quota quotidien épuisé n'est pas une panne : le dire franchement vaut mieux
+# qu'un « réessayez » qui ne marchera pas avant demain. Et c'est l'occasion de
+# rappeler que deux outils du site ne dépendent d'aucune IA.
+_QUOTA_MESSAGE = (
+    "Le quota quotidien de l'API gratuite est atteint — la démonstration "
+    "repartira demain. SafetyScope et ThreatScope, eux, ne font appel à aucune "
+    "IA pour coter : ils restent pleinement utilisables."
+)
+
+
+def _failure_message(exc: BaseException, defaut: str) -> str:
+    """Nommer le quota quand c'est lui, rester sobre sinon."""
+    return _QUOTA_MESSAGE if is_daily_quota(exc) else defaut
 
 _audit_semaphore = asyncio.Semaphore(1)
 _scan_semaphore = asyncio.Semaphore(1)
@@ -368,11 +382,12 @@ async def hara_suggest_stream(request: Request, t: str = ""):
                         for s in suggestions
                     ],
                 }))
-        except Exception:
+        except Exception as exc:
             _log.exception("Proposition HARA interrompue")
             await queue.put(json.dumps({
                 "type": "error",
-                "message": "La proposition a échoué. Vous pouvez saisir les événements à la main.",
+                "message": _failure_message(
+                    exc, "La proposition a échoué. Vous pouvez saisir les événements à la main."),
             }))
         finally:
             await queue.put(None)
@@ -474,11 +489,12 @@ async def tara_suggest_stream(request: Request, t: str = ""):
                         {"threat": s.threat, "path": s.path} for s in suggestions
                     ],
                 }))
-        except Exception:
+        except Exception as exc:
             _log.exception("Proposition TARA interrompue")
             await queue.put(json.dumps({
                 "type": "error",
-                "message": "La proposition a échoué. Vous pouvez saisir les menaces à la main.",
+                "message": _failure_message(
+                    exc, "La proposition a échoué. Vous pouvez saisir les menaces à la main."),
             }))
         finally:
             await queue.put(None)
@@ -555,11 +571,12 @@ async def audit_stream(request: Request):
                     run_audit, _DOCUMENTS_DIR, None, task_callback
                 )
                 await queue.put(json.dumps({"type": "done", "report": report}))
-            except Exception:
+            except Exception as exc:
                 _log.exception("Audit interrompu")
                 await queue.put(json.dumps({
                     "type": "error",
-                    "message": "L'audit n'a pas abouti. Réessayez dans un instant.",
+                    "message": _failure_message(
+                        exc, "L'audit n'a pas abouti. Réessayez dans un instant."),
                 }))
             finally:
                 await queue.put(None)
