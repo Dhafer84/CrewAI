@@ -48,6 +48,22 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 LLM_MODEL = os.getenv("LLM_MODEL", "groq/openai/gpt-oss-120b")
 
+# gpt-oss et consorts sont des modèles à **raisonnement** : ils produisent des
+# jetons de réflexion avant la réponse, ce qui coûte cher en temps. Mesuré le
+# 20/08/2026 sur l'audit complet : 180 s en effort par défaut, 110 s en « low »
+# — et le rapport en « low » était le plus juste des deux (il a vu une
+# incohérence de matrice que l'autre déclarait conforme).
+# Laisser vide pour un modèle qui ne connaît pas ce paramètre.
+LLM_REASONING_EFFORT = os.getenv("LLM_REASONING_EFFORT", "low")
+
+
+def llm_options() -> dict:
+    """Options communes aux trois crews. Un seul endroit décide."""
+    options = {"max_retries": 6}
+    if LLM_REASONING_EFFORT:
+        options["reasoning_effort"] = LLM_REASONING_EFFORT
+    return options
+
 
 def require_llm_key() -> None:
     """Vérifie qu'au moins une clé LLM est configurée avant de lancer un audit.

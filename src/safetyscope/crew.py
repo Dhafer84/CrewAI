@@ -10,7 +10,7 @@ l'ingénieur ; la déléguer viderait la démarche de son sens.
 
 from crewai import Agent, Crew, LLM, Process, Task
 
-from qualitycrew.config import LLM_MODEL  # noqa: F401  (charge le .env + le patch litellm)
+from qualitycrew.config import LLM_MODEL, llm_options  # noqa: F401  (charge le .env + le patch litellm)
 
 from .hazards import guide_words_block, situations_block
 
@@ -19,7 +19,7 @@ MAX_SUGGESTIONS = 10
 
 
 def _make_llm() -> LLM:
-    return LLM(model=LLM_MODEL, max_retries=6)
+    return LLM(model=LLM_MODEL, **llm_options())
 
 
 def _make_agents(llm: LLM) -> dict[str, Agent]:

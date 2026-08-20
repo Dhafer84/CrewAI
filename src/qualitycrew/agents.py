@@ -1,13 +1,13 @@
 """Définition des 4 agents du crew QualityCrew."""
 
 from crewai import Agent, LLM
-from .config import LLM_MODEL, GROQ_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY
+from .config import LLM_MODEL, llm_options, GROQ_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY
 
 
 def make_llm() -> LLM:
     # max_retries active le backoff exponentiel automatique de LiteLLM
     # utile sur le free tier Groq (limite 12k TPM)
-    return LLM(model=LLM_MODEL, max_retries=6)
+    return LLM(model=LLM_MODEL, **llm_options())
 
 
 def make_agents(llm: LLM) -> dict[str, Agent]:

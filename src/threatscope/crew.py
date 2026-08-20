@@ -13,7 +13,7 @@ la démarche de son sens.
 
 from crewai import LLM, Agent, Crew, Process, Task
 
-from qualitycrew.config import LLM_MODEL  # noqa: F401  (charge le .env + le patch litellm)
+from qualitycrew.config import LLM_MODEL, llm_options  # noqa: F401  (charge le .env + le patch litellm)
 
 from .threats import guide_words_block, surfaces_block
 
@@ -24,7 +24,7 @@ MAX_SUGGESTIONS = 4
 
 
 def _make_llm() -> LLM:
-    return LLM(model=LLM_MODEL, max_retries=6)
+    return LLM(model=LLM_MODEL, **llm_options())
 
 
 def _make_agents(llm: LLM) -> dict[str, Agent]:
