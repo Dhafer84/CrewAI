@@ -392,8 +392,8 @@ async def hara_suggest_stream(request: Request, t: str = ""):
         finally:
             await queue.put(None)
 
-    asyncio.create_task(run())
-    return _sse_response(request, queue, timeout=180.0)
+    tache = asyncio.create_task(run())
+    return _sse_response(request, queue, timeout=180.0, task=tache)
 
 
 # --------------------------------------------------------------------------
@@ -499,33 +499,68 @@ async def tara_suggest_stream(request: Request, t: str = ""):
         finally:
             await queue.put(None)
 
-    asyncio.create_task(run())
-    return _sse_response(request, queue, timeout=180.0)
+    tache = asyncio.create_task(run())
+    return _sse_response(request, queue, timeout=180.0, task=tache)
 
 
 # --------------------------------------------------------------------------
 # Plomberie SSE commune
 # --------------------------------------------------------------------------
 
-def _sse_response(request: Request, queue: "asyncio.Queue[str | None]", timeout: float):
+# ⚠️ Un battement régulier est indispensable, pas décoratif.
+#
+# Le délai passé à `_sse_response` n'est pas un budget total : c'est l'attente
+# **entre deux événements**. Une tâche longue ne produit rien pendant qu'elle
+# travaille, et ce silence casse la chaîne à deux endroits :
+#   - nginx coupe une connexion inactive (`proxy_read_timeout`, 60 s par défaut)
+#   - le navigateur reste figé sur l'agent en cours, sans erreur nulle part
+#
+# Vécu le 20/08/2026 : l'audit semblait « bloqué au détecteur de risques »,
+# et le journal du service était vide — parce qu'il n'y avait aucune exception.
+# Un commentaire SSE (`: ligne`) ne déclenche aucun événement côté client mais
+# garde le tuyau vivant.
+_HEARTBEAT_SECONDS = 15.0
+
+
+def _sse_response(
+    request: Request,
+    queue: "asyncio.Queue[str | None]",
+    timeout: float,
+    task: "asyncio.Task | None" = None,
+):
     """Transforme une file d'événements JSON en flux SSE.
 
-    `None` dans la file signale la fin du traitement.
+    `None` dans la file signale la fin du traitement. `timeout` est le silence
+    **total** toléré ; le battement, lui, part toutes les `_HEARTBEAT_SECONDS`.
+
+    `task` est le traitement de fond : on l'annule si le client s'en va, sinon
+    il continue de tourner pour un résultat que plus personne n'attend — et sur
+    une API à quota, ça se paie.
     """
 
     async def event_gen():
-        while True:
-            if await request.is_disconnected():
-                break
-            try:
-                item = await asyncio.wait_for(queue.get(), timeout=timeout)
-            except asyncio.TimeoutError:
-                yield 'data: {"type":"error","message":"Délai dépassé."}\n\n'
-                break
-            if item is None:
-                yield 'data: {"type":"close"}\n\n'
-                break
-            yield f"data: {item}\n\n"
+        silence = 0.0
+        try:
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    item = await asyncio.wait_for(queue.get(), _HEARTBEAT_SECONDS)
+                except asyncio.TimeoutError:
+                    silence += _HEARTBEAT_SECONDS
+                    if silence >= timeout:
+                        yield 'data: {"type":"error","message":"Délai dépassé."}\n\n'
+                        break
+                    yield ": battement\n\n"
+                    continue
+                silence = 0.0
+                if item is None:
+                    yield 'data: {"type":"close"}\n\n'
+                    break
+                yield f"data: {item}\n\n"
+        finally:
+            if task is not None and not task.done():
+                task.cancel()
 
     return StreamingResponse(
         event_gen(),
@@ -581,8 +616,8 @@ async def audit_stream(request: Request):
             finally:
                 await queue.put(None)
 
-    asyncio.create_task(run())
-    return _sse_response(request, queue, timeout=180.0)
+    tache = asyncio.create_task(run())
+    return _sse_response(request, queue, timeout=420.0, task=tache)
 
 
 # --------------------------------------------------------------------------
@@ -858,5 +893,5 @@ async def scan_stream(request: Request, t: str = ""):
         finally:
             await queue.put(None)
 
-    asyncio.create_task(run())
-    return _sse_response(request, queue, timeout=240.0)
+    tache = asyncio.create_task(run())
+    return _sse_response(request, queue, timeout=240.0, task=tache)

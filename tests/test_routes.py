@@ -380,6 +380,58 @@ def test_a_suggest_token_is_not_valid_on_the_other_tool():
     assert _consume_token(hara, "client-a", "tara-suggest") is None
 
 
+def test_a_long_task_keeps_the_stream_alive():
+    """Le flux doit battre pendant qu'une tâche travaille en silence.
+
+    Sans ce battement, nginx coupe la connexion inactive (60 s par défaut) et
+    le navigateur reste figé sur l'agent en cours — sans la moindre exception
+    côté serveur. C'est exactement ce qui faisait croire à un blocage du
+    détecteur de risques le 20/08/2026.
+    """
+    import asyncio
+
+    import api.main as m
+
+    class _RequeteOuverte:
+        async def is_disconnected(self):
+            return False
+
+    async def scenario():
+        file = asyncio.Queue()
+        annulee = {"oui": False}
+
+        async def travail_interminable():
+            try:
+                await asyncio.sleep(999)
+            except asyncio.CancelledError:
+                annulee["oui"] = True
+                raise
+
+        tache = asyncio.create_task(travail_interminable())
+        battement = m._HEARTBEAT_SECONDS
+        m._HEARTBEAT_SECONDS = 0.05          # on accélère, la logique est la même
+        try:
+            reponse = m._sse_response(_RequeteOuverte(), file, timeout=0.3, task=tache)
+            morceaux = []
+            async for chunk in reponse.body_iterator:
+                morceaux.append(chunk if isinstance(chunk, str) else chunk.decode())
+        finally:
+            m._HEARTBEAT_SECONDS = battement
+        await asyncio.sleep(0.02)
+        return morceaux, annulee["oui"]
+
+    morceaux, annulee = asyncio.run(scenario())
+
+    battements = [c for c in morceaux if c.startswith(": ")]
+    assert battements, "aucun battement pendant le silence"
+    # Un commentaire SSE ne doit surtout pas ressembler à un événement, sinon
+    # le client tenterait de le parser.
+    for ligne in battements:
+        assert not ligne.startswith("data:")
+    assert '"Délai dépassé."' in morceaux[-1], "le délai total doit finir par mordre"
+    assert annulee, "la tâche de fond doit être annulée quand plus personne n'écoute"
+
+
 def test_unknown_route_is_a_404():
     with client() as c:
         assert c.get("/nexistepas").status_code == 404
