@@ -824,4 +824,27 @@ CATALOGUE: dict[str, str] = {
     "scan.detection.config": "Fichier de configuration",
     "scan.detection.cooccurrence": "Co-occurrence avec « api_key »",
     "scan.detection.repo": "Dépôt mentionnant le terme",
+    # --- RegWatch — niveaux de signal ---
+    "regwatch.signal.publication": "Publication / amendement",
+    "regwatch.signal.draft": "Travaux en cours",
+    "regwatch.signal.event": "Annonce / calendrier",
+    "regwatch.signal.info": "Information",
+    # --- QualityCrew — états d'agent ---
+    "qc.status.running": "En cours…",
+    "qc.status.done": "Terminé",
+    # --- RegWatch — incidents réseau ---
+    "regwatch.err.unreachable": "Injoignable ({cause}).",
+    "regwatch.err.refused":
+        "Accès refusé par la source (HTTP {code}) — protection anti-robot probable.",
+    "regwatch.err.notfound": "Page introuvable (HTTP 404) — l'URL a changé.",
+    "regwatch.err.unexpected": "Réponse inattendue (HTTP {code}).",
+    "regwatch.err.toobig": "Réponse anormalement volumineuse (> {ko} Ko).",
+    "regwatch.err.challenge":
+        "La source répond par un défi anti-robot : elle n'est pas consultable par un programme, et le contourner est exclu.",
+    "regwatch.err.feed": "Flux illisible : {cause}",
+    "regwatch.err.notafeed": "Racine « {tag} » : ni RSS ni Atom.",
+    "regwatch.err.parser": "{source} — parseur en échec ({cause}).",
+    "regwatch.err.degraded":
+        "{source} — la page répond mais aucun élément n'en est extrait : le parseur ne reconnaît plus sa structure.",
+    "regwatch.err.line": "{source} — {message}",
 }

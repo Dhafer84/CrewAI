@@ -16,6 +16,7 @@ from i18n import DEFAULT_LANG
 import re
 from dataclasses import replace
 
+from .classify import signal_label
 from .core import WatchItem
 from .crew import SEPARATOR, UNKNOWN, build_crew
 
@@ -56,13 +57,14 @@ def select(items: list[WatchItem]) -> list[int]:
     return sorted(classement[:MAX_EXPLAINED])
 
 
-def build_block(items: list[WatchItem], indices: list[int]) -> str:
+def build_block(items: list[WatchItem], indices: list[int],
+                lang: str = DEFAULT_LANG) -> str:
     """Le lot envoyé au modèle — métadonnées seules, jamais de contenu."""
     lignes = []
     for numero, index in enumerate(indices, start=1):
         item = items[index]
         lignes.append(
-            f"{numero}. [{item.norm_label} · {item.signal} · "
+            f"{numero}. [{item.norm_label} · {signal_label(item.signal, lang)} · "
             f"{item.published.isoformat()} · {item.source_label} "
             f"({item.source_tier})] {item.title}"
         )
@@ -125,7 +127,7 @@ def explain_items(items: list[WatchItem], task_callback=None,
         raise ValueError("Aucun signal à expliquer.")
 
     indices = select(items)
-    crew = build_crew(build_block(items, indices), len(indices),
+    crew = build_crew(build_block(items, indices, lang), len(indices),
                       task_callback=task_callback, lang=lang)
     phrases = parse_explanations(crew.kickoff().raw, len(indices))
 

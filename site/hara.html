@@ -555,7 +555,9 @@
       handoffHint.className = 'form-hint error';
       return;
     }
-    window.location.href = '/tara';
+    // ⚠️ Le pont doit rester dans la langue de la page : un HARA anglais
+    // qui atterrit sur une TARA française serait un cul-de-sac.
+    window.location.href = (window.LANG === 'fr' ? '' : '/' + window.LANG) + '/tara';
   });
 
   btnExport.addEventListener('click', async function() {

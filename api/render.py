@@ -29,6 +29,9 @@ _TAG = re.compile(r'<(/?)([a-zA-Z][\w-]*)([^>]*?)(/?)>')
 _ANNOTATED = re.compile(r'<([a-zA-Z][\w-]*)([^>]*?data-i18n="([^"]+)"[^>]*?)>')
 _ATTR_KEY = re.compile(r'data-i18n-content="([^"]+)"')
 
+# Chemins de page, en français — les seuls href que le rendu préfixe.
+PAGE_PATHS = ("", "/qualitycrew", "/sentinelscan", "/hara", "/tara", "/regwatch")
+
 
 def _end_of_element(html: str, tag: str, after: int) -> int | None:
     """Position du début de la balise fermante correspondante."""
@@ -115,6 +118,16 @@ def render(html: str, lang: str, path: str, base_url: str,
 
     html = html.replace('<html lang="fr">', f'<html lang="{lang}">', 1)
     html = html.replace('/i18n/fr.js', f'/i18n/{lang}.js', 1)
+
+    # ⚠️ **Les liens internes doivent rester dans la langue de la page.**
+    # Sans ça, un visiteur anglophone qui clique sur une carte retombe en
+    # français : la version anglaise devient un cul-de-sac dès le premier
+    # clic. Seuls les chemins de PAGE sont préfixés — jamais les routes
+    # d'API, qui portent leur langue en query string.
+    if lang != DEFAULT_LANG:
+        for chemin in sorted(PAGE_PATHS, key=len, reverse=True):
+            html = html.replace(f'href="{chemin or "/"}"',
+                                f'href="/{lang}{chemin}"')
 
     if asset_version:
         for actif in ("/static/style.css", "/static/i18n.js"):

@@ -568,7 +568,7 @@
           refreshSummary();
           setHint(added === 0
             ? T('tara.js.nothing')
-            : added + ' menace(s) ajoutée(s), non cotées — à vous d\'évaluer la faisabilité.');
+            : T('tara.js.added', { n: added }));
           close();
 
         } else if (data.type === 'error') {

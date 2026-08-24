@@ -46,12 +46,12 @@ def _check_sources() -> int:
     en_panne = 0
 
     for source in SOURCES:
-        print(f"  {source.label}")
+        print(f"  {source.label()}")
         print(f"    {source.url}")
         try:
             body = fetch.get_text(source.url)
         except fetch.FetchError as exc:
-            print(f"    ✗ INJOIGNABLE — {exc}\n")
+            print(f"    ✗ INJOIGNABLE — {exc.message()}\n")
             en_panne += 1
             continue
 
@@ -105,7 +105,7 @@ def main() -> int:
 
     if args.dry_run:
         for source in sources:
-            print(f"  [{source.tier:<11}] {source.kind:<4} {source.label}")
+            print(f"  [{source.tier:<11}] {source.kind:<4} {source.label()}")
             print(f"                      {source.url}")
         print(f"\n(dry-run — {len(sources)} source(s), aucune requête envoyée)")
         return 0

@@ -11,6 +11,8 @@ maquette. C'est pourquoi les deux formats sont traités ici, alors que les
 scrapers de `scrape.py` sont écrits un par un.
 """
 
+from i18n import DEFAULT_LANG, t
+
 import html
 import re
 import xml.etree.ElementTree as ET
@@ -49,7 +51,19 @@ class RawItem:
 
 
 class FeedError(ValueError):
-    """Le document reçu n'est pas un flux exploitable."""
+    """Le document reçu n'est pas un flux exploitable.
+
+    Porte une clé de catalogue, comme `fetch.FetchError` : ce module ne
+    connaît pas la langue du visiteur.
+    """
+
+    def __init__(self, key: str, **params):
+        self.key = key
+        self.params = params
+        super().__init__(key)
+
+    def message(self, lang: str = DEFAULT_LANG) -> str:
+        return t(self.key, lang, **self.params)
 
 
 def _text(element: ET.Element | None) -> str:
@@ -186,7 +200,7 @@ def parse_feed(xml: str, source_key: str) -> list[RawItem]:
     try:
         root = ET.fromstring((xml or "").strip())
     except ET.ParseError as exc:
-        raise FeedError(f"Flux illisible : {exc}") from exc
+        raise FeedError("regwatch.err.feed", cause=str(exc)) from exc
 
     tag = root.tag.split("}")[-1].lower()
     if tag == "rss":
@@ -194,7 +208,7 @@ def parse_feed(xml: str, source_key: str) -> list[RawItem]:
     elif tag == "feed":
         items = _atom_entries(root, source_key)
     else:
-        raise FeedError(f"Racine « {tag} » : ni RSS ni Atom.")
+        raise FeedError("regwatch.err.notafeed", tag=tag)
 
     seen: set[tuple[str, str]] = set()
     unique: list[RawItem] = []

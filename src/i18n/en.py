@@ -795,4 +795,27 @@ CATALOGUE: dict[str, str] = {
     "scan.detection.config": "Configuration file",
     "scan.detection.cooccurrence": "Co-occurrence with « api_key »",
     "scan.detection.repo": "Repository mentioning the term",
+    # --- RegWatch — signal levels ---
+    "regwatch.signal.publication": "Publication / amendment",
+    "regwatch.signal.draft": "Work in progress",
+    "regwatch.signal.event": "Announcement / schedule",
+    "regwatch.signal.info": "Information",
+    # --- QualityCrew — agent states ---
+    "qc.status.running": "Running…",
+    "qc.status.done": "Done",
+    # --- RegWatch — network incidents ---
+    "regwatch.err.unreachable": "Unreachable ({cause}).",
+    "regwatch.err.refused":
+        "Access refused by the source (HTTP {code}) — anti-robot protection likely.",
+    "regwatch.err.notfound": "Page not found (HTTP 404) — the URL has changed.",
+    "regwatch.err.unexpected": "Unexpected response (HTTP {code}).",
+    "regwatch.err.toobig": "Abnormally large response (> {ko} KB).",
+    "regwatch.err.challenge":
+        "The source answers with an anti-robot challenge: it is not readable by a program, and working around it is out of the question.",
+    "regwatch.err.feed": "Unreadable feed: {cause}",
+    "regwatch.err.notafeed": "Root « {tag} »: neither RSS nor Atom.",
+    "regwatch.err.parser": "{source} — parser failed ({cause}).",
+    "regwatch.err.degraded":
+        "{source} — the page answers but nothing is extracted from it: the parser no longer recognises its structure.",
+    "regwatch.err.line": "{source} — {message}",
 }

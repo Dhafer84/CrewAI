@@ -31,6 +31,8 @@ oriente la lecture ; elle ne la remplace pas. Le lien vers la source, lui,
 est toujours juste — et c'est lui le livrable.
 """
 
+from i18n import DEFAULT_LANG, t
+
 import re
 import unicodedata
 from collections.abc import Sequence
@@ -40,14 +42,27 @@ from .norms import Norm
 
 # Ordre d'affichage, du signal le plus fort au plus faible. ⚠️ Ce n'est PAS
 # l'ordre d'évaluation : voir `signal_of`.
-SIGNAL_PUBLICATION = "Publication / amendement"
-SIGNAL_DRAFT = "Travaux en cours"
-SIGNAL_EVENT = "Annonce / calendrier"
-SIGNAL_INFO = "Information"
+# ⚠️ **Des IDENTIFIANTS, pas des libellés.** Ces valeurs sont stockées dans
+# `WatchItem.signal`, servent de clés à `count_by_signal()` et d'ordre de
+# force à la sélection de l'étape 5. Y mettre du texte affichable — ce qui
+# était le cas jusqu'au 24/08/2026 — les rendait français dans une page
+# anglaise, et intraduisibles sans casser les comptages.
+#
+# Cinquième occurrence du motif sur ce projet, après `TREATMENTS["requires"]`,
+# `Source.label`, la lettre S/E/C de l'export HARA et `_SHAPE_CHECKS`.
+SIGNAL_PUBLICATION = "publication"
+SIGNAL_DRAFT = "draft"
+SIGNAL_EVENT = "event"
+SIGNAL_INFO = "info"
 
 SIGNAL_ORDER: tuple[str, ...] = (
     SIGNAL_PUBLICATION, SIGNAL_DRAFT, SIGNAL_EVENT, SIGNAL_INFO,
 )
+
+
+def signal_label(signal: str, lang: str = DEFAULT_LANG) -> str:
+    """Libellé affichable d'un niveau de signal."""
+    return t(f"regwatch.signal.{signal}", lang)
 
 # Un texte parvenu jusqu'à la norme, mais qui n'est pas une actualité :
 # pages légales, offres d'emploi, billets de remplissage. Liste courte —

@@ -118,11 +118,13 @@
 
   // Ordre d'affichage des niveaux de signal. Le seul endroit du client qui
   // les nomme ; les libellés eux-mêmes viennent du serveur avec les items.
+  // ⚠️ Indexé par les IDENTIFIANTS du moteur, jamais par le texte affiché :
+  // celui-ci change avec la langue, pas ceux-là.
   const SIGNAL_CLASS = {
-    'Publication / amendement': 'sig-pub',
-    'Travaux en cours':         'sig-draft',
-    'Annonce / calendrier':     'sig-event',
-    'Information':              'sig-info'
+    publication: 'sig-pub',
+    draft:       'sig-draft',
+    event:       'sig-event',
+    info:        'sig-info'
   };
   const SIGNAL_ORDER = Object.keys(SIGNAL_CLASS);
 
@@ -348,7 +350,8 @@
     SIGNAL_ORDER.forEach(signal => {
       const badge = document.createElement('span');
       badge.className = 'sig-badge ' + SIGNAL_CLASS[signal];
-      badge.textContent = (data.countsBySignal[signal] || 0) + ' · ' + signal;
+      const libelle = (data.signalLabels || {})[signal] || signal;
+      badge.textContent = (data.countsBySignal[signal] || 0) + ' · ' + libelle;
       mix.appendChild(badge);
     });
   }
@@ -404,7 +407,7 @@
       title.textContent = labelOf(key);
       const count = document.createElement('span');
       count.className = 'norm-count';
-      count.textContent = items.length + ' signal(aux)';
+      count.textContent = T('rw.js.stat.signals', { n: items.length });
       head.appendChild(title); head.appendChild(count);
       block.appendChild(head);
 
@@ -461,7 +464,9 @@
     meta.className = 'signal-meta';
     const badge = document.createElement('span');
     badge.className = 'sig-badge ' + (SIGNAL_CLASS[item.signal] || 'sig-info');
-    badge.textContent = item.signal;
+    // ⚠️ `item.signal` est un IDENTIFIANT — on affiche son libellé.
+    badge.textContent = (lastResult && lastResult.signalLabels
+                         && lastResult.signalLabels[item.signal]) || item.signal;
     meta.appendChild(badge);
     meta.appendChild(tierChip(item.tier));
     const src = document.createElement('span');
@@ -647,7 +652,7 @@
         row.querySelector('.dot').className = 'dot ' + (degraded ? 'dot-error' : 'dot-done');
         row.querySelector('.q-result').textContent = degraded
           ? 'structure non reconnue'
-          : (data.found > 0 ? data.found + ' signal(aux)' : '—');
+          : (data.found > 0 ? T('rw.js.stat.signals', { n: data.found }) : '—');
         if (degraded) row.classList.add('has-error');
         else if (data.found > 0) row.classList.add('has-hits');
 

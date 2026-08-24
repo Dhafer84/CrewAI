@@ -68,6 +68,7 @@ from threatscope.core import suggest_threats  # noqa: E402
 from threatscope.rating import full_scales  # noqa: E402
 from threatscope.report import build_excel as build_tara_excel  # noqa: E402
 from threatscope.treatment import treatment_scales  # noqa: E402
+from regwatch.classify import SIGNAL_ORDER, signal_label  # noqa: E402
 from regwatch.core import WatchItem, WatchResult, run_watch  # noqa: E402
 from regwatch.explain import explain_items  # noqa: E402
 from regwatch.report import build_excel as build_watch_excel  # noqa: E402
@@ -1091,7 +1092,7 @@ def _watch_refusal(client: str) -> str | None:
     return None
 
 
-def _watch_payload(result) -> dict:
+def _watch_payload(result, lang: str = DEFAULT_LANG) -> dict:
     """Charge utile de l'événement `done`, servie à site/regwatch.html.
 
     Extrait de la route **pour être testable sans réseau** : ouvrir le flux
@@ -1111,6 +1112,10 @@ def _watch_payload(result) -> dict:
         "sourcesTotal": result.sources_total,
         "countsByNorm": result.count_by_norm(),
         "countsBySignal": result.count_by_signal(),
+        # ⚠️ Les clés de `countsBySignal` et de `item.signal` sont des
+        # IDENTIFIANTS. La page a besoin des libellés pour les afficher :
+        # ils voyagent à côté, dans la langue demandée.
+        "signalLabels": {s: signal_label(s, lang) for s in SIGNAL_ORDER},
         # ⚠️ La couverture fait partie du résultat, pas des notes de bas de
         # page : une source muette ne doit jamais se présenter comme une
         # source calme.
@@ -1177,7 +1182,7 @@ async def watch_stream(request: Request, norms: str = "", lang: str = DEFAULT_LA
                     run_watch, selection, progress_callback, None, lang
                 )
 
-                await queue.put(json.dumps(_watch_payload(result)))
+                await queue.put(json.dumps(_watch_payload(result, lang)))
         except Exception:
             _log.exception("Veille interrompue")
             await queue.put(json.dumps({

@@ -216,7 +216,8 @@
     card.classList.toggle('running', state === 'running');
     if (char) char.setAttribute('class', 'bonhomme state-' + state);
 
-    const labels = { wait: 'En attente', running: 'En cours…', done: 'Terminé' };
+    const labels = { wait: T('qc.status.waiting'), running: T('qc.status.running'),
+                     done: T('qc.status.done') };
     text.textContent = labels[state] || state;
   }
 

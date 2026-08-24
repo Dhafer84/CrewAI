@@ -11,7 +11,7 @@ Le pipeline en trois temps, dans l'ordre, aucun ne saute le précédent :
      lu par personne pour décider de retenir un item.
 """
 
-from i18n import DEFAULT_LANG
+from i18n import DEFAULT_LANG, t
 
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
@@ -179,9 +179,11 @@ def run_watch(norms: list[Norm], progress_callback=None,
         except fetch.FetchError as exc:
             result.sources_read += 1
             result.unreachable.append(source.key)
-            result.errors.append(f"{source.label(lang)} — {exc}")
+            message = exc.message(lang)
+            result.errors.append(
+                t("regwatch.err.line", lang, source=source.label(lang), message=message))
             emit({"type": "source_error", "index": index, "total": len(sources),
-                  "source": source.label(lang), "message": str(exc)})
+                  "source": source.label(lang), "message": message})
             continue
 
         result.sources_read += 1
@@ -190,17 +192,19 @@ def run_watch(norms: list[Norm], progress_callback=None,
             raw = _read(source, body)
         except FeedError as exc:
             result.degraded.append(source.key)
-            result.errors.append(f"{source.label(lang)} — {exc}")
+            message = exc.message(lang)
+            result.errors.append(
+                t("regwatch.err.line", lang, source=source.label(lang), message=message))
             emit({"type": "source_error", "index": index, "total": len(sources),
-                  "source": source.label(lang), "message": str(exc)})
+                  "source": source.label(lang), "message": message})
             continue
         except Exception as exc:  # noqa: BLE001
             # Un parseur qui plante ne doit pas emporter la veille entière —
             # mais il ne doit pas non plus passer pour une source calme.
             result.degraded.append(source.key)
-            result.errors.append(
-                f"{source.label(lang)} — parseur en échec ({type(exc).__name__})."
-            )
+            result.errors.append(t("regwatch.err.parser", lang,
+                                   source=source.label(lang),
+                                   cause=type(exc).__name__))
             emit({"type": "source_error", "index": index, "total": len(sources),
                   "source": source.label(lang), "message": "Lecture de la source impossible."})
             continue
@@ -210,10 +214,8 @@ def run_watch(norms: list[Norm], progress_callback=None,
         degraded = not raw and len(body.encode("utf-8")) >= DEGRADED_MIN_BODY_BYTES
         if degraded:
             result.degraded.append(source.key)
-            result.errors.append(
-                f"{source.label(lang)} — la page répond mais aucun élément n'en est "
-                "extrait : le parseur ne reconnaît plus sa structure."
-            )
+            result.errors.append(t("regwatch.err.degraded", lang,
+                                   source=source.label(lang)))
 
         retained = 0
         for item in raw:

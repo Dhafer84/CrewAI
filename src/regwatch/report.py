@@ -21,7 +21,7 @@ from io import BytesIO
 
 from xlsxsafe import harden
 
-from .classify import SIGNAL_ORDER
+from .classify import SIGNAL_ORDER, signal_label
 from .config import LOOKBACK_DAYS
 from .core import WatchResult
 from .norms import NORMS
@@ -135,7 +135,7 @@ def build_excel(result: WatchResult, lang: str = DEFAULT_LANG) -> bytes:
     summary.append([t("xl.rw.by.signal", lang)])
     summary[summary.max_row][0].font = Font(bold=True)
     for signal in SIGNAL_ORDER:
-        summary.append([signal, par_signal.get(signal, 0)])
+        summary.append([signal_label(signal, lang), par_signal.get(signal, 0)])
     summary.append([])
 
     summary.append([t("xl.rw.by.norm", lang)])
@@ -161,7 +161,7 @@ def build_excel(result: WatchResult, lang: str = DEFAULT_LANG) -> bytes:
         signals.append([
             item.norm_label,
             item.published.isoformat(),
-            item.signal,
+            signal_label(item.signal, lang),
             item.title,
             item.source_label,
             item.source_tier,

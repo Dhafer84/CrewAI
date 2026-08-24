@@ -12,6 +12,8 @@ passer serait à la fois déloyal et fragile. Le défi est détecté et nommé,
 pour qu'une source protégée ne soit jamais confondue avec une source calme.
 """
 
+from i18n import DEFAULT_LANG, t
+
 import time
 from dataclasses import dataclass
 
@@ -27,7 +29,20 @@ from .config import (
 
 
 class FetchError(RuntimeError):
-    """Source injoignable. Le message est destiné à l'utilisateur final."""
+    """Source injoignable.
+
+    ⚠️ Porte une **clé de catalogue et ses paramètres**, pas un texte. Ce
+    module ne connaît pas la langue du visiteur — c'est `core` qui la
+    connaît, et qui rend le message au moment de l'afficher.
+    """
+
+    def __init__(self, key: str, **params):
+        self.key = key
+        self.params = params
+        super().__init__(key)
+
+    def message(self, lang: str = DEFAULT_LANG) -> str:
+        return t(self.key, lang, **self.params)
 
 
 @dataclass(frozen=True)
@@ -110,27 +125,24 @@ def get_text(url: str) -> str:
             url, headers=headers, timeout=HTTP_TIMEOUT_SECONDS, stream=True
         )
     except requests.RequestException as exc:
-        raise FetchError(f"Injoignable ({type(exc).__name__}).") from exc
+        raise FetchError("regwatch.err.unreachable",
+                         cause=type(exc).__name__) from exc
 
     with response:
         if response.status_code in (401, 403, 429):
-            raise FetchError(
-                f"Accès refusé par la source (HTTP {response.status_code}) — "
-                "protection anti-robot probable."
-            )
+            raise FetchError("regwatch.err.refused", code=response.status_code)
         if response.status_code == 404:
-            raise FetchError("Page introuvable (HTTP 404) — l'URL a changé.")
+            raise FetchError("regwatch.err.notfound")
         if response.status_code != 200:
-            raise FetchError(f"Réponse inattendue (HTTP {response.status_code}).")
+            raise FetchError("regwatch.err.unexpected", code=response.status_code)
 
         chunks: list[bytes] = []
         total = 0
         for chunk in response.iter_content(chunk_size=16384):
             total += len(chunk)
             if total > MAX_RESPONSE_BYTES:
-                raise FetchError(
-                    f"Réponse anormalement volumineuse (> {MAX_RESPONSE_BYTES // 1024} Ko)."
-                )
+                raise FetchError("regwatch.err.toobig",
+                                 ko=MAX_RESPONSE_BYTES // 1024)
             chunks.append(chunk)
 
         body = _decode(response, b"".join(chunks))
@@ -139,10 +151,7 @@ def get_text(url: str) -> str:
     # page de challenge serait donnée à parser, rendrait 0 item, et la source
     # passerait pour calme alors qu'elle est fermée.
     if len(body) < 20000 and any(marker in body for marker in _CHALLENGE_MARKERS):
-        raise FetchError(
-            "La source répond par un défi anti-robot : elle n'est pas "
-            "consultable par un programme, et le contourner est exclu."
-        )
+        raise FetchError("regwatch.err.challenge")
 
     _cache[url] = _Entry(body=body, stored_at=time.monotonic())
     return body

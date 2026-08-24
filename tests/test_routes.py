@@ -698,6 +698,92 @@ def test_every_page_asks_its_contract_in_its_own_language():
         assert "?lang=' + window.LANG" in source, f"{nom} n'ajoute pas la langue"
 
 
+def test_the_watch_payload_is_free_of_french_in_english():
+    """⚠️ LE trou que les autres tests ne voyaient pas.
+
+    `test_no_french_survives_in_an_english_page` inspecte le HTML **rendu
+    par le serveur**. Or l'essentiel du contenu de RegWatch, SentinelScan et
+    QualityCrew arrive **après** une action, injecté par JavaScript depuis
+    une charge utile SSE. Ce contenu échappait entièrement au détecteur.
+
+    C'est ainsi que les niveaux de signal — « Publication / amendement » —
+    sont restés français dans les pages anglaises jusqu'au 24/08/2026 : ils
+    étaient à la fois le texte affiché et la clé de `countsBySignal`.
+    """
+    from datetime import date, datetime, timezone
+
+    from api.main import _watch_payload
+    from regwatch.classify import SIGNAL_ORDER
+    from regwatch.core import WatchItem, WatchResult
+
+    quand = datetime(2026, 8, 24, tzinfo=timezone.utc)
+    resultat = WatchResult(
+        norms=["iso9001"], lookback_days=90, started_at=quand, finished_at=quand,
+        items=[WatchItem("iso9001", "ISO 9001", SIGNAL_ORDER[0], "A title",
+                         date(2026, 8, 7), "iso_tc176sc2", "ISO/TC 176/SC 2",
+                         "officiel", "https://x")],
+        sources_read=1, sources_total=1)
+
+    charge = json.dumps(_watch_payload(resultat, "en"), ensure_ascii=False)
+    accents = re.findall(r"\b\w*[àâçéèêëîïôûù]\w*\b", charge)
+    assert not accents, f"français dans la charge utile anglaise : {accents[:5]}"
+
+    anglais = _watch_payload(resultat, "en")["signalLabels"]
+    francais = _watch_payload(resultat, "fr")["signalLabels"]
+    assert set(anglais) == set(SIGNAL_ORDER), "les clés doivent rester des identifiants"
+    assert anglais != francais, "les libellés doivent suivre la langue"
+
+
+def test_signal_levels_are_identifiers_not_display_text():
+    """⚠️ Cinquième identifiant déguisé en libellé sur ce projet.
+
+    `WatchItem.signal` sert de clé à `count_by_signal()` et d'ordre de force
+    à la sélection de l'étape 5. S'il redevenait du texte affichable, il
+    serait français dans une page anglaise — et intraduisible sans casser
+    les comptages.
+    """
+    from regwatch.classify import SIGNAL_ORDER
+
+    for signal in SIGNAL_ORDER:
+        assert signal.isascii() and signal.islower() and " " not in signal, (
+            f"« {signal} » ressemble à un libellé, pas à un identifiant")
+
+
+def test_internal_links_stay_in_the_page_language():
+    """⚠️ Sans ça, la version anglaise est un cul-de-sac dès le premier clic.
+
+    Trouvé après le déploiement de B2 : sur `/en`, les cinq cartes d'outils
+    pointaient vers `/qualitycrew`, `/hara`… — c'est-à-dire vers le français.
+    Un visiteur anglophone quittait l'anglais en cliquant n'importe où.
+    """
+    import re as _re
+
+    with client() as c:
+        anglais = c.get("/en").text
+        francais = c.get("/").text
+
+    def liens(page):
+        return {m for m in _re.findall(r'href="(/[^"]*)"', page)
+                if not m.startswith(("/static", "/i18n"))}
+
+    pages_en = {l for l in liens(anglais) if l != "/"}
+    assert pages_en, "aucun lien de page trouvé"
+    assert all(l.startswith("/en") for l in pages_en), \
+        f"liens français dans une page anglaise : {sorted(pages_en)}"
+
+    # Contre-épreuve : la page française ne doit PAS être préfixée.
+    pages_fr = {l for l in liens(francais) if l not in ("/en",)}
+    assert all(not l.startswith("/en/") for l in pages_fr), \
+        f"la page française a été préfixée : {sorted(pages_fr)}"
+
+
+def test_the_hara_bridge_stays_in_the_page_language():
+    """Le pont vers ThreatScope navigue en JavaScript — il compte aussi."""
+    source = (_ROOT / "site" / "hara.html").read_text(encoding="utf-8")
+    assert "window.LANG === 'fr' ? '' : '/' + window.LANG" in source, \
+        "le pont HARA → TARA ne suit pas la langue"
+
+
 def test_a_long_task_keeps_the_stream_alive():
     """Le flux doit battre pendant qu'une tâche travaille en silence.
 
