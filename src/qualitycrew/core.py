@@ -4,6 +4,8 @@ Ce module est le SEUL point d'entrée que les couches de présentation
 (CLI local aujourd'hui, API FastAPI plus tard) doivent appeler.
 """
 
+from i18n import DEFAULT_LANG
+
 from pathlib import Path
 
 from .config import require_llm_key
@@ -17,6 +19,7 @@ def run_audit(
     documents_dir: Path,
     checklist_path: Path | None = None,
     task_callback=None,
+    lang: str = DEFAULT_LANG,
 ) -> str:
     """Lance l'audit complet sur un dossier de documents projet.
 
@@ -38,6 +41,6 @@ def run_audit(
         "checklist": checklist_path.read_text(encoding="utf-8"),
     }
 
-    crew = build_crew(docs, task_callback=task_callback)
+    crew = build_crew(docs, task_callback=task_callback, lang=lang)
     result = crew.kickoff()
     return result.raw

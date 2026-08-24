@@ -124,7 +124,8 @@ def test_undated_items_are_reported_never_silently_dropped():
     """
     result, _ = _watch(["aspice"])
     assert result.undated, "l'item sans date exploitable a disparu en silence"
-    assert any("Guidelines" in ligne for ligne in result.undated), result.undated
+    assert any("Guidelines" in titre for _cle, titre in result.undated), result.undated
+    assert all(cle == "vda_spice" for cle, _t in result.undated), result.undated
     assert not any("Guidelines" in item.title for item in result.items)
 
 
@@ -138,7 +139,9 @@ def test_an_unreachable_source_is_named_not_silent():
         ["iso9001"],
         overrides={_url_of("iso_tc176"): fetch.FetchError("défi anti-robot")},
     )
-    assert result.unreachable == ["ISO/TC 176 — actualités du comité"]
+    # ⚠️ Des CLÉS, pas des libellés : c'est ce qui permet à l'export et à
+    # la page de comparer sans dépendre de la langue.
+    assert result.unreachable == ["iso_tc176"]
     assert any("anti-robot" in message for message in result.errors)
     assert result.coverage_is_incomplete, "la couverture doit être signalée incomplète"
 
@@ -152,7 +155,7 @@ def test_a_page_that_parses_to_nothing_is_degraded_not_calm():
     maquette_changee = "<html><body>" + ("<div>page refaite</div>" * 400) + "</body></html>"
     result, _ = _watch(["iso9001"], overrides={_url_of("iso_tc176"): maquette_changee})
 
-    assert result.degraded == ["ISO/TC 176 — actualités du comité"]
+    assert result.degraded == ["iso_tc176"]
     assert any("ne reconnaît plus sa structure" in message for message in result.errors)
     assert result.coverage_is_incomplete
 
@@ -174,7 +177,7 @@ def test_a_small_empty_feed_is_calm_not_degraded():
 def test_an_unreadable_feed_is_degraded():
     result, _ = _watch(["iso27001"],
                        overrides={_url_of("iso27ksecurity"): "<rss><channel><item>"})
-    assert result.degraded == ["ISO27k Forum — veille sur la famille ISO/IEC 27000"]
+    assert result.degraded == ["iso27ksecurity"]
 
 
 def test_a_broken_parser_does_not_kill_the_watch():

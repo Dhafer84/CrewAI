@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title data-i18n="rw.title">RegWatch — Veille normative et réglementaire</title>
-  <meta name="description" content="Veille de signaux publics autour des normes qualité et sécurité automobile : ASPICE, ISO 26262, ISO/SAE 21434, ISO/IEC 27001, ISO 9001. Titre, date et lien vers la source — jamais le contenu des normes.">
+  <meta name="description" data-i18n-content="rw.meta" content="Veille de signaux publics autour des normes qualité et sécurité automobile : ASPICE, ISO 26262, ISO/SAE 21434, ISO/IEC 27001, ISO 9001. Titre, date et lien vers la source — jamais le contenu des normes.">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -19,6 +19,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
       <span data-i18n="nav.github">GitHub</span>
     </a>
+    <a class="nav-link nav-lang" href="/en" hreflang="en" title="English version">EN</a>
   </nav>
 
   <section class="hero">
@@ -36,11 +37,11 @@
       <span data-i18n="rw.scope">Ce que fait cet outil, et ce qu'il ne fait pas</span>
     </div>
     <ul class="warn-list">
-      <li><strong>Le contenu des normes n'est jamais republié.</strong> Elles sont payantes et protégées. RegWatch ne remonte que le titre, la date et le lien — le corps des pages n'est même pas téléchargé.</li>
-      <li><strong>La fenêtre est de <span id="window-days">90</span> jours, fixe.</strong> L'écran répond « qu'est-ce qui a bougé sur cette période », <em>pas</em> « depuis votre dernière visite » : l'outil ne garde aucune trace de vos passages.</li>
-      <li><strong>Le palier de chaque source est affiché.</strong> Un comité ISO et le blog d'un cabinet de conseil ne se valent pas, et ne sont pas présentés comme équivalents.</li>
-      <li><strong>Aucune IA ne décide de ce qui est retenu.</strong> Le rattachement à une norme et le niveau de signal sont déterministes, reproductibles, et testés hors ligne.</li>
-      <li><strong>Une source muette est signalée comme telle.</strong> « Rien de neuf » et « je n'ai pas pu regarder » sont deux réponses différentes — les confondre serait le pire défaut d'un outil de veille.</li>
+      <li data-i18n="rw.scope.1"><strong>Le contenu des normes n'est jamais republié.</strong> Elles sont payantes et protégées. RegWatch ne remonte que le titre, la date et le lien — le corps des pages n'est même pas téléchargé.</li>
+      <li data-i18n="rw.scope.2"><strong>La fenêtre est de <span id="window-days">90</span> jours, fixe.</strong> L'écran répond « qu'est-ce qui a bougé sur cette période », <em>pas</em> « depuis votre dernière visite » : l'outil ne garde aucune trace de vos passages.</li>
+      <li data-i18n="rw.scope.3"><strong>Le palier de chaque source est affiché.</strong> Un comité ISO et le blog d'un cabinet de conseil ne se valent pas, et ne sont pas présentés comme équivalents.</li>
+      <li data-i18n="rw.scope.4"><strong>Aucune IA ne décide de ce qui est retenu.</strong> Le rattachement à une norme et le niveau de signal sont déterministes, reproductibles, et testés hors ligne.</li>
+      <li data-i18n="rw.scope.5"><strong>Une source muette est signalée comme telle.</strong> « Rien de neuf » et « je n'ai pas pu regarder » sont deux réponses différentes — les confondre serait le pire défaut d'un outil de veille.</li>
     </ul>
   </div>
 
@@ -78,7 +79,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><path d="M12 15V3"/></svg>
         Excel
       </a>
-      <p class="explain-note">Optionnel. Un modèle rédige une phrase par signal, <strong>à partir du seul intitulé</strong> — il n'a pas lu les documents et n'a rien décidé de ce qui est affiché ci-dessous. Le classeur, lui, emporte aussi les sources muettes.</p>
+      <p class="explain-note" data-i18n="rw.explain.note">Optionnel. Un modèle rédige une phrase par signal, <strong>à partir du seul intitulé</strong> — il n'a pas lu les documents et n'a rien décidé de ce qui est affiché ci-dessous. Le classeur, lui, emporte aussi les sources muettes.</p>
     </div>
 
     <div id="sections"></div>
@@ -170,7 +171,7 @@
   // libellés en dur — ajouter une source la rend visible sans toucher au
   // HTML. Même contrat que /hara/matrix et /tara/scales.
   // ------------------------------------------------------------------
-  fetch('/regwatch/sources')
+  fetch('/regwatch/sources?lang=' + window.LANG)
     .then(r => r.json())
     .then(data => {
       catalog = data;
@@ -502,7 +503,7 @@
     const resp = await fetch('/regwatch/explain', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: items.map(item => ({
+      body: JSON.stringify({ lang: window.LANG, items: items.map(item => ({
         norm: item.norm, normLabel: item.normLabel, signal: item.signal,
         title: item.title, published: item.published,
         source: item.source, tier: item.tier
@@ -529,7 +530,7 @@
       const resp = await fetch('/regwatch/report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: JSON.stringify({ lang: window.LANG,
           norms: lastResult.norms,
           lookbackDays: lastResult.lookbackDays,
           sourcesRead: lastResult.sourcesRead,
@@ -625,7 +626,8 @@
     // à cacher, donc pas de POST + jeton comme dans SentinelScan, où un
     // mot-clé est potentiellement un nom d'entreprise.
     es = new EventSource('/watch/stream?norms='
-                         + encodeURIComponent(selected().join(',')));
+                         + encodeURIComponent(selected().join(','))
+                         + '&lang=' + window.LANG);
 
     es.onmessage = function(evt) {
       let data;

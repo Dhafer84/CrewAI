@@ -21,6 +21,10 @@
     return n === 1 ? '.one' : '.other';
   }
 
+  // La langue de la page, telle que servie par le catalogue. Les pages s'en
+  // servent pour demander leurs contrats JSON dans la bonne langue.
+  window.LANG = (window.I18N || {})['@lang'] || 'fr';
+
   window.T = function (key, params) {
     var cat = window.I18N || {};
     var lang = cat['@lang'] || 'fr';

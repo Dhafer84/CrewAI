@@ -129,8 +129,8 @@ def test_incomplete_coverage_comes_before_any_breakdown():
     on ne peut pas le manquer.
     """
     synthese = workbook_of(result(
-        items=[], unreachable=["ISO/TC 176 — actualités du comité"],
-        degraded=["ISO27k Forum"]))["Synthèse"]
+        items=[], unreachable=["iso_tc176"],
+        degraded=["iso27ksecurity"]))["Synthèse"]
     valeurs = cells(synthese)
 
     avertissement = next(i for i, v in enumerate(valeurs) if "COUVERTURE INCOMPLÈTE" in v)
@@ -148,7 +148,7 @@ def test_a_complete_coverage_says_so_plainly():
 
 
 def test_undated_items_are_listed_not_silently_dropped():
-    watch = result(undated=["VDA QMC — Guidelines version 2.0 / 2nd Edition 2025"])
+    watch = result(undated=[("vda_spice", "Guidelines version 2.0 / 2nd Edition 2025")])
     for onglet in ("Synthèse", "Couverture"):
         valeurs = cells(workbook_of(watch)[onglet])
         assert any("2nd Edition 2025" in v for v in valeurs), onglet
@@ -156,7 +156,7 @@ def test_undated_items_are_listed_not_silently_dropped():
 
 def test_an_empty_watch_still_produces_a_usable_workbook():
     """« Rien de neuf, et voici les sources muettes » mérite d'être archivé."""
-    classeur = workbook_of(result(items=[], unreachable=["Une source"]))
+    classeur = workbook_of(result(items=[], unreachable=["intacs"]))
     assert classeur["Signaux"].max_row == 1, "seul l'en-tête doit rester"
     assert any("COUVERTURE INCOMPLÈTE" in v for v in cells(classeur["Synthèse"]))
 

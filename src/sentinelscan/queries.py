@@ -4,6 +4,8 @@ C'est ici que se joue la valeur du scan : une requête trop générique remonte
 du bruit, une requête contextualisée remonte des vrais positifs.
 """
 
+from i18n import DEFAULT_LANG, t
+
 import re
 from dataclasses import dataclass
 
@@ -61,26 +63,27 @@ class Query:
     expression: str
     kind: str  # "code" ou "repo"
     criticality: str
-    detection: str
+    detection: str      # libellé affiché, dans la langue demandée
+    detection_kind: str  # ⚠️ IDENTIFIANT stable — pilote _SHAPE_CHECKS
     keyword: str
 
 
 # Recherche dans le CONTENU des fichiers — la partie à haute valeur.
 # GitHub est la seule plateforme grand public qui l'autorise par API.
 _CODE_PATTERNS = [
-    ('"{kw}" filename:.env', "CRITIQUE", "Fichier .env exposé"),
-    ('"{kw}" extension:pem', "CRITIQUE", "Clé privée / certificat"),
-    ('"{kw}" filename:credentials', "CRITIQUE", "Fichier de credentials"),
-    ('"{kw}" filename:config', "MAJEUR", "Fichier de configuration"),
+    ('"{kw}" filename:.env', "CRITIQUE", "env"),
+    ('"{kw}" extension:pem', "CRITIQUE", "pem"),
+    ('"{kw}" filename:credentials', "CRITIQUE", "credentials"),
+    ('"{kw}" filename:config', "MAJEUR", "config"),
     # Signal faible : GitHub n'offre aucune contrainte de proximité, les deux
     # termes peuvent être à des milliers de lignes l'un de l'autre. Un tutoriel
     # qui cite le terme et « api_key » matche autant qu'un vrai fichier. D'où
     # MINEUR, et un libellé qui dit ce qui a réellement été constaté.
-    ('"{kw}" AND "api_key"', "MINEUR", "Co-occurrence avec « api_key »"),
+    ('"{kw}" AND "api_key"', "MINEUR", "cooccurrence"),
 ]
 
 # Recherche par NOM de dépôt — signal faible, sert au cadrage.
-_REPO_PATTERN = ("{kw}", "INFO", "Dépôt mentionnant le terme")
+_REPO_PATTERN = ("{kw}", "INFO", "repo")
 
 
 class InvalidKeyword(ValueError):
@@ -161,17 +164,23 @@ def _looks_like_config_file(basename: str) -> bool:
 
 
 # Validateur de forme, par type de détection.
+# ⚠️ Indexé par l'IDENTIFIANT du type de détection, pas par son libellé.
+# Un libellé se traduit ; une clé de logique, non. C'est la quatrième fois
+# que ce projet rencontre le motif — voir aussi `TREATMENTS["requires"]`,
+# `Source.label` et la lettre S/E/C de l'export HARA.
 _SHAPE_CHECKS = {
-    "Fichier .env exposé": _looks_like_env_file,
-    "Fichier de credentials": _looks_like_credentials_file,
-    "Fichier de configuration": _looks_like_config_file,
+    "env": _looks_like_env_file,
+    "credentials": _looks_like_credentials_file,
+    "config": _looks_like_config_file,
 }
 
 # Un constat douteux est déclassé d'un cran, jamais supprimé.
 _DOWNGRADE = {"CRITIQUE": "MINEUR", "MAJEUR": "MINEUR"}
 
 
-def refine_criticality(criticality: str, detection: str, path: str) -> tuple[str, str]:
+def refine_criticality(criticality: str, detection: str, path: str,
+                       detection_kind: str = "",
+                       lang: str = DEFAULT_LANG) -> tuple[str, str]:
     """Réévalue un constat d'après le chemin réel du fichier.
 
     GitHub applique le qualifier `filename:` de façon large : `filename:.env`
@@ -194,41 +203,43 @@ def refine_criticality(criticality: str, detection: str, path: str) -> tuple[str
     basename = lowered.rsplit("/", 1)[-1]
 
     if any(marker in lowered for marker in _TEMPLATE_MARKERS):
-        return downgraded, f"{detection} — modèle ou exemple"
+        return downgraded, t("scan.reason.template", lang, detection=detection)
 
-    check = _SHAPE_CHECKS.get(detection)
+    check = _SHAPE_CHECKS.get(detection_kind)
     if check and not check(basename):
-        return downgraded, f"{detection} — nom de fichier non concluant"
+        return downgraded, t("scan.reason.name", lang, detection=detection)
 
     if basename.endswith(_NON_SECRET_EXTENSIONS):
-        return downgraded, f"{detection} — code source ou documentation"
+        return downgraded, t("scan.reason.code", lang, detection=detection)
 
     return criticality, detection
 
 
-def build_queries(keywords: list[str]) -> list[Query]:
+def build_queries(keywords: list[str], lang: str = DEFAULT_LANG) -> list[Query]:
     """Construit la liste ordonnée des requêtes pour les mots-clés donnés."""
     queries: list[Query] = []
 
     for kw in keywords:
-        for template, criticality, detection in _CODE_PATTERNS:
+        for template, criticality, genre in _CODE_PATTERNS:
             queries.append(
                 Query(
                     expression=template.format(kw=kw),
                     kind="code",
                     criticality=criticality,
-                    detection=detection,
+                    detection=t(f"scan.detection.{genre}", lang),
+                    detection_kind=genre,
                     keyword=kw,
                 )
             )
 
-        template, criticality, detection = _REPO_PATTERN
+        template, criticality, genre = _REPO_PATTERN
         queries.append(
             Query(
                 expression=template.format(kw=kw),
                 kind="repo",
                 criticality=criticality,
-                detection=detection,
+                detection=t(f"scan.detection.{genre}", lang),
+                detection_kind=genre,
                 keyword=kw,
             )
         )

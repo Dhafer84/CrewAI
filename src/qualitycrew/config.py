@@ -85,6 +85,40 @@ def llm_options() -> dict:
     return options
 
 
+# Nom de la langue de sortie, tel qu'écrit dans les prompts — qui sont en
+# français et le restent.
+_LANGUE = {"fr": "français", "en": "anglais"}
+
+
+def language_rule(lang: str = "fr") -> str:
+    """Consigne de langue de sortie, à insérer dans un prompt.
+
+    ⚠️ **Les prompts restent en français, seule la SORTIE change de langue.**
+    Les traduire serait risqué pour rien : ceux de QualityCrew sont calibrés
+    et atteignent 12/12 sur les défauts injectés. Un modèle suit une consigne
+    de langue explicite quelle que soit la langue de la consigne.
+
+    ⚠️ La consigne insiste sur la langue des **entrées**, parce que c'est là
+    qu'on s'est fait prendre : RegWatch demandait des phrases en français,
+    les titres de sources étaient anglais, et le modèle a suivi ses entrées.
+    Vécu le 24/08/2026.
+    """
+    if lang == "fr":
+        return (
+            "⚠️ RÉDIGE TA RÉPONSE EN FRANÇAIS, intégralement. Les documents "
+            "que tu analyses peuvent être rédigés dans une autre langue : ne "
+            "recopie pas la leur."
+        )
+    langue = _LANGUE.get(lang, _LANGUE["fr"])
+    return (
+        f"⚠️ RÉDIGE TA RÉPONSE EN {langue.upper()}, intégralement — titres, "
+        f"tableaux, listes et commentaires compris. Les documents que tu "
+        f"analyses sont rédigés en français : **ne recopie pas leur langue**, "
+        f"traduis ce que tu en rapportes. Les identifiants (CHK-01, ASIL D, "
+        f"noms de fichiers) restent tels quels."
+    )
+
+
 def require_llm_key() -> None:
     """Vérifie qu'au moins une clé LLM est configurée avant de lancer un audit.
 

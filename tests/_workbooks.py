@@ -109,8 +109,8 @@ def watch_result():
                          "ISO 9001 revision update", date(2026, 8, 7),
                          "iso_tc176sc2", "ISO/TC 176/SC 2", "officiel",
                          "https://committee.iso.test/x.html", "Parce que.")],
-        unreachable=["ISO/TC 176 — actualités du comité"],
-        undated=["VDA QMC — Guidelines 2nd Edition 2025"],
+        unreachable=["iso_tc176"],
+        undated=[("vda_spice", "Guidelines 2nd Edition 2025")],
         errors=["ISO/TC 176 — injoignable"],
         sources_read=2, sources_total=2,
     )

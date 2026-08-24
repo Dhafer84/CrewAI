@@ -44,12 +44,21 @@ class Source:
     """
 
     key: str
-    label: str
     url: str
     kind: str        # "rss" (RSS 2.0 ou Atom) | "html" (parseur dédié)
     parser: str      # nom dans scrape.PARSERS ; vide pour un flux
     tier: str
     norm_keys: tuple[str, ...]
+
+    def label(self, lang: str = DEFAULT_LANG) -> str:
+        """Nom affichable de la source.
+
+        ⚠️ Une méthode et non un champ, **délibérément** : un libellé a
+        longtemps servi de clé de comparaison entre `WatchResult` et
+        l'onglet Couverture de l'export. Le sortir du dataclass rend cette
+        confusion impossible — ce qui n'existe pas ne peut pas être comparé.
+        """
+        return t(f"regwatch.source.{self.key}.label", lang)
 
     def note(self, lang: str = DEFAULT_LANG) -> str:
         """Ce qu'il faut savoir de cette source — palier, réserves, pièges.
@@ -63,7 +72,6 @@ class Source:
 SOURCES: tuple[Source, ...] = (
     Source(
         key="intacs",
-        label="iNTACS — actualités",
         url="https://www.intacs.info/component/content/category/news?format=feed&type=rss",
         kind="rss",
         parser="",
@@ -72,7 +80,6 @@ SOURCES: tuple[Source, ...] = (
     ),
     Source(
         key="vda_spice",
-        label="VDA QMC — publications Automotive SPICE",
         url="https://vda-qmc.de/automotive-spice/automotive-spice-veroeffentlichungen/",
         kind="html",
         parser="vda_publications",
@@ -81,7 +88,6 @@ SOURCES: tuple[Source, ...] = (
     ),
     Source(
         key="sres",
-        label="SRES — commentaire sûreté et cybersécurité automobile",
         url="https://sres.ai/feed/",
         kind="rss",
         parser="",
@@ -90,7 +96,6 @@ SOURCES: tuple[Source, ...] = (
     ),
     Source(
         key="globalautoregs",
-        label="GlobalAutoRegs — documents WP.29",
         url="https://globalautoregs.com/documents",
         kind="html",
         parser="globalautoregs",
@@ -99,7 +104,6 @@ SOURCES: tuple[Source, ...] = (
     ),
     Source(
         key="iso27ksecurity",
-        label="ISO27k Forum — veille sur la famille ISO/IEC 27000",
         url="https://www.iso27001security.com/blog-feed.xml",
         kind="rss",
         parser="",
@@ -108,7 +112,6 @@ SOURCES: tuple[Source, ...] = (
     ),
     Source(
         key="iso_tc176",
-        label="ISO/TC 176 — actualités du comité",
         url="https://committee.iso.org/sites/tc176/home/news.html",
         kind="html",
         parser="iso_committee_news",
@@ -117,7 +120,6 @@ SOURCES: tuple[Source, ...] = (
     ),
     Source(
         key="iso_tc176sc2",
-        label="ISO/TC 176/SC 2 — actualités du sous-comité",
         url="https://committee.iso.org/sites/tc176sc2/home/news.html",
         kind="html",
         parser="iso_committee_news",
@@ -170,7 +172,7 @@ def source_catalog(lang: str = DEFAULT_LANG) -> dict:
                 "sources": [
                     {
                         "key": source.key,
-                        "label": source.label,
+                        "label": source.label(lang),
                         "url": source.url,
                         "tier": source.tier,
                         "note": source.note(lang),

@@ -1,9 +1,14 @@
 """Définition des 4 tâches du crew, une par agent."""
 
+from i18n import DEFAULT_LANG
+
+from .config import language_rule
+
 from crewai import Agent, Task
 
 
-def make_tasks(agents: dict[str, Agent], docs: dict[str, str]) -> list[Task]:
+def make_tasks(agents: dict[str, Agent], docs: dict[str, str],
+               lang: str = DEFAULT_LANG) -> list[Task]:
     srs = docs["srs"]
     test_plan = docs["test_plan"]
     review_report = docs["review_report"]
@@ -29,6 +34,7 @@ SRS :
 {srs}
 """,
         expected_output=(
+            language_rule(lang) + "\n\n"
             "Un tableau markdown valide (ligne d'en-tête + ligne de séparation ---) "
             "avec les colonnes Exigence | Point | Constat, une ligne par problème détecté. "
             "Si aucun problème : écrire 'Aucun constat — toutes les exigences sont conformes.'"
@@ -69,6 +75,7 @@ SRS (rappel) :
 {srs}
 """,
         expected_output=(
+            language_rule(lang) + "\n\n"
             "Tableau markdown à 4 colonnes, 15 lignes (CHK-01 à CHK-15) : "
             "| Point | Libellé | Verdict | Justification | "
             "La justification de CHK-07 doit lister les SRS-XXX sans TC. "
@@ -118,6 +125,7 @@ PLAN DE TEST (rappel pour les étapes 1, 2 et 3) :
 {test_plan}
 """,
         expected_output=(
+            language_rule(lang) + "\n\n"
             "Liste structurée de risques par niveau décroissant. "
             "L'étape 1 doit nommer chaque SRS-XXX sans TC. "
             "L'étape 2 doit mentionner explicitement SRS-014 et SRS-015 si non testés. "
@@ -155,6 +163,7 @@ Top 3 actions à mener en priorité, numérotées, formulées comme des actions 
 Une phrase de verdict global.
 """,
         expected_output=(
+            language_rule(lang) + "\n\n"
             "Rapport d'audit complet en markdown, autonome (lisible sans les "
             "analyses intermédiaires), structuré selon les 6 sections demandées."
         ),

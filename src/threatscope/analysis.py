@@ -11,6 +11,8 @@ en cours en **disant ce qui manque**. Un classeur qui tait ses trous est pire
 qu'un classeur qui les liste.
 """
 
+from i18n import DEFAULT_LANG, t
+
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
@@ -71,13 +73,11 @@ class ThreatScenario:
     def feasibility(self) -> int:
         return feasibility_from_potential(self.potential)
 
-    @property
-    def feasibility_label(self) -> str:
-        return feasibility_order()[self.feasibility]
+    def feasibility_label(self, lang: str = DEFAULT_LANG) -> str:
+        return feasibility_order(lang)[self.feasibility]
 
-    @property
-    def decision_label(self) -> str:
-        return treatments()[self.decision]["label"] if self.decision else ""
+    def decision_label(self, lang: str = DEFAULT_LANG) -> str:
+        return treatments(lang)[self.decision]["label"] if self.decision else ""
 
     @property
     def written(self) -> str:
@@ -111,9 +111,8 @@ class DamageScenario:
     def impact(self) -> int:
         return overall_impact(self.safety, self.financial, self.operational, self.privacy)
 
-    @property
-    def impact_label(self) -> str:
-        return impact_order()[self.impact]
+    def impact_label(self, lang: str = DEFAULT_LANG) -> str:
+        return impact_order(lang)[self.impact]
 
     def category_labels(self) -> dict[str, str]:
         return {
@@ -123,17 +122,22 @@ class DamageScenario:
             impact_categories()["privacy"]: impact_order()[self.privacy],
         }
 
-    @property
-    def traceability(self) -> str:
-        """D'où vient ce scénario : reprise de la HARA, ou saisie directe."""
+    def traceability(self, lang: str = DEFAULT_LANG) -> str:
+        """D'où vient ce scénario : reprise de la HARA, ou saisie directe.
+
+        ⚠️ `origin` arrive déjà dans la langue de la page — c'est le
+        navigateur qui l'a composé. Seules les deux formulations fixes
+        passent par le catalogue ; la parenthèse « (S3, ASIL D) » n'a pas
+        de langue.
+        """
         if not self.origin:
-            return "Saisi directement"
+            return t("tara.trace.direct", lang)
         detail = f" (S{self.origin_severity}" if self.origin_severity >= 0 else ""
         if detail and self.origin_asil:
             detail += f", ASIL {self.origin_asil}"
         if detail:
             detail += ")"
-        return f"HARA — {self.origin}{detail}"
+        return t("tara.trace.hara", lang, origin=self.origin, detail=detail)
 
 
 @dataclass(frozen=True)

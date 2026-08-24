@@ -39,7 +39,12 @@ from i18n import (  # noqa: E402
 SITE = _ROOT / "site"
 
 # Emplacements où une clé peut être référencée.
-_KEY_IN_HTML = re.compile(r'data-i18n="([^"]+)"')
+# `data-i18n` porte le CONTENU d'un élément ; `data-i18n-content` porte
+# l'attribut `content` d'une balise <meta> — la description que Google
+# affiche sous le lien.
+# `data-i18n` porte le CONTENU d'un élément ; `data-i18n-<attribut>` porte
+# un attribut traduisible — `content` d'une <meta>, `placeholder` d'un champ.
+_KEY_IN_HTML = re.compile(r'data-i18n(?:-\w+)?="([^"]+)"')
 # `tr` est l'alias de `t` dans api/main.py — voir le commentaire là-bas.
 _KEY_IN_PYTHON = re.compile(r'\b(?:t|tr)\(\s*["\']([a-z][\w.]*)["\']')
 _KEY_IN_JS = re.compile(r'\bT\(\s*["\']([a-z][\w.]*)["\']')

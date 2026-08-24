@@ -3,6 +3,8 @@
 Seul point d'entrée destiné aux couches de présentation.
 """
 
+from i18n import DEFAULT_LANG
+
 import re
 from dataclasses import dataclass
 
@@ -60,7 +62,8 @@ def parse_suggestions(raw: str) -> list[HazardSuggestion]:
     return suggestions
 
 
-def suggest_hazards(item: str, task_callback=None) -> list[HazardSuggestion]:
+def suggest_hazards(item: str, task_callback=None,
+                    lang: str = DEFAULT_LANG) -> list[HazardSuggestion]:
     """Propose des événements redoutés pour un item donné.
 
     Args:
@@ -75,6 +78,6 @@ def suggest_hazards(item: str, task_callback=None) -> list[HazardSuggestion]:
     if not item:
         raise ValueError("Aucun item à analyser.")
 
-    crew = build_crew(item, task_callback=task_callback)
+    crew = build_crew(item, task_callback=task_callback, lang=lang)
     result = crew.kickoff()
     return parse_suggestions(result.raw)

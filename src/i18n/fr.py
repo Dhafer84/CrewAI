@@ -463,17 +463,20 @@ CATALOGUE: dict[str, str] = {
         "Analyse de risques et détermination du niveau ASIL. La cotation est une table de décision : la réponse est exacte et immédiate. L'IA n'intervient qu'en option, pour proposer les événements redoutés — jamais pour les coter.",
     "home.tara.desc":
         "Analyse de menaces et de risques cybersécurité. La faisabilité d'une attaque se cote sur cinq critères, le risque en découle immédiatement. La chaîne va jusqu'aux objectifs de cybersécurité — une TARA produit des exigences, pas un chiffre.",
-    "home.stance.pair": "SafetyScope et ThreatScope se parlent.",
+    "home.stance.pair":
+        "<strong>SafetyScope et ThreatScope se parlent.</strong> La sévérité d'un événement redouté devient l'impact « sécurité des personnes » d'un scénario de dommage. L'exposition et la contrôlabilité, elles, ne traversent pas : un attaquant choisit son moment, et peut neutraliser le recours du conducteur.",
     "home.rw.desc":
         "Veille de signaux publics autour des normes : révisions en cours, publications, calendriers. Le rattachement à un référentiel est déterministe — aucune IA ne décide de ce qui remonte. Chaque source affiche ce qu'elle vaut.",
     "home.subtitle":
         "Une collection d'outils de démonstration autour de la conformité normative et de la sécurité de l'information. Chacun tourne réellement — rien n'est simulé.",
-    "home.stance.qc": "Un seul en dépend réellement : QualityCrew",
-    "home.stance.rw": "RegWatch ne republie jamais le contenu d'une norme.",
+    "home.stance.qc":
+        "<strong>Un seul en dépend réellement : QualityCrew</strong>, où quatre agents rédigent l'audit — c'est sa raison d'être. Partout ailleurs l'IA reste facultative : elle balaie des mots-guides pour amorcer une réflexion, ou résume en une phrase pourquoi un signal mérite l'attention. <strong>Jamais elle ne cote, jamais elle ne décide de ce qui est retenu.</strong> Savoir quand ne pas utiliser un LLM fait partie du métier.",
+    "home.stance.rw":
+        "<strong>RegWatch ne republie jamais le contenu d'une norme.</strong> Ces documents sont payants et protégés : l'outil ne remonte que le titre, la date et le lien vers la source — le corps des pages n'est même pas téléchargé. Et parce que toutes les sources ne se valent pas, chaque signal affiche le palier de la sienne : un comité ISO n'est pas un blog de conseil.",
     "home.qc.desc":
         "Audit de conformité par agents IA. Quatre agents analysent un dossier documentaire en temps réel — qualité des exigences, couverture de test, risques sûreté — et produisent un rapport structuré.",
     "home.stance.noai":
-        "Quatre de ces cinq outils produisent leur résultat sans aucune intelligence artificielle.",
+        "<strong>Quatre de ces cinq outils produisent leur résultat sans aucune intelligence artificielle.</strong> Déterminer un ASIL ou une valeur de risque, ce sont des tables de décision : la réponse est exacte et instantanée. Rattacher un signal de veille à une norme, c'est une règle écrite, reproductible et testée hors ligne. Chercher une exposition sur des dépôts publics, c'est une API et des critères de criticité. Y glisser un modèle de langage n'ajouterait qu'une latence et une incertitude.",
     "home.rw.tag.public": "Sources publiques",
     "home.h1": "Outils <em>Qualité &amp; Sécurité</em>",
     "home.rw.tag.watch": "Veille normative",
@@ -750,4 +753,75 @@ CATALOGUE: dict[str, str] = {
     "tara.js.export.prep": "Préparation du classeur…",
     "tara.js.export.ko": "Export refusé.",
     "tara.js.export.ok": "Classeur prêt — le téléchargement démarre.",
+    # --- Descriptions pour les moteurs de recherche ---
+    "home.meta":
+        "Outils de démonstration Qualité et Sécurité pour l'industrie automobile et l'embarqué : audit de conformité par agents IA, veille de fuite d'information, analyse HARA / ASIL, analyse de menaces TARA.",
+    "rw.meta":
+        "Veille de signaux publics autour des normes qualité et sécurité automobile : ASPICE, ISO 26262, ISO/SAE 21434, ISO/IEC 27001, ISO 9001. Titre, date et lien vers la source — jamais le contenu des normes.",
+    "home.hara.pair":
+        "S'enchaîne avec ThreatScope",
+    "home.tara.pair":
+        "Reprend la sévérité de votre HARA",
+    "home.rw.pair":
+        "Ne republie jamais le contenu des normes",
+    # --- Page hara — blocs explicatifs ---
+    "hara.subtitle":
+        "Analyse de risques et détermination du niveau ASIL, dans l'esprit de la démarche HARA de l'ISO 26262. La détermination est une table de décision : elle est <strong>exacte et immédiate</strong>, sans intelligence artificielle.",
+    "hara.disclaimer":
+        "<strong>Démonstration pédagogique.</strong> Cet outil implémente la logique de détermination, avec des formulations qui nous sont propres. Il ne reproduit pas le texte de l'ISO 26262, document sous licence, et ne s'y substitue en aucun cas.",
+    "hara.bridge.1":
+        "Une attaque peut provoquer les mêmes dysfonctionnements qu'une panne. <strong>ThreatScope</strong> reprend vos événements redoutés et <strong>leur sévérité</strong> pour amorcer une analyse TARA (ISO/SAE 21434).",
+    "hara.bridge.2":
+        "L'exposition et la contrôlabilité, elles, <strong>ne sont pas reprises</strong> : un attaquant choisit son moment, et peut neutraliser le recours du conducteur. Côté sécurité, elles cèdent la place à la faisabilité de l'attaque.",
+    # --- Page tara — blocs explicatifs ---
+    "tara.subtitle":
+        "Analyse de menaces et de risques cybersécurité, dans l'esprit de la démarche TARA de l'ISO/SAE 21434. La faisabilité d'une attaque se cote, elle ne se devine pas&nbsp;: le résultat est <strong>déterministe et immédiat</strong>, sans intelligence artificielle.",
+    "tara.disclaimer":
+        "<strong>Démonstration pédagogique.</strong> Le barème de potentiel d'attaque employé ici est une <strong>calibration qui nous est propre</strong>&nbsp;: il ne reproduit ni l'ISO/SAE 21434 ni l'ISO 18045, documents sous licence. La norme laisse d'ailleurs chaque organisation définir sa méthode de détermination du risque — celle-ci est donc <em>une</em> méthode, pas <em>la</em> méthode.",
+    "tara.damage.note":
+        "Chaque scénario de dommage porte la cotation d'<strong>impact</strong> — quatre catégories, toutes à renseigner. Les scénarios de menace qu'il contient portent la <strong>faisabilité de l'attaque</strong>. Le risque naît du croisement des deux.",
+    # --- Page regwatch — blocs explicatifs ---
+    "rw.scope.1":
+        "<strong>Le contenu des normes n'est jamais republié.</strong> Elles sont payantes et protégées. RegWatch ne remonte que le titre, la date et le lien — le corps des pages n'est même pas téléchargé.",
+    "rw.scope.2":
+        "<strong>La fenêtre est de <span id=\"window-days\">90</span> jours, fixe.</strong> L'écran répond « qu'est-ce qui a bougé sur cette période », <em>pas</em> « depuis votre dernière visite » : l'outil ne garde aucune trace de vos passages.",
+    "rw.scope.3":
+        "<strong>Le palier de chaque source est affiché.</strong> Un comité ISO et le blog d'un cabinet de conseil ne se valent pas, et ne sont pas présentés comme équivalents.",
+    "rw.scope.4":
+        "<strong>Aucune IA ne décide de ce qui est retenu.</strong> Le rattachement à une norme et le niveau de signal sont déterministes, reproductibles, et testés hors ligne.",
+    "rw.scope.5":
+        "<strong>Une source muette est signalée comme telle.</strong> « Rien de neuf » et « je n'ai pas pu regarder » sont deux réponses différentes — les confondre serait le pire défaut d'un outil de veille.",
+    "rw.explain.note":
+        "Optionnel. Un modèle rédige une phrase par signal, <strong>à partir du seul intitulé</strong> — il n'a pas lu les documents et n'a rien décidé de ce qui est affiché ci-dessous. Le classeur, lui, emporte aussi les sources muettes.",
+    # --- Champs de saisie et arrivée sans HARA ---
+    "hara.ph.item": "ex : Freinage régénératif",
+    "tara.ph.item": "ex : Passerelle télématique embarquée",
+    "ss.ph.terms": "ex : mon-entreprise, projet-interne",
+    "tara.nohara":
+        "Vous avez déjà mené une analyse HARA&nbsp;? <a href=\"/hara\">SafetyScope</a> peut alimenter cette page&nbsp;: la sévérité de vos événements redoutés y devient l'impact «&nbsp;sécurité des personnes&nbsp;» de vos scénarios de dommage.",
+    # --- ThreatScope — traçabilité ---
+    "tara.trace.direct": "Saisi directement",
+    "tara.trace.hara": "HARA — {origin}{detail}",
+    # --- ThreatScope — bornes de faisabilité ---
+    "xl.tara.range": "{from} à {to}",
+    "xl.tara.range.above": "{from} et au-delà",
+    # --- RegWatch — libellés de source ---
+    "regwatch.source.intacs.label": "iNTACS — actualités",
+    "regwatch.source.vda_spice.label": "VDA QMC — publications Automotive SPICE",
+    "regwatch.source.sres.label": "SRES — commentaire sûreté et cybersécurité automobile",
+    "regwatch.source.globalautoregs.label": "GlobalAutoRegs — documents WP.29",
+    "regwatch.source.iso27ksecurity.label": "ISO27k Forum — veille sur la famille ISO/IEC 27000",
+    "regwatch.source.iso_tc176.label": "ISO/TC 176 — actualités du comité",
+    "regwatch.source.iso_tc176sc2.label": "ISO/TC 176/SC 2 — actualités du sous-comité",
+    # --- SentinelScan — motifs de déclassement ---
+    "scan.reason.template": "{detection} — modèle ou exemple",
+    "scan.reason.name": "{detection} — nom de fichier non concluant",
+    "scan.reason.code": "{detection} — code source ou documentation",
+    # --- SentinelScan — types de détection ---
+    "scan.detection.env": "Fichier .env exposé",
+    "scan.detection.pem": "Clé privée / certificat",
+    "scan.detection.credentials": "Fichier de credentials",
+    "scan.detection.config": "Fichier de configuration",
+    "scan.detection.cooccurrence": "Co-occurrence avec « api_key »",
+    "scan.detection.repo": "Dépôt mentionnant le terme",
 }

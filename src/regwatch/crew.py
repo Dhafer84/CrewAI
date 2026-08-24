@@ -19,7 +19,8 @@ source est référencée par un lien.
 
 from crewai import Agent, Crew, LLM, Process, Task
 
-from qualitycrew.config import LLM_MODEL, llm_options  # noqa: F401  (charge le .env + le patch litellm)
+from i18n import DEFAULT_LANG
+from qualitycrew.config import LLM_MODEL, language_rule, llm_options  # noqa: F401  (charge le .env + le patch litellm)
 
 SEPARATOR = "||"
 
@@ -55,19 +56,18 @@ def _make_agent(llm: LLM) -> Agent:
     )
 
 
-def _output_rule(count: int) -> str:
+def _output_rule(count: int, lang: str = DEFAULT_LANG) -> str:
     return (
         f"Rends exactement {count} lignes, une par signal, au format :\n"
         f"numéro {SEPARATOR} phrase\n"
-        "⚠️ ÉCRIS EN FRANÇAIS. Les intitulés qu'on te donne sont en anglais "
-        "ou en allemand ; tes phrases, elles, s'affichent sur un site "
-        "francophone. Ne recopie pas la langue de l'intitulé.\n"
-        "Une seule phrase par ligne, 25 mots au maximum. Aucun titre, aucune "
+        + language_rule(lang) + "\n"
+        + "Une seule phrase par ligne, 25 mots au maximum. Aucun titre, aucune "
         "puce, aucun commentaire avant ou après la liste."
     )
 
 
-def build_crew(block: str, count: int, task_callback=None) -> Crew:
+def build_crew(block: str, count: int, task_callback=None,
+               lang: str = DEFAULT_LANG) -> Crew:
     """Construit le crew pour un lot de signaux déjà retenus.
 
     Args:
@@ -96,9 +96,9 @@ def build_crew(block: str, count: int, task_callback=None) -> Crew:
             "conseil, pas un normalisateur : n'en fais jamais une annonce "
             "officielle.\n\n"
             f"Signaux :\n{block}\n\n"
-            f"{_output_rule(count)}"
+            f"{_output_rule(count, lang)}"
         ),
-        expected_output=_output_rule(count),
+        expected_output=_output_rule(count, lang),
         agent=agent,
     )
 

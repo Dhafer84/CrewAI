@@ -48,6 +48,19 @@ def _followup(lang: str = DEFAULT_LANG) -> list[str]:
             for cle in ("read", "impact", "action", "owner", "due", "comment")]
 
 
+def _label(cle: str, lang: str = DEFAULT_LANG) -> str:
+    """Libellé d'une source, à partir de sa clé.
+
+    ⚠️ `WatchResult` ne transporte que des clés : c'est ce qui permet à
+    l'export de reconnaître une source muette quelle que soit la langue.
+    Une clé inconnue est rendue telle quelle plutôt que d'être tue.
+    """
+    for source in SOURCES:
+        if source.key == cle:
+            return source.label(lang)
+    return cle
+
+
 def build_excel(result: WatchResult, lang: str = DEFAULT_LANG) -> bytes:
     """Construit le classeur de veille et le rend sous forme d'octets."""
     from openpyxl import Workbook
@@ -101,10 +114,13 @@ def build_excel(result: WatchResult, lang: str = DEFAULT_LANG) -> bytes:
                           unreachable=len(result.unreachable),
                           degraded=len(result.degraded))])
         summary[summary.max_row][0].font = warn_font
-        for label in result.unreachable:
-            summary.append([t("xl.rw.unreachable", lang), label])
-        for label in result.degraded:
-            summary.append([t("xl.rw.unrecognised", lang), label])
+        # ⚠️ La comparaison se fait sur la CLÉ, l'affichage sur le libellé.
+        # Confondre les deux ferait disparaître ces avertissements dès qu'on
+        # change de langue.
+        for cle in result.unreachable:
+            summary.append([t("xl.rw.unreachable", lang), _label(cle, lang)])
+        for cle in result.degraded:
+            summary.append([t("xl.rw.unrecognised", lang), _label(cle, lang)])
     else:
         summary.append([t("xl.rw.all.answered", lang)])
     summary.append([])
@@ -112,8 +128,8 @@ def build_excel(result: WatchResult, lang: str = DEFAULT_LANG) -> bytes:
     if result.undated:
         summary.append([t("xl.rw.undated.warning", lang, n=len(result.undated))])
         summary[summary.max_row][0].font = warn_font
-        for ligne in result.undated:
-            summary.append([t("xl.rw.undated", lang), ligne])
+        for cle, titre in result.undated:
+            summary.append([t("xl.rw.undated", lang), f"{_label(cle, lang)} — {titre}"])
         summary.append([])
 
     summary.append([t("xl.rw.by.signal", lang)])
@@ -167,16 +183,16 @@ def build_excel(result: WatchResult, lang: str = DEFAULT_LANG) -> bytes:
     for source in SOURCES:
         if not set(result.norms).intersection(source.norm_keys):
             continue
-        if source.label in result.unreachable:
+        if source.key in result.unreachable:
             etat = t("xl.rw.state.unreachable", lang)
             detail = t("xl.rw.state.unreachable.detail", lang)
-        elif source.label in result.degraded:
+        elif source.key in result.degraded:
             etat = t("xl.rw.state.degraded", lang)
             detail = t("xl.rw.state.degraded.detail", lang)
         else:
             etat = t("xl.rw.state.ok", lang)
             detail = t("xl.rw.state.ok.detail", lang)
-        coverage.append([source.label, etat, detail])
+        coverage.append([source.label(lang), etat, detail])
 
     coverage.append([])
     if result.errors:
@@ -188,8 +204,8 @@ def build_excel(result: WatchResult, lang: str = DEFAULT_LANG) -> bytes:
         coverage.append([])
         coverage.append([t("xl.rw.setaside", lang)])
         coverage[coverage.max_row][0].font = Font(bold=True)
-        for ligne in result.undated:
-            coverage.append([ligne])
+        for cle, titre in result.undated:
+            coverage.append([f"{_label(cle, lang)} — {titre}"])
     autosize(coverage, [42, 18, 74])
 
     # --- Sources ----------------------------------------------------------
@@ -202,7 +218,7 @@ def build_excel(result: WatchResult, lang: str = DEFAULT_LANG) -> bytes:
                              t("xl.rw.sources.know", lang)])
     for source in SOURCES:
         catalogue.append([
-            source.label,
+            source.label(lang),
             ", ".join(NORMS[key].label for key in source.norm_keys if key in NORMS),
             source.tier,
             source.url,

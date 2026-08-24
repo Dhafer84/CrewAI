@@ -641,3 +641,7 @@ a.signal-title:hover{color:var(--green)}
 .why-mark{font-size:10px;font-weight:600;color:var(--purple);letter-spacing:.4px;margin-right:6px}
 .explain-bar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:20px}
 .explain-note{font-size:12px;color:var(--text-dim);line-height:1.55;flex:1;min-width:220px}
+
+/* Sélecteur de langue — discret, à côté du lien GitHub */
+.nav-lang{font-weight:600;letter-spacing:.5px;padding:3px 9px;border:1px solid var(--border);border-radius:6px}
+.nav-lang:hover{border-color:var(--text-muted);color:var(--text)}

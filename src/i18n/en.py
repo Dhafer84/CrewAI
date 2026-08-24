@@ -730,4 +730,69 @@ CATALOGUE: dict[str, str] = {
     "tara.js.export.prep": "Preparing the workbook…",
     "tara.js.export.ko": "Export refused.",
     "tara.js.export.ok": "Workbook ready — the download is starting.",
+    # --- Search-engine descriptions ---
+    "home.meta":
+        "Quality and Safety demonstration tools for the automotive and embedded industry: compliance audit by AI agents, information leak watch, HARA / ASIL analysis, TARA threat analysis.",
+    "rw.meta":
+        "Watch on public signals around automotive quality and safety standards: ASPICE, ISO 26262, ISO/SAE 21434, ISO/IEC 27001, ISO 9001. Title, date and link to the source — never the content of the standards.",    "home.hara.pair": "Flows on into ThreatScope",    "home.tara.pair": "Carries over the severity from your HARA",    "home.rw.pair": "Never republishes the content of standards",
+    # --- hara page — explanatory blocks ---
+    "hara.subtitle":
+        "Risk analysis and ASIL determination, in the spirit of the ISO 26262 HARA method. Determination is a decision table: it is <strong>exact and immediate</strong>, with no artificial intelligence.",
+    "hara.disclaimer":
+        "<strong>Educational demonstration.</strong> This tool implements the determination logic with wordings of our own. It does not reproduce the text of ISO 26262, a licensed document, and does not replace it.",
+    "hara.bridge.1":
+        "An attack can cause the same malfunctions as a failure. <strong>ThreatScope</strong> carries over your hazardous events and <strong>their severity</strong> to start a TARA analysis (ISO/SAE 21434).",
+    "hara.bridge.2":
+        "Exposure and controllability, for their part, <strong>are not carried over</strong>: an attacker picks their moment, and can neutralise the driver's recourse. On the security side, they give way to attack feasibility.",
+    # --- tara page — explanatory blocks ---
+    "tara.subtitle":
+        "Cybersecurity threat and risk analysis, in the spirit of the ISO/SAE 21434 TARA method. Attack feasibility is rated, not guessed&nbsp;: the result is <strong>deterministic and immediate</strong>, with no artificial intelligence.",
+    "tara.disclaimer":
+        "<strong>Educational demonstration.</strong> The attack potential scale used here is a <strong>calibration of our own</strong>&nbsp;: it reproduces neither ISO/SAE 21434 nor ISO 18045, both licensed documents. The standard does leave each organisation to define its own method.",
+    "tara.damage.note":
+        "Every damage scenario carries the <strong>impact</strong> rating — four categories, all to be filled in. The threat scenarios it contains carry the <strong>attack feasibility</strong>. Risk arises from crossing the two.",
+    # --- regwatch page — explanatory blocks ---
+    "rw.scope.1":
+        "<strong>The content of standards is never republished.</strong> They are paid-for and protected. RegWatch reports only the title, the date and the link — the body of the pages is not even downloaded.",
+    "rw.scope.2":
+        "<strong>The window is <span id=\"window-days\">90</span> days, fixed.</strong> The screen answers « what moved over that period », <em>not</em> « since your last visit »: the tool keeps no trace of your visits.",
+    "rw.scope.3":
+        "<strong>Every source shows its tier.</strong> An ISO committee and a consultancy blog are not equal, and are not presented as if they were.",
+    "rw.scope.4":
+        "<strong>No AI decides what is kept.</strong> Attaching a signal to a standard and grading it are deterministic, reproducible, and tested offline.",
+    "rw.scope.5":
+        "<strong>A silent source is flagged as such.</strong> « Nothing new » and « I could not look » are two different answers — confusing them would be the worst failing of a watch tool.",
+    "rw.explain.note":
+        "Optional. A model writes one sentence per signal, <strong>from the title alone</strong> — it has not read the documents and decided nothing of what is shown below. The workbook, for its part, also carries the silent sources.",
+    # --- Input fields and arrival without a HARA ---
+    "hara.ph.item": "e.g. Regenerative braking",
+    "tara.ph.item": "e.g. On-board telematics gateway",
+    "ss.ph.terms": "e.g. my-company, internal-project",
+    "tara.nohara":
+        "Already run a HARA analysis&nbsp;? <a href=\"/hara\">SafetyScope</a> can feed this page&nbsp;: the severity of your hazardous events becomes the «&nbsp;safety of persons&nbsp;» impact of your damage scenarios.",
+    # --- ThreatScope — traceability ---
+    "tara.trace.direct": "Entered directly",
+    "tara.trace.hara": "HARA — {origin}{detail}",
+    # --- ThreatScope — feasibility ranges ---
+    "xl.tara.range": "{from} to {to}",
+    "xl.tara.range.above": "{from} and above",
+    # --- RegWatch — source labels ---
+    "regwatch.source.intacs.label": "iNTACS — news",
+    "regwatch.source.vda_spice.label": "VDA QMC — Automotive SPICE publications",
+    "regwatch.source.sres.label": "SRES — automotive safety and cybersecurity commentary",
+    "regwatch.source.globalautoregs.label": "GlobalAutoRegs — WP.29 documents",
+    "regwatch.source.iso27ksecurity.label": "ISO27k Forum — watch on the ISO/IEC 27000 family",
+    "regwatch.source.iso_tc176.label": "ISO/TC 176 — committee news",
+    "regwatch.source.iso_tc176sc2.label": "ISO/TC 176/SC 2 — subcommittee news",
+    # --- SentinelScan — downgrade reasons ---
+    "scan.reason.template": "{detection} — template or example",
+    "scan.reason.name": "{detection} — inconclusive file name",
+    "scan.reason.code": "{detection} — source code or documentation",
+    # --- SentinelScan — detection types ---
+    "scan.detection.env": "Exposed .env file",
+    "scan.detection.pem": "Private key / certificate",
+    "scan.detection.credentials": "Credentials file",
+    "scan.detection.config": "Configuration file",
+    "scan.detection.cooccurrence": "Co-occurrence with « api_key »",
+    "scan.detection.repo": "Repository mentioning the term",
 }

@@ -104,8 +104,8 @@ def test_traceability_distinguishes_hara_from_manual():
     repris = build_analysis("Item", [dommage(
         origin="Événement redouté 2", origin_severity=3, origin_asil="D")])
     saisi = build_analysis("Item", [dommage()])
-    assert repris.damages[0].traceability == "HARA — Événement redouté 2 (S3, ASIL D)"
-    assert saisi.damages[0].traceability == "Saisi directement"
+    assert repris.damages[0].traceability() == "HARA — Événement redouté 2 (S3, ASIL D)"
+    assert saisi.damages[0].traceability() == "Saisi directement"
     assert repris.from_hara == 1 and saisi.from_hara == 0
 
 

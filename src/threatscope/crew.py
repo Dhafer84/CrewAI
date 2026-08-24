@@ -13,7 +13,8 @@ la démarche de son sens.
 
 from crewai import LLM, Agent, Crew, Process, Task
 
-from qualitycrew.config import LLM_MODEL, llm_options  # noqa: F401  (charge le .env + le patch litellm)
+from i18n import DEFAULT_LANG
+from qualitycrew.config import LLM_MODEL, language_rule, llm_options  # noqa: F401  (charge le .env + le patch litellm)
 
 from .threats import guide_words_block, surfaces_block
 
@@ -68,11 +69,12 @@ def _make_agents(llm: LLM) -> dict[str, Agent]:
     return {"analyste": analyste, "relecteur": relecteur}
 
 
-def _make_tasks(agents: dict[str, Agent], item: str, asset: str, damage: str) -> list[Task]:
+def _make_tasks(agents: dict[str, Agent], item: str, asset: str, damage: str, lang: str = DEFAULT_LANG) -> list[Task]:
     # Le modèle a spontanément tendance à recopier le nom de la catégorie
     # comme intitulé de menace. « Usurpation d'identité » ne dit ni ce qui est
     # usurpé ni auprès de qui : c'est inexploitable dans un tableau TARA.
     output_rule = (
+        language_rule(lang) + "\n"
         f"Une ligne par menace, au format exact :\n"
         f"scénario de menace {SEPARATOR} chemin d'attaque\n"
         f"Le scénario de menace doit nommer **ce qui est attaqué et auprès de qui**, "
@@ -126,12 +128,12 @@ def _make_tasks(agents: dict[str, Agent], item: str, asset: str, damage: str) ->
     return [proposition, relecture]
 
 
-def build_crew(item: str, asset: str, damage: str, task_callback=None) -> Crew:
+def build_crew(item: str, asset: str, damage: str, task_callback=None, lang: str = DEFAULT_LANG) -> Crew:
     llm = _make_llm()
     agents = _make_agents(llm)
     return Crew(
         agents=list(agents.values()),
-        tasks=_make_tasks(agents, item, asset, damage),
+        tasks=_make_tasks(agents, item, asset, damage, lang),
         process=Process.sequential,
         verbose=True,
         task_callback=task_callback,

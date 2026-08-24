@@ -11,6 +11,8 @@ Le pipeline en trois temps, dans l'ordre, aucun ne saute le précédent :
      lu par personne pour décider de retenir un item.
 """
 
+from i18n import DEFAULT_LANG
+
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 
@@ -60,11 +62,18 @@ class WatchResult:
     SentinelScan, où ignorer un champ faisait annoncer « 0 détection » alors
     que GitHub n'avait pas cherché.
 
-    - `unreachable` : la source n'a pas répondu (réseau, HTTP, anti-robot)
-    - `degraded` : elle a répondu, mais on n'en tire aucun item alors que la
-      page est volumineuse — le parseur est probablement cassé
-    - `undated` : des items pertinents que la source ne date pas assez pour
-      qu'on puisse affirmer qu'ils tombent dans la fenêtre
+    - `unreachable` : **clés** des sources qui n'ont pas répondu
+    - `degraded` : **clés** des sources qui répondent sans rien livrer
+    - `undated` : couples (clé de source, intitulé) — des items pertinents
+      que la source ne date pas assez pour qu'on puisse affirmer qu'ils
+      tombent dans la fenêtre
+
+    ⚠️ **Des clés, pas des libellés.** Un libellé sert à la fois de texte
+    affiché et de clé de comparaison entre ce résultat et l'onglet
+    Couverture de l'export. Traduire un côté sans l'autre ferait
+    silencieusement disparaître les avertissements de couverture — le seul
+    défaut vraiment grave de cet outil. On stocke la donnée, on rend le
+    libellé au moment de l'affichage.
     """
 
     norms: list[str]
@@ -74,7 +83,7 @@ class WatchResult:
     items: list[WatchItem] = field(default_factory=list)
     unreachable: list[str] = field(default_factory=list)
     degraded: list[str] = field(default_factory=list)
-    undated: list[str] = field(default_factory=list)
+    undated: list[tuple[str, str]] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     sources_read: int = 0
     sources_total: int = 0
@@ -111,7 +120,8 @@ def _read(source: Source, body: str) -> list[RawItem]:
 
 
 def run_watch(norms: list[Norm], progress_callback=None,
-              today: date | None = None) -> WatchResult:
+              today: date | None = None,
+              lang: str = DEFAULT_LANG) -> WatchResult:
     """Lance une veille sur les normes fournies.
 
     Ne lit **que** les sources des normes demandées : pas de balayage
@@ -128,6 +138,8 @@ def run_watch(norms: list[Norm], progress_callback=None,
             qu'un item de mai est encore dans la fenêtre commencerait à
             échouer tout seul quelques jours plus tard. Un test qui pourrit
             avec le calendrier finit par être désactivé.
+        lang: langue des libellés d'affichage. La **cotation** n'en dépend
+            jamais : seuls les noms de source et de norme changent.
 
     Returns:
         WatchResult — jamais une simple liste : la couverture fait partie du
@@ -159,17 +171,17 @@ def run_watch(norms: list[Norm], progress_callback=None,
     for index, source in enumerate(sources):
         emit({
             "type": "source_start", "index": index, "total": len(sources),
-            "source": source.label, "tier": source.tier,
+            "source": source.label(lang), "tier": source.tier,
         })
 
         try:
             body = fetch.get_text(source.url)
         except fetch.FetchError as exc:
             result.sources_read += 1
-            result.unreachable.append(source.label)
-            result.errors.append(f"{source.label} — {exc}")
+            result.unreachable.append(source.key)
+            result.errors.append(f"{source.label(lang)} — {exc}")
             emit({"type": "source_error", "index": index, "total": len(sources),
-                  "source": source.label, "message": str(exc)})
+                  "source": source.label(lang), "message": str(exc)})
             continue
 
         result.sources_read += 1
@@ -177,29 +189,29 @@ def run_watch(norms: list[Norm], progress_callback=None,
         try:
             raw = _read(source, body)
         except FeedError as exc:
-            result.degraded.append(source.label)
-            result.errors.append(f"{source.label} — {exc}")
+            result.degraded.append(source.key)
+            result.errors.append(f"{source.label(lang)} — {exc}")
             emit({"type": "source_error", "index": index, "total": len(sources),
-                  "source": source.label, "message": str(exc)})
+                  "source": source.label(lang), "message": str(exc)})
             continue
         except Exception as exc:  # noqa: BLE001
             # Un parseur qui plante ne doit pas emporter la veille entière —
             # mais il ne doit pas non plus passer pour une source calme.
-            result.degraded.append(source.label)
+            result.degraded.append(source.key)
             result.errors.append(
-                f"{source.label} — parseur en échec ({type(exc).__name__})."
+                f"{source.label(lang)} — parseur en échec ({type(exc).__name__})."
             )
             emit({"type": "source_error", "index": index, "total": len(sources),
-                  "source": source.label, "message": "Lecture de la source impossible."})
+                  "source": source.label(lang), "message": "Lecture de la source impossible."})
             continue
 
         # ⚠️ Zéro item extrait d'une page volumineuse n'est pas « rien de
         # neuf » : c'est le symptôme d'une maquette qui a changé.
         degraded = not raw and len(body.encode("utf-8")) >= DEGRADED_MIN_BODY_BYTES
         if degraded:
-            result.degraded.append(source.label)
+            result.degraded.append(source.key)
             result.errors.append(
-                f"{source.label} — la page répond mais aucun élément n'en est "
+                f"{source.label(lang)} — la page répond mais aucun élément n'en est "
                 "extrait : le parseur ne reconnaît plus sa structure."
             )
 
@@ -220,7 +232,7 @@ def run_watch(norms: list[Norm], progress_callback=None,
             # dans la fenêtre. On l'écarte en le disant, plutôt que de le
             # retenir sur une date inventée ou de le taire.
             if item.published is None:
-                result.undated.append(f"{source.label} — {item.title}")
+                result.undated.append((source.key, item.title))
                 continue
 
             if item.published < cutoff:
@@ -238,7 +250,7 @@ def run_watch(norms: list[Norm], progress_callback=None,
                     title=item.title,
                     published=item.published,
                     source_key=source.key,
-                    source_label=source.label,
+                    source_label=source.label(lang),
                     source_tier=source.tier,
                     url=item.url,
                 ))
@@ -246,7 +258,7 @@ def run_watch(norms: list[Norm], progress_callback=None,
 
         emit({
             "type": "source_done", "index": index, "total": len(sources),
-            "source": source.label, "found": retained,
+            "source": source.label(lang), "found": retained,
             "state": "degraded" if degraded else "ok",
         })
 

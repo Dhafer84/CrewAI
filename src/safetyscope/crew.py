@@ -10,7 +10,8 @@ l'ingénieur ; la déléguer viderait la démarche de son sens.
 
 from crewai import Agent, Crew, LLM, Process, Task
 
-from qualitycrew.config import LLM_MODEL, llm_options  # noqa: F401  (charge le .env + le patch litellm)
+from i18n import DEFAULT_LANG
+from qualitycrew.config import LLM_MODEL, language_rule, llm_options  # noqa: F401  (charge le .env + le patch litellm)
 
 from .hazards import guide_words_block, situations_block
 
@@ -60,8 +61,10 @@ def _make_agents(llm: LLM) -> dict[str, Agent]:
     return {"analyste": analyste, "relecteur": relecteur}
 
 
-def _make_tasks(agents: dict[str, Agent], item: str) -> list[Task]:
+def _make_tasks(agents: dict[str, Agent], item: str,
+                lang: str = DEFAULT_LANG) -> list[Task]:
     output_rule = (
+        language_rule(lang) + "\n"
         f"Une ligne par événement, au format exact :\n"
         f"dysfonctionnement {SEPARATOR} situation de conduite\n"
         f"Aucune numérotation, aucun titre, aucun commentaire, "
@@ -100,12 +103,12 @@ def _make_tasks(agents: dict[str, Agent], item: str) -> list[Task]:
     return [proposition, relecture]
 
 
-def build_crew(item: str, task_callback=None) -> Crew:
+def build_crew(item: str, task_callback=None, lang: str = DEFAULT_LANG) -> Crew:
     llm = _make_llm()
     agents = _make_agents(llm)
     return Crew(
         agents=list(agents.values()),
-        tasks=_make_tasks(agents, item),
+        tasks=_make_tasks(agents, item, lang),
         process=Process.sequential,
         verbose=True,
         task_callback=task_callback,

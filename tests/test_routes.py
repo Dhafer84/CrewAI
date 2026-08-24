@@ -24,6 +24,8 @@ Une suite de tests qui dépend d'Internet ne se lance plus le jour où on en a
 besoin.
 """
 
+import json
+import re
 import sys
 from io import BytesIO
 from pathlib import Path
@@ -565,6 +567,135 @@ def test_a_regwatch_report_is_not_served_by_another_tool_route():
         report_id = cree.json()["report_id"]
         assert c.get(f"/tara/report/{report_id}.xlsx").status_code == 404
         assert c.get(f"/scan/report/{report_id}.xlsx").status_code == 404
+
+
+# --------------------------------------------------------------------------
+# Bilinguisme — français à la racine, anglais sous /en/
+# --------------------------------------------------------------------------
+
+PAGES_FR = ["/", "/qualitycrew", "/sentinelscan", "/hara", "/tara", "/regwatch"]
+PAGES_EN = ["/en", "/en/qualitycrew", "/en/sentinelscan", "/en/hara",
+            "/en/tara", "/en/regwatch"]
+
+# Mots-outils qui n'existent pas en anglais. Leur présence dans une page
+# `/en/` signale un texte oublié à l'extraction.
+_MOTS_FR = re.compile(
+    r"\b(le|la|les|des|une|aux|pour|dans|avec|sur|est|sont|ne|pas|qui|que|"
+    r"cette|leur|vous|nous)\b", re.I)
+
+
+def _texte_visible(html: str) -> str:
+    html = re.sub(r"<(script|style)[^>]*>.*?</\1>", "", html, flags=re.S)
+    html = re.sub(r"<!--.*?-->", "", html, flags=re.S)
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html))
+
+
+def test_the_french_urls_are_untouched():
+    """⚠️ Le site est en ligne et indexé : casser un lien serait le seul
+    défaut irréversible de ce chantier."""
+    with client() as c:
+        for chemin in PAGES_FR:
+            resp = c.get(chemin)
+            assert resp.status_code == 200, f"{chemin} → {resp.status_code}"
+            assert 'lang="fr"' in resp.text, f"{chemin} n'est plus en français"
+
+
+def test_every_page_exists_in_english():
+    with client() as c:
+        for chemin in PAGES_EN:
+            resp = c.get(chemin)
+            assert resp.status_code == 200, f"{chemin} → {resp.status_code}"
+            assert 'lang="en"' in resp.text, f"{chemin} n'est pas marqué anglais"
+            assert "/i18n/en.js" in resp.text, f"{chemin} charge le mauvais catalogue"
+
+
+def test_an_unknown_english_page_is_a_404():
+    with client() as c:
+        assert c.get("/en/inconnue").status_code == 404
+
+
+def test_no_french_survives_in_an_english_page():
+    """⚠️ LE test qui trouve ce que l'extraction a manqué.
+
+    `test_the_pages_match_their_catalogue` vérifie que les éléments
+    **annotés** correspondent au catalogue. Il ne dit rien de ce qui n'a pas
+    été annoté du tout — et c'est précisément l'oubli le plus probable.
+
+    Écrit après coup : il a trouvé 34 blocs de français dans les pages
+    anglaises, dont quatre paragraphes du « Parti pris » dont l'annotation
+    portait sur le `<strong>` au lieu du `<p>` englobant.
+    """
+    with client() as c:
+        for chemin in PAGES_EN:
+            texte = _texte_visible(c.get(chemin).text)
+            accents = re.findall(r"\b\w*[àâçéèêëîïôûù]\w*\b", texte)
+            mots = {m.group(0).lower() for m in _MOTS_FR.finditer(texte)}
+            assert not accents, f"{chemin} : mots accentués — {sorted(set(accents))[:5]}"
+            assert not mots, f"{chemin} : mots-outils français — {sorted(mots)[:5]}"
+
+
+def test_the_language_switch_points_at_the_other_version():
+    with client() as c:
+        for fr, en in zip(PAGES_FR, PAGES_EN):
+            page_fr = c.get(fr).text
+            page_en = c.get(en).text
+            lien_fr = re.search(r'nav-lang[^>]*href="([^"]+)"[^>]*>([^<]*)<', page_fr)
+            lien_en = re.search(r'nav-lang[^>]*href="([^"]+)"[^>]*>([^<]*)<', page_en)
+            assert lien_fr and lien_fr.groups() == (en, "EN"), f"{fr} : {lien_fr}"
+            assert lien_en and lien_en.groups() == (fr, "FR"), f"{en} : {lien_en}"
+
+
+def test_hreflang_alternates_are_reciprocal():
+    """Google n'apparie deux versions que si chacune désigne l'autre."""
+    with client() as c:
+        for fr, en in zip(PAGES_FR, PAGES_EN):
+            for chemin in (fr, en):
+                alternates = dict(re.findall(
+                    r'hreflang="([^"]+)" href="([^"]+)"', c.get(chemin).text))
+                assert set(alternates) == {"fr", "en", "x-default"}, chemin
+                assert alternates["fr"].endswith(fr), f"{chemin} : {alternates['fr']}"
+                assert alternates["en"].endswith(en), f"{chemin} : {alternates['en']}"
+                assert alternates["x-default"] == alternates["fr"]
+
+
+def test_static_assets_carry_a_version():
+    """⚠️ Sans empreinte, un visiteur qui revient garde l'ancien CSS.
+
+    Un élément introduit avec sa règle de style s'afficherait nu. Constaté
+    en test sur le sélecteur de langue.
+    """
+    with client() as c:
+        page = c.get("/hara").text
+    for actif in ("/static/style.css", "/static/i18n.js"):
+        assert re.search(rf'{re.escape(actif)}\?v=\d+', page), f"{actif} sans version"
+
+
+def test_the_json_contracts_follow_the_requested_language():
+    """⚠️ Une page anglaise qui lit un contrat français reste à moitié française.
+
+    Trouvé en regardant `/en/tara` dans le navigateur : les cartes
+    affichaient « Severe » pour le titre mais « Sévère » pour la valeur —
+    le libellé venait du contrat, servi en français par défaut. Les pages
+    demandent désormais leur contrat dans leur propre langue.
+    """
+    with client() as c:
+        for route, chemin, fr, en in (
+            ("/tara/scales", "impactOrder", "Sévère", "Severe"),
+            ("/hara/matrix", "labels", "Aucune blessure", "No injuries"),
+        ):
+            francais = json.dumps(c.get(f"{route}?lang=fr").json(), ensure_ascii=False)
+            anglais = json.dumps(c.get(f"{route}?lang=en").json(), ensure_ascii=False)
+            defaut = json.dumps(c.get(route).json(), ensure_ascii=False)
+            assert fr in francais, f"{route} : « {fr} » absent du français"
+            assert en in anglais, f"{route} : « {en} » absent de l'anglais"
+            assert defaut == francais, f"{route} : le défaut n'est plus le français"
+
+
+def test_every_page_asks_its_contract_in_its_own_language():
+    """La page connaît sa langue et la transmet — sinon rien ne suit."""
+    for nom in ("hara.html", "tara.html", "regwatch.html"):
+        source = (_ROOT / "site" / nom).read_text(encoding="utf-8")
+        assert "?lang=' + window.LANG" in source, f"{nom} n'ajoute pas la langue"
 
 
 def test_a_long_task_keeps_the_stream_alive():

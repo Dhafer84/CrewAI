@@ -3,6 +3,8 @@
 Seul point d'entrée destiné aux couches de présentation.
 """
 
+from i18n import DEFAULT_LANG
+
 import re
 from dataclasses import dataclass
 
@@ -65,7 +67,7 @@ def parse_suggestions(raw: str) -> list[ThreatSuggestion]:
     return suggestions
 
 
-def suggest_threats(item: str, asset: str, damage: str, task_callback=None):
+def suggest_threats(item: str, asset: str, damage: str, task_callback=None, lang: str = DEFAULT_LANG):
     """Propose des scénarios de menace pour un scénario de dommage donné.
 
     La proposition est **contextuelle** : elle porte sur un actif et une

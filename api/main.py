@@ -21,6 +21,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import os
 import secrets
 import sys
 import time
@@ -30,6 +31,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import (
     FileResponse,
+    HTMLResponse,
     JSONResponse,
     Response,
     StreamingResponse,
@@ -44,7 +46,10 @@ sys.path.insert(0, str(_ROOT / "src"))
 # nommé `t` (`?t=<jeton>`), qui masquerait la fonction de traduction à
 # l'intérieur de ces fonctions. Le nom du paramètre est un contrat avec les
 # pages — c'est donc l'import qui cède.
+from i18n import DEFAULT_LANG  # noqa: E402
 from i18n import t as tr  # noqa: E402
+
+from api.render import render  # noqa: E402
 from qualitycrew.config import is_daily_quota, require_llm_key  # noqa: E402
 from qualitycrew.core import run_audit  # noqa: E402
 from sentinelscan.config import require_github_token  # noqa: E402
@@ -119,34 +124,117 @@ _watch_semaphore = asyncio.Semaphore(1)
 # Pages
 # --------------------------------------------------------------------------
 
+# --------------------------------------------------------------------------
+# Pages — français à la racine, anglais sous /en/
+#
+# ⚠️ **Aucune URL existante ne change.** Le site est en ligne et indexé :
+# casser un lien serait le seul défaut irréversible de ce chantier.
+#
+# ⚠️ **Le rendu se fait ICI, côté serveur.** Un remplacement en JavaScript
+# laisserait Google n'indexer que le français, et la version anglaise
+# n'existerait pour personne. Voir api/render.py.
+# --------------------------------------------------------------------------
+
+# Origine du site, pour des `hreflang` absolus — seule forme que Google
+# accepte. Surchargeable pour un environnement de test.
+SITE_BASE_URL = os.getenv("SITE_BASE_URL", "https://qualitycrew.fr")
+
+# Chemin canonique FRANÇAIS → fichier source.
+_PAGES = {
+    "": "index.html",
+    "/qualitycrew": "qualitycrew.html",
+    "/sentinelscan": "sentinelscan.html",
+    "/hara": "hara.html",
+    "/tara": "tara.html",
+    "/regwatch": "regwatch.html",
+}
+
+# Rendu mémorisé par (page, langue). Invalidé si le fichier change, pour
+# que l'édition d'une page reste immédiate en développement.
+_rendered: dict[tuple[str, str], tuple[tuple, str]] = {}
+
+
+def _asset_version() -> str:
+    """Empreinte des fichiers statiques, pour invalider le cache navigateur.
+
+    ⚠️ Sans elle, un visiteur qui revient sur le site après une mise à jour
+    garde l'ancien CSS en cache et reçoit le nouveau HTML : un élément
+    introduit avec sa règle de style s'affiche nu. Constaté en test.
+    """
+    horodatages = [
+        (_SITE_DIR / nom).stat().st_mtime
+        for nom in ("style.css", "i18n.js")
+        if (_SITE_DIR / nom).exists()
+    ]
+    return str(int(max(horodatages))) if horodatages else ""
+
+
+def _page(path: str, lang: str) -> HTMLResponse:
+    fichier = _SITE_DIR / _PAGES[path]
+    version = _asset_version()
+    empreinte = (fichier.stat().st_mtime, version)
+    cle = (path, lang)
+
+    memorise = _rendered.get(cle)
+    if memorise is None or memorise[0] != empreinte:
+        html = render(fichier.read_text(encoding="utf-8"), lang, path,
+                      SITE_BASE_URL, version)
+        _rendered[cle] = (empreinte, html)
+
+    return HTMLResponse(_rendered[cle][1])
+
+
 @app.get("/")
 async def index():
-    return FileResponse(_SITE_DIR / "index.html")
+    return _page("", "fr")
 
 
 @app.get("/qualitycrew")
 async def qualitycrew_page():
-    return FileResponse(_SITE_DIR / "qualitycrew.html")
+    return _page("/qualitycrew", "fr")
 
 
 @app.get("/sentinelscan")
 async def sentinelscan_page():
-    return FileResponse(_SITE_DIR / "sentinelscan.html")
+    return _page("/sentinelscan", "fr")
 
 
 @app.get("/hara")
 async def hara_page():
-    return FileResponse(_SITE_DIR / "hara.html")
+    return _page("/hara", "fr")
+
+
+@app.get("/tara")
+async def tara_page():
+    return _page("/tara", "fr")
+
+
+@app.get("/regwatch")
+async def regwatch_page():
+    return _page("/regwatch", "fr")
+
+
+@app.get("/en")
+async def index_en():
+    return _page("", "en")
+
+
+@app.get("/en/{page}")
+async def page_en(page: str):
+    chemin = "/" + page
+    if chemin not in _PAGES:
+        return JSONResponse({"error": "Page not found."}, status_code=404)
+    return _page(chemin, "en")
 
 
 @app.get("/hara/matrix")
-async def hara_matrix():
+async def hara_matrix(lang: str = DEFAULT_LANG):
     """Table ASIL complète — source de vérité unique.
 
     La page la charge une fois puis fait ses lookups en local : la cotation
     reste instantanée sans que la logique soit dupliquée en JavaScript.
     """
-    return full_matrix()
+    return full_matrix(lang)
 
 
 @app.get("/tara")
@@ -187,7 +275,7 @@ async def i18n_catalogue(lang: str):
 
 
 @app.get("/regwatch/sources")
-async def regwatch_sources():
+async def regwatch_sources(lang: str = DEFAULT_LANG):
     """Catalogue des normes et des sources — source de vérité unique.
 
     Même contrat que `/hara/matrix` et `/tara/scales` : la page lit ce
@@ -195,11 +283,11 @@ async def regwatch_sources():
     paliers de fiabilité, ni la fenêtre de veille — ajouter une source la
     rend visible sans toucher au HTML.
     """
-    return source_catalog()
+    return source_catalog(lang)
 
 
 @app.get("/tara/scales")
-async def tara_scales():
+async def tara_scales(lang: str = DEFAULT_LANG):
     """Barème de potentiel d'attaque + matrice de risque — source de vérité unique.
 
     Même contrat que /hara/matrix : la page charge une fois, puis fait ses
@@ -211,9 +299,9 @@ async def tara_scales():
     contrôlabilité ne se transfèrent pas — elle lit la règle et l'affiche.
     Simple composition : les deux moteurs restent indépendants.
     """
-    scales = full_scales()
-    scales["haraBridge"] = bridge_rule()
-    scales["treatment"] = treatment_scales()
+    scales = full_scales(lang)
+    scales["haraBridge"] = bridge_rule(lang)
+    scales["treatment"] = treatment_scales(lang)
     scales["limits"] = analysis_limits()
     return scales
 
@@ -245,6 +333,7 @@ class TaraDamagePayload(BaseModel):
 
 
 class TaraReportRequest(BaseModel):
+    lang: str = DEFAULT_LANG
     item: str = ""
     damages: list[TaraDamagePayload] = []
 
@@ -263,7 +352,7 @@ async def tara_report_create(request: Request, payload: TaraReportRequest):
     except InvalidTaraAnalysis as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
 
-    excel = await asyncio.to_thread(build_tara_excel, analysis)
+    excel = await asyncio.to_thread(build_tara_excel, analysis, payload.lang)
     report_id = _store_report(
         _client_key(request),
         "tara",
@@ -290,6 +379,7 @@ class HaraEventPayload(BaseModel):
 
 
 class HaraReportRequest(BaseModel):
+    lang: str = DEFAULT_LANG
     item: str = ""
     events: list[HaraEventPayload] = []
 
@@ -306,7 +396,7 @@ async def hara_report_create(request: Request, payload: HaraReportRequest):
     except InvalidAnalysis as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
 
-    excel = await asyncio.to_thread(build_hara_excel, analysis)
+    excel = await asyncio.to_thread(build_hara_excel, analysis, payload.lang)
     report_id = _store_report(
         _client_key(request),
         "hara",
@@ -340,6 +430,7 @@ _suggest_daily_usage = {"day": None, "count": 0}
 
 class HaraSuggestRequest(BaseModel):
     item: str = ""
+    lang: str = DEFAULT_LANG
 
 
 def _suggest_refusal(client: str) -> str | None:
@@ -381,7 +472,8 @@ async def hara_suggest_prepare(request: Request, payload: HaraSuggestRequest):
             status_code=400,
         )
 
-    return {"token": _issue_token(client, "suggest", {"item": item})}
+    return {"token": _issue_token(client, "suggest",
+                                  {"item": item, "lang": payload.lang})}
 
 
 @app.get("/hara/suggest/stream")
@@ -426,7 +518,8 @@ async def hara_suggest_stream(request: Request, t: str = ""):
 
                 await queue.put(json.dumps({"type": "start"}))
                 suggestions = await asyncio.to_thread(
-                    suggest_hazards, payload["item"], task_callback
+                    suggest_hazards, payload["item"], task_callback,
+                    payload.get("lang", DEFAULT_LANG)
                 )
                 await queue.put(json.dumps({
                     "type": "done",
@@ -462,6 +555,7 @@ async def hara_suggest_stream(request: Request, t: str = ""):
 # --------------------------------------------------------------------------
 
 class TaraSuggestRequest(BaseModel):
+    lang: str = DEFAULT_LANG
     item: str = ""
     asset: str = ""
     damage: str = ""
@@ -477,6 +571,7 @@ async def tara_suggest_prepare(request: Request, payload: TaraSuggestRequest):
         return JSONResponse({"error": refusal}, status_code=429)
 
     contexte = {
+        "lang": payload.lang,
         "item": payload.item.strip()[:120],
         "asset": payload.asset.strip()[:300],
         "damage": payload.damage.strip()[:300],
@@ -534,6 +629,7 @@ async def tara_suggest_stream(request: Request, t: str = ""):
                 suggestions = await asyncio.to_thread(
                     suggest_threats,
                     payload["item"], payload["asset"], payload["damage"], task_callback,
+                    payload.get("lang", DEFAULT_LANG),
                 )
                 await queue.put(json.dumps({
                     "type": "done",
@@ -627,7 +723,7 @@ def _sse_response(
 # --------------------------------------------------------------------------
 
 @app.get("/audit/stream")
-async def audit_stream(request: Request):
+async def audit_stream(request: Request, lang: str = DEFAULT_LANG):
     queue: asyncio.Queue[str | None] = asyncio.Queue()
     loop = asyncio.get_event_loop()
     task_index = [0]
@@ -656,7 +752,7 @@ async def audit_stream(request: Request):
                 await queue.put(json.dumps({"type": "start"}))
                 require_llm_key()
                 report = await asyncio.to_thread(
-                    run_audit, _DOCUMENTS_DIR, None, task_callback
+                    run_audit, _DOCUMENTS_DIR, None, task_callback, lang
                 )
                 await queue.put(json.dumps({"type": "done", "report": report}))
             except Exception as exc:
@@ -769,6 +865,7 @@ def _consume_token(token: str, client: str, kind: str) -> dict | None:
 
 class ScanRequest(BaseModel):
     keywords: list[str] = []
+    lang: str = DEFAULT_LANG
 
 
 @app.post("/scan/prepare")
@@ -785,7 +882,7 @@ async def scan_prepare(request: Request, payload: ScanRequest):
     except InvalidKeyword as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
 
-    token = _issue_token(client, "scan", {"keywords": keywords})
+    token = _issue_token(client, "scan", {"keywords": keywords, "lang": payload.lang})
     return {"token": token, "keywords": keywords}
 
 
@@ -910,9 +1007,11 @@ async def scan_stream(request: Request, t: str = ""):
                 require_github_token()
 
                 await queue.put(json.dumps({"type": "start", "keywords": keywords}))
-                result = await asyncio.to_thread(run_scan, keywords, progress_callback)
+                langue = payload.get("lang", DEFAULT_LANG)
+                result = await asyncio.to_thread(
+                    run_scan, keywords, progress_callback, langue)
 
-                excel = await asyncio.to_thread(build_excel, result)
+                excel = await asyncio.to_thread(build_excel, result, langue)
                 report_id = _store_report(
                     client,
                     "scan",
@@ -927,7 +1026,7 @@ async def scan_stream(request: Request, t: str = ""):
                     "counts": result.count_by_criticality(),
                     "findings": len(result.findings),
                     "duration": round(result.duration_seconds),
-                    "report": build_markdown(result),
+                    "report": build_markdown(result, langue),
                     "report_id": report_id,
                     "incomplete": len(result.incomplete_queries),
                 }))
@@ -1036,7 +1135,7 @@ def _watch_payload(result) -> dict:
 
 
 @app.get("/watch/stream")
-async def watch_stream(request: Request, norms: str = ""):
+async def watch_stream(request: Request, norms: str = "", lang: str = DEFAULT_LANG):
     queue: asyncio.Queue[str | None] = asyncio.Queue()
     loop = asyncio.get_event_loop()
     client = _client_key(request)
@@ -1075,7 +1174,7 @@ async def watch_stream(request: Request, norms: str = ""):
                     "norms": [norm.key for norm in selection],
                 }))
                 result = await asyncio.to_thread(
-                    run_watch, selection, progress_callback
+                    run_watch, selection, progress_callback, None, lang
                 )
 
                 await queue.put(json.dumps(_watch_payload(result)))
@@ -1123,6 +1222,7 @@ class RegwatchExplainItem(BaseModel):
 
 
 class RegwatchExplainRequest(BaseModel):
+    lang: str = DEFAULT_LANG
     items: list[RegwatchExplainItem] = []
 
 
@@ -1179,7 +1279,8 @@ async def regwatch_explain_prepare(request: Request, payload: RegwatchExplainReq
             status_code=400,
         )
 
-    return {"token": _issue_token(client, "regwatch-explain", {"items": items})}
+    return {"token": _issue_token(client, "regwatch-explain",
+                                  {"items": items, "lang": payload.lang})}
 
 
 @app.get("/regwatch/explain/stream")
@@ -1222,7 +1323,9 @@ async def regwatch_explain_stream(request: Request, t: str = ""):
 
                 items = _rebuild_watch_items(payload["items"])
                 await queue.put(json.dumps({"type": "start", "items": len(items)}))
-                explique = await asyncio.to_thread(explain_items, items, task_callback)
+                explique = await asyncio.to_thread(
+                    explain_items, items, task_callback,
+                    payload.get("lang", DEFAULT_LANG))
 
                 # Aligné sur l'ordre posté : `explain_items` ne réordonne
                 # jamais, et un test du moteur le verrouille.
@@ -1264,6 +1367,7 @@ class RegwatchReportItem(BaseModel):
 
 
 class RegwatchReportRequest(BaseModel):
+    lang: str = DEFAULT_LANG
     norms: list[str] = []
     lookbackDays: int = 0
     sourcesRead: int = 0
@@ -1307,7 +1411,7 @@ async def regwatch_report_create(request: Request, payload: RegwatchReportReques
         sources_total=payload.sourcesTotal,
     )
 
-    excel = await asyncio.to_thread(build_watch_excel, result)
+    excel = await asyncio.to_thread(build_watch_excel, result, payload.lang)
     report_id = _store_report(
         _client_key(request),
         "regwatch",

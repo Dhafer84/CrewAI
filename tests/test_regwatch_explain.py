@@ -197,7 +197,7 @@ def _with_crew(raw, items):
     """Exécute explain_items avec un crew simulé, et rend (résultat, crew)."""
     crew = _FakeCrew(raw)
     original = explain.build_crew
-    explain.build_crew = lambda block, count, task_callback=None: crew
+    explain.build_crew = lambda block, count, task_callback=None, lang="fr": crew
     try:
         return explain_items(items), crew
     finally:
@@ -269,9 +269,15 @@ def test_the_prompt_demands_french():
 
     from regwatch.crew import _make_agent, _output_rule
 
-    assert "FRANÇAIS" in _output_rule(3).upper(), _output_rule(3)
+    from qualitycrew.config import language_rule
+
+    assert "FRANÇAIS" in _output_rule(3, "fr").upper(), _output_rule(3, "fr")
+    assert "ANGLAIS" in _output_rule(3, "en").upper(), "la langue doit être paramétrable"
     assert "français" in inspect.getsource(_make_agent).lower(), \
         "la consigne doit vivre aussi dans le rôle de l'agent"
+    # ⚠️ La consigne insiste sur la langue des ENTRÉES : c'est là qu'on s'est
+    # fait prendre, le modèle ayant suivi des titres anglais.
+    assert "recopie pas" in language_rule("en"), language_rule("en")
 
 
 def test_the_module_cannot_reach_the_network():

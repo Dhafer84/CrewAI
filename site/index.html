@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title data-i18n="home.title">Outils Qualité &amp; Sécurité — Industrie automobile</title>
-  <meta name="description" content="Outils de démonstration Qualité et Sécurité pour l'industrie automobile et l'embarqué : audit de conformité par agents IA, veille de fuite d'information, analyse HARA / ASIL, analyse de menaces TARA.">
+  <meta name="description" data-i18n-content="home.meta" content="Outils de démonstration Qualité et Sécurité pour l'industrie automobile et l'embarqué : audit de conformité par agents IA, veille de fuite d'information, analyse HARA / ASIL, analyse de menaces TARA.">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -16,6 +16,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
       <span data-i18n="nav.github">GitHub</span>
     </a>
+    <a class="nav-link nav-lang" href="/en" hreflang="en" title="English version">EN</a>
   </nav>
 
   <section class="hero hero-home">
@@ -93,7 +94,7 @@
       </div>
       <span class="tool-pair">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-        S'enchaîne avec ThreatScope
+        <span data-i18n="home.hara.pair">S'enchaîne avec ThreatScope</span>
       </span>
       <span class="tool-cta"><span data-i18n="home.hara.cta">Coter un item</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -117,7 +118,7 @@
       </div>
       <span class="tool-pair">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
-        Reprend la sévérité de votre HARA
+        <span data-i18n="home.tara.pair">Reprend la sévérité de votre HARA</span>
       </span>
       <span class="tool-cta"><span data-i18n="home.tara.cta">Analyser les menaces</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -141,7 +142,7 @@
       </div>
       <span class="tool-pair">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2 4 6v6c0 5 3.4 9.4 8 10 4.6-.6 8-5 8-10V6z"/></svg>
-        Ne republie jamais le contenu des normes
+        <span data-i18n="home.rw.pair">Ne republie jamais le contenu des normes</span>
       </span>
       <span class="tool-cta"><span data-i18n="home.rw.cta">Lancer une veille</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -155,10 +156,10 @@
        ⚠️ Ce décompte se périme à chaque outil ajouté — un test le vérifie. -->
   <div class="section-label" data-i18n="home.section.stance">Parti pris</div>
   <div class="stance">
-    <p><strong data-i18n="home.stance.noai">Quatre de ces cinq outils produisent leur résultat sans aucune intelligence artificielle.</strong> Déterminer un ASIL ou une valeur de risque, ce sont des tables de décision : la réponse est exacte et instantanée. Rattacher un signal de veille à une norme, c'est une règle écrite, reproductible et testée hors ligne. Chercher une exposition sur des dépôts publics, c'est une API et des critères de criticité. Y glisser un modèle de langage n'ajouterait qu'une latence et une incertitude.</p>
-    <p><strong data-i18n="home.stance.qc">Un seul en dépend réellement : QualityCrew</strong>, où quatre agents rédigent l'audit — c'est sa raison d'être. Partout ailleurs l'IA reste facultative : elle balaie des mots-guides pour amorcer une réflexion, ou résume en une phrase pourquoi un signal mérite l'attention. <strong>Jamais elle ne cote, jamais elle ne décide de ce qui est retenu.</strong> Savoir quand ne pas utiliser un LLM fait partie du métier.</p>
-    <p><strong data-i18n="home.stance.rw">RegWatch ne republie jamais le contenu d'une norme.</strong> Ces documents sont payants et protégés : l'outil ne remonte que le titre, la date et le lien vers la source — le corps des pages n'est même pas téléchargé. Et parce que toutes les sources ne se valent pas, chaque signal affiche le palier de la sienne : un comité ISO n'est pas un blog de conseil.</p>
-    <p class="stance-pair"><strong data-i18n="home.stance.pair">SafetyScope et ThreatScope se parlent.</strong> La sévérité d'un événement redouté devient l'impact « sécurité des personnes » d'un scénario de dommage. L'exposition et la contrôlabilité, elles, ne traversent pas : un attaquant choisit son moment, et peut neutraliser le recours du conducteur.</p>
+    <p data-i18n="home.stance.noai"><strong>Quatre de ces cinq outils produisent leur résultat sans aucune intelligence artificielle.</strong> Déterminer un ASIL ou une valeur de risque, ce sont des tables de décision : la réponse est exacte et instantanée. Rattacher un signal de veille à une norme, c'est une règle écrite, reproductible et testée hors ligne. Chercher une exposition sur des dépôts publics, c'est une API et des critères de criticité. Y glisser un modèle de langage n'ajouterait qu'une latence et une incertitude.</p>
+    <p data-i18n="home.stance.qc"><strong>Un seul en dépend réellement : QualityCrew</strong>, où quatre agents rédigent l'audit — c'est sa raison d'être. Partout ailleurs l'IA reste facultative : elle balaie des mots-guides pour amorcer une réflexion, ou résume en une phrase pourquoi un signal mérite l'attention. <strong>Jamais elle ne cote, jamais elle ne décide de ce qui est retenu.</strong> Savoir quand ne pas utiliser un LLM fait partie du métier.</p>
+    <p data-i18n="home.stance.rw"><strong>RegWatch ne republie jamais le contenu d'une norme.</strong> Ces documents sont payants et protégés : l'outil ne remonte que le titre, la date et le lien vers la source — le corps des pages n'est même pas téléchargé. Et parce que toutes les sources ne se valent pas, chaque signal affiche le palier de la sienne : un comité ISO n'est pas un blog de conseil.</p>
+    <p class="stance-pair" data-i18n="home.stance.pair"><strong>SafetyScope et ThreatScope se parlent.</strong> La sévérité d'un événement redouté devient l'impact « sécurité des personnes » d'un scénario de dommage. L'exposition et la contrôlabilité, elles, ne traversent pas : un attaquant choisit son moment, et peut neutraliser le recours du conducteur.</p>
   </div>
 
   <footer>

@@ -4,6 +4,8 @@ Ce module est le SEUL point d'entrée que les couches de présentation
 (CLI local, API FastAPI) doivent appeler.
 """
 
+from i18n import DEFAULT_LANG
+
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
@@ -80,7 +82,8 @@ class ScanResult:
         return self.distinct_owners / len(self.findings) > 0.5
 
 
-def run_scan(keywords: list[str], progress_callback=None) -> ScanResult:
+def run_scan(keywords: list[str], progress_callback=None,
+             lang: str = DEFAULT_LANG) -> ScanResult:
     """Lance un scan de veille sur les mots-clés fournis.
 
     Args:
@@ -99,7 +102,7 @@ def run_scan(keywords: list[str], progress_callback=None) -> ScanResult:
     require_github_token()
 
     cleaned = normalize_keywords(keywords)
-    queries = build_queries(cleaned)
+    queries = build_queries(cleaned, lang)
 
     result = ScanResult(
         keywords=cleaned,
@@ -148,7 +151,8 @@ def run_scan(keywords: list[str], progress_callback=None) -> ScanResult:
             seen.add(key)
 
             criticality, detection = refine_criticality(
-                query.criticality, query.detection, hit.path
+                query.criticality, query.detection, hit.path,
+                query.detection_kind, lang
             )
             result.findings.append(
                 Finding(

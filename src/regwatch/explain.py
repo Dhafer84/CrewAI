@@ -11,6 +11,8 @@ L'outil doit rester complet et utile sans cette étape. Si l'appel échoue, le
 tableau est déjà là : on perd une commodité, pas le résultat.
 """
 
+from i18n import DEFAULT_LANG
+
 import re
 from dataclasses import replace
 
@@ -103,7 +105,8 @@ def parse_explanations(raw: str, count: int) -> list[str]:
     return phrases
 
 
-def explain_items(items: list[WatchItem], task_callback=None) -> list[WatchItem]:
+def explain_items(items: list[WatchItem], task_callback=None,
+                  lang: str = DEFAULT_LANG) -> list[WatchItem]:
     """Ajoute une phrase à des signaux **déjà retenus**.
 
     Args:
@@ -123,7 +126,7 @@ def explain_items(items: list[WatchItem], task_callback=None) -> list[WatchItem]
 
     indices = select(items)
     crew = build_crew(build_block(items, indices), len(indices),
-                      task_callback=task_callback)
+                      task_callback=task_callback, lang=lang)
     phrases = parse_explanations(crew.kickoff().raw, len(indices))
 
     explique = list(items)

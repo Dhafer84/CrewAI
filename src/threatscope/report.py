@@ -122,14 +122,14 @@ def build_excel(analysis: TaraAnalysis, lang: str = DEFAULT_LANG) -> bytes:
         damage, threat = row.damage, row.threat
         levels = [bareme[key][1][getattr(threat, key)][0] for key in parameter_keys]
         table.append([
-            row.ref, damage.asset, damage.description, damage.traceability,
+            row.ref, damage.asset, damage.description, damage.traceability(lang),
             impact_order(lang)[damage.safety], impact_order(lang)[damage.financial],
             impact_order(lang)[damage.operational], impact_order(lang)[damage.privacy],
-            damage.impact_label,
+            damage.impact_label(lang),
             threat.description, threat.path,
             *levels,
-            f"{threat.potential} / {MAX_POTENTIAL}", threat.feasibility_label, row.risk,
-            threat.decision_label or "—",
+            f"{threat.potential} / {MAX_POTENTIAL}", threat.feasibility_label(lang), row.risk,
+            threat.decision_label(lang) or "—",
             threat.written or "—",
             t("xl.tara.complete", lang) if row.complete else " · ".join(row.problems),
         ])
@@ -181,10 +181,12 @@ def build_excel(analysis: TaraAnalysis, lang: str = DEFAULT_LANG) -> bytes:
     write_header(scales, [t("xl.tara.scales.potential", lang), t("xl.tara.col.feasibility", lang)])
     previous = 0
     for threshold in full_scales(lang)["feasibilityThresholds"]:
-        scales.append([f"{previous} à {threshold['upTo']}",
+        scales.append([t("xl.tara.range", lang, **{"from": previous,
+                                              "to": threshold["upTo"]}),
                        feasibility_order(lang)[threshold["level"]]])
         previous = threshold["upTo"] + 1
-    scales.append([f"{previous} et au-delà", feasibility_order(lang)[0]])
+    scales.append([t("xl.tara.range.above", lang, **{"from": previous}),
+                   feasibility_order(lang)[0]])
     scales.append([])
 
     scales.append([t("xl.tara.matrix", lang)])
