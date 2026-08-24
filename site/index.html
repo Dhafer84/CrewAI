@@ -150,12 +150,13 @@
 
   </div>
 
-  <!-- Le positionnement ne se devine pas : à cinq outils dont trois sans IA
-       obligatoire, il doit être écrit. -->
+  <!-- Le positionnement ne se devine pas : sur cinq outils, un SEUL dépend
+       d'un modèle de langage. Il faut donc l'écrire.
+       ⚠️ Ce décompte se périme à chaque outil ajouté — un test le vérifie. -->
   <div class="section-label">Parti pris</div>
   <div class="stance">
-    <p><strong>Trois de ces outils ne font appel à aucune intelligence artificielle pour produire leur résultat.</strong> Déterminer un ASIL ou une valeur de risque, ce sont des tables de décision : la réponse est exacte et instantanée. Rattacher un signal de veille à une norme, c'est une règle écrite, reproductible et testée hors ligne. Y glisser un modèle de langage n'ajouterait qu'une latence et une incertitude.</p>
-    <p>L'IA intervient là où elle est réellement utile — balayer méthodiquement des mots-guides pour amorcer une réflexion — et <strong>jamais pour coter</strong>. Savoir quand ne pas utiliser un LLM fait partie du métier.</p>
+    <p><strong>Quatre de ces cinq outils produisent leur résultat sans aucune intelligence artificielle.</strong> Déterminer un ASIL ou une valeur de risque, ce sont des tables de décision : la réponse est exacte et instantanée. Rattacher un signal de veille à une norme, c'est une règle écrite, reproductible et testée hors ligne. Chercher une exposition sur des dépôts publics, c'est une API et des critères de criticité. Y glisser un modèle de langage n'ajouterait qu'une latence et une incertitude.</p>
+    <p><strong>Un seul en dépend réellement : QualityCrew</strong>, où quatre agents rédigent l'audit — c'est sa raison d'être. Partout ailleurs l'IA reste facultative : elle balaie des mots-guides pour amorcer une réflexion, ou résume en une phrase pourquoi un signal mérite l'attention. <strong>Jamais elle ne cote, jamais elle ne décide de ce qui est retenu.</strong> Savoir quand ne pas utiliser un LLM fait partie du métier.</p>
     <p><strong>RegWatch ne republie jamais le contenu d'une norme.</strong> Ces documents sont payants et protégés : l'outil ne remonte que le titre, la date et le lien vers la source — le corps des pages n'est même pas téléchargé. Et parce que toutes les sources ne se valent pas, chaque signal affiche le palier de la sienne : un comité ISO n'est pas un blog de conseil.</p>
     <p class="stance-pair"><strong>SafetyScope et ThreatScope se parlent.</strong> La sévérité d'un événement redouté devient l'impact « sécurité des personnes » d'un scénario de dommage. L'exposition et la contrôlabilité, elles, ne traversent pas : un attaquant choisit son moment, et peut neutraliser le recours du conducteur.</p>
   </div>

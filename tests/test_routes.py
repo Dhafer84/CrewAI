@@ -156,13 +156,22 @@ def test_the_catalogue_links_to_every_tool():
     assert "S'enchaîne avec ThreatScope" in accueil
     assert "Reprend la sévérité de votre HARA" in accueil
 
-    # ⚠️ Le décompte du bloc « Parti pris » se périme à chaque outil ajouté.
-    # Avec RegWatch, trois outils sur cinq produisent leur résultat sans IA :
-    # sa collecte et sa classification sont entièrement déterministes.
-    sans_ia = sum(1 for page in ("/hara", "/tara", "/regwatch") if page in accueil)
-    assert sans_ia == 3
-    assert "Trois de ces outils" in accueil, \
-        "le décompte du bloc « Parti pris » n'a pas suivi l'ajout d'un outil"
+    # ⚠️ Le décompte du bloc « Parti pris » se périme à chaque outil ajouté,
+    # et il a déjà été faux deux fois. Le critère est : « l'outil rend-il son
+    # résultat sans appeler un LLM ? » — vrai pour SentinelScan (aucune IA),
+    # SafetyScope, ThreatScope et RegWatch (IA facultative, qui ne décide de
+    # rien). Seul QualityCrew en dépend : ses quatre agents ÉCRIVENT l'audit.
+    #
+    # Le verrou : si le nombre de cartes change, ce test tombe et oblige à
+    # recompter la phrase au lieu de l'incrémenter à l'aveugle.
+    # On compte `tool-name` et non `tool-card` : ce dernier apparaît aussi
+    # dans le commentaire HTML qui explique comment ajouter un outil.
+    assert accueil.count('class="tool-name"') == 5, \
+        "le nombre d'outils a changé — recompter le bloc « Parti pris »"
+    assert "Quatre de ces cinq outils" in accueil, \
+        "le décompte du bloc « Parti pris » ne correspond plus à la réalité"
+    assert "QualityCrew</strong>" in accueil, \
+        "le seul outil qui dépend vraiment de l'IA doit être nommé"
     assert "ne republie jamais le contenu" in accueil, \
         "le parti pris propre à RegWatch doit se lire dès la page de garde"
 
