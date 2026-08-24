@@ -43,6 +43,7 @@ PAGES = {
     "/sentinelscan": "SentinelScan",
     "/hara": "/hara/matrix",
     "/tara": "/tara/scales",
+    "/regwatch": "/regwatch/sources",
 }
 
 # Contrat de /tara/scales : chaque chemin est réellement lu par site/tara.html.
@@ -80,6 +81,27 @@ TARA_CONTRACT = [
     "treatment.options.reduce.prompt",
     "limits.damages",
     "limits.threatsPerDamage",
+]
+
+# Contrat de /regwatch/sources : chaque chemin est réellement lu par
+# site/regwatch.html — la page n'écrit en dur ni la fenêtre, ni les libellés
+# de normes, ni les paliers de fiabilité.
+REGWATCH_SOURCES_CONTRACT = [
+    "lookbackDays",
+    "tiers",
+    "norms",
+]
+
+# Contrat de la charge utile SSE `done`, servie à la même page. Les clés sont
+# vérifiées sur `_watch_payload`, jamais en ouvrant le flux : ouvrir /watch/stream
+# lancerait une vraie veille sur sept sites tiers.
+WATCH_PAYLOAD_CONTRACT = [
+    "norms", "duration", "lookbackDays", "sourcesRead", "sourcesTotal",
+    "countsByNorm", "countsBySignal", "unreachable", "degraded", "undated",
+    "errors", "items",
+]
+WATCH_ITEM_CONTRACT = [
+    "norm", "normLabel", "signal", "title", "published", "source", "tier", "url",
 ]
 
 # Contrat de /hara/matrix : lu par site/hara.html.
@@ -125,13 +147,24 @@ def test_the_catalogue_links_to_every_tool():
     with client() as c:
         accueil = c.get("/").text
     for path, nom in (("/qualitycrew", "QualityCrew"), ("/sentinelscan", "SentinelScan"),
-                      ("/hara", "SafetyScope"), ("/tara", "ThreatScope")):
+                      ("/hara", "SafetyScope"), ("/tara", "ThreatScope"),
+                      ("/regwatch", "RegWatch")):
         assert f'href="{path}"' in accueil, f"la carte vers {path} manque"
         assert nom in accueil, f"le nom « {nom} » manque"
 
     # La liaison entre les deux outils appariés doit se voir dès le catalogue.
     assert "S'enchaîne avec ThreatScope" in accueil
     assert "Reprend la sévérité de votre HARA" in accueil
+
+    # ⚠️ Le décompte du bloc « Parti pris » se périme à chaque outil ajouté.
+    # Avec RegWatch, trois outils sur cinq produisent leur résultat sans IA :
+    # sa collecte et sa classification sont entièrement déterministes.
+    sans_ia = sum(1 for page in ("/hara", "/tara", "/regwatch") if page in accueil)
+    assert sans_ia == 3
+    assert "Trois de ces outils" in accueil, \
+        "le décompte du bloc « Parti pris » n'a pas suivi l'ajout d'un outil"
+    assert "ne republie jamais le contenu" in accueil, \
+        "le parti pris propre à RegWatch doit se lire dès la page de garde"
 
 
 def test_stylesheet_is_reachable_at_the_path_pages_use():
@@ -380,6 +413,151 @@ def test_a_suggest_token_is_not_valid_on_the_other_tool():
     assert _consume_token(hara, "client-a", "tara-suggest") is None
 
 
+def test_regwatch_explain_validates_before_spending_a_call():
+    """Comme pour TARA : seules les branches qui ne consomment rien.
+
+    Lancer une vraie explication depuis les tests piocherait dans le quota
+    Groq gratuit, partagé par les trois outils du site.
+    """
+    with client("10.0.0.21") as c:
+        vide = c.post("/regwatch/explain", json={"items": []})
+        assert vide.status_code == 400, vide.status_code
+
+        # Une date illisible ne suffit pas non plus : la ligne est écartée.
+        bancal = c.post("/regwatch/explain", json={"items": [
+            {"title": "Un titre", "published": "pas-une-date"}]})
+        assert bancal.status_code == 400
+
+        bon = c.post("/regwatch/explain", json={"items": [{
+            "norm": "iso9001", "normLabel": "ISO 9001",
+            "signal": "Publication / amendement", "title": "ISO 9001 revision update",
+            "published": "2026-08-07", "source": "ISO/TC 176/SC 2",
+            "tier": "officiel"}]})
+        assert bon.status_code == 200
+        assert bon.json()["token"]
+
+        inconnu = c.get("/regwatch/explain/stream?t=jeton-invente")
+        assert inconnu.status_code == 200
+        assert '"type": "error"' in inconnu.text
+        assert "expir" in inconnu.text
+
+
+def test_regwatch_explain_shares_the_ai_limiter():
+    """⚠️ Les trois outils IA puisent dans le MÊME quota Groq gratuit.
+
+    Un compteur propre à RegWatch donnerait une fois et demie plus d'appels
+    sur une seule enveloppe. On vérifie donc que la cadence de SafetyScope
+    et ThreatScope ferme aussi la porte ici.
+    """
+    import hashlib
+    import time as _time
+
+    from api.main import _last_suggest_by_client
+
+    ip = "10.0.0.22"
+    empreinte = hashlib.sha256(ip.encode("utf-8")).hexdigest()[:16]
+    _last_suggest_by_client[empreinte] = _time.time()
+    try:
+        with client(ip) as c:
+            refus = c.post("/regwatch/explain", json={"items": [{
+                "title": "ISO 9001 revision update", "published": "2026-08-07"}]})
+        assert refus.status_code == 429, refus.status_code
+        assert "minute" in refus.json()["error"]
+    finally:
+        _last_suggest_by_client.pop(empreinte, None)
+
+
+def test_an_explain_token_is_not_valid_on_another_tool():
+    """Cloisonnement par `kind`, comme entre HARA et TARA."""
+    from api.main import _consume_token, _issue_token
+
+    jeton = _issue_token("client-a", "regwatch-explain", {"items": []})
+    assert _consume_token(jeton, "client-a", "tara-suggest") is None
+
+
+def test_rebuilding_watch_items_drops_only_the_bad_lines():
+    """Le tableau vient du navigateur : il est revalidé, ligne par ligne.
+
+    Une date illisible écarte SA ligne — pas tout le lot. Le reste du
+    tableau mérite quand même son explication.
+    """
+    from api.main import _rebuild_watch_items
+
+    items = _rebuild_watch_items([
+        {"title": "Bon signal", "published": "2026-08-07", "norm": "iso9001"},
+        {"title": "Date illisible", "published": "hier", "norm": "iso9001"},
+        {"title": "", "published": "2026-08-07", "norm": "iso9001"},
+        {"title": "Autre bon signal", "published": "2026-06-24", "norm": "iso9001"},
+    ])
+    assert [item.title for item in items] == ["Bon signal", "Autre bon signal"]
+    # L'URL et la clé de source ne repartent pas au modèle : elles ne
+    # servent à rien pour rédiger une phrase.
+    assert all(item.url == "" and item.source_key == "" for item in items)
+
+
+def test_regwatch_report_round_trip():
+    """L'export se construit côté serveur à partir du tableau posté.
+
+    Aucun réseau : la veille a déjà eu lieu, on ne fait que sérialiser.
+    """
+    with client("10.0.0.23") as c:
+        cree = c.post("/regwatch/report", json={
+            "norms": ["iso9001"], "lookbackDays": 90,
+            "sourcesRead": 2, "sourcesTotal": 2,
+            "unreachable": ["ISO/TC 176 — actualités du comité"],
+            "degraded": [], "undated": [], "errors": [],
+            "items": [{
+                "norm": "iso9001", "normLabel": "ISO 9001",
+                "signal": "Publication / amendement",
+                "title": "ISO 9001 revision update", "published": "2026-08-07",
+                "source": "ISO/TC 176/SC 2", "tier": "officiel",
+                "url": "https://committee.iso.org/x.html", "why": "Parce que."}],
+        })
+        assert cree.status_code == 200, cree.text
+        report_id = cree.json()["report_id"]
+
+        fichier = c.get(f"/regwatch/report/{report_id}.xlsx")
+        assert fichier.status_code == 200
+        assert "spreadsheetml" in fichier.headers["content-type"]
+
+    classeur = openpyxl.load_workbook(BytesIO(fichier.content))
+    assert classeur.sheetnames == [
+        "Synthèse", "Signaux", "Couverture", "Sources", "Limites"]
+
+    valeurs = [str(c.value) for ligne in classeur["Synthèse"].iter_rows()
+               for c in ligne if c.value not in (None, "")]
+    assert any("COUVERTURE INCOMPLÈTE" in v for v in valeurs), \
+        "la source muette rapportée par le navigateur doit ressortir"
+
+
+def test_a_regwatch_report_is_not_served_to_another_visitor():
+    """Cloisonnement par empreinte client, comme les trois autres exports."""
+    with client("10.0.0.24") as c:
+        cree = c.post("/regwatch/report", json={"norms": ["iso9001"], "items": []})
+        assert cree.status_code == 200
+        report_id = cree.json()["report_id"]
+
+    with client("10.0.0.25") as autre:
+        assert autre.get(f"/regwatch/report/{report_id}.xlsx").status_code == 404
+
+
+def test_a_regwatch_report_refuses_an_unknown_norm():
+    """Une clé inventée ne doit pas se retrouver imprimée dans un classeur."""
+    with client("10.0.0.26") as c:
+        refus = c.post("/regwatch/report",
+                       json={"norms": ["norme-inventee"], "items": []})
+        assert refus.status_code == 400, refus.status_code
+
+
+def test_a_regwatch_report_is_not_served_by_another_tool_route():
+    """Cloisonnement par `kind` : le magasin est commun, pas les routes."""
+    with client("10.0.0.27") as c:
+        cree = c.post("/regwatch/report", json={"norms": ["iso9001"], "items": []})
+        report_id = cree.json()["report_id"]
+        assert c.get(f"/tara/report/{report_id}.xlsx").status_code == 404
+        assert c.get(f"/scan/report/{report_id}.xlsx").status_code == 404
+
+
 def test_a_long_task_keeps_the_stream_alive():
     """Le flux doit battre pendant qu'une tâche travaille en silence.
 
@@ -435,6 +613,136 @@ def test_a_long_task_keeps_the_stream_alive():
 def test_unknown_route_is_a_404():
     with client() as c:
         assert c.get("/nexistepas").status_code == 404
+
+
+def test_regwatch_sources_keeps_its_contract():
+    with client() as c:
+        resp = c.get("/regwatch/sources")
+        assert resp.status_code == 200
+        data = resp.json()
+
+    for path in REGWATCH_SOURCES_CONTRACT:
+        assert dig(data, path), f"« {path} » est vide"
+
+    assert len(data["norms"]) == 5, "les 5 référentiels doivent être servis"
+    for norm in data["norms"]:
+        assert norm["key"] and norm["label"], norm
+        assert norm["sources"], f"{norm['key']} n'a aucune source"
+        for source in norm["sources"]:
+            assert source["url"].startswith("https://"), source
+            assert source["tier"] in {t["key"] for t in data["tiers"]}, source
+            # ⚠️ La note dit ce que la source vaut. Une source sans note
+            # serait présentée comme si elle se valait toute seule.
+            assert source["note"], f"{source['key']} n'explique pas ce qu'il vaut"
+
+
+def test_watch_payload_keeps_its_contract():
+    """La charge utile SSE, vérifiée sans ouvrir le flux.
+
+    Ce test est né d'un vrai bug : `norms` manquait à la charge utile, la
+    page levait une TypeError en construisant ses sections, et **les 128
+    tests de moteurs restaient au vert**. C'est exactement le trou que
+    couvre cette suite — la composition dans `api/main.py`.
+    """
+    from datetime import date, datetime, timedelta, timezone
+
+    from api.main import _watch_payload
+    from regwatch.core import WatchItem, WatchResult
+
+    debut = datetime.now(timezone.utc)
+    result = WatchResult(
+        norms=["iso9001", "aspice"],
+        lookback_days=90,
+        started_at=debut,
+        finished_at=debut + timedelta(seconds=7),
+        items=[WatchItem(
+            norm_key="iso9001", norm_label="ISO 9001",
+            signal="Publication / amendement", title="ISO 9001 revision update",
+            published=date(2026, 8, 7), source_key="iso_tc176sc2",
+            source_label="ISO/TC 176/SC 2", source_tier="officiel",
+            url="https://committee.iso.org/x.html",
+        )],
+        unreachable=["Source muette"],
+        degraded=["Source dégradée"],
+        undated=["Source — item sans date"],
+        sources_read=3,
+        sources_total=3,
+    )
+
+    payload = _watch_payload(result)
+    for cle in WATCH_PAYLOAD_CONTRACT:
+        assert cle in payload, f"« {cle} » absent de la charge utile"
+    for cle in WATCH_ITEM_CONTRACT:
+        assert cle in payload["items"][0], f"item : « {cle} » absent"
+
+    assert payload["norms"] == ["iso9001", "aspice"]
+    assert payload["items"][0]["published"] == "2026-08-07", "date non sérialisée"
+    assert payload["duration"] == 7
+
+
+def test_the_page_reads_every_key_the_server_sends():
+    """Chaque clé servie doit être lue par la page, et réciproquement.
+
+    Une clé servie que personne ne lit pourrit ; une clé lue que personne ne
+    sert casse l'écran. Le contrat n'est utile que s'il est tenu des deux
+    côtés — et c'est vérifiable, pas seulement documentable.
+    """
+    page = (_ROOT / "site" / "regwatch.html").read_text(encoding="utf-8")
+    for cle in WATCH_PAYLOAD_CONTRACT:
+        if cle == "errors":
+            continue  # servi pour le CLI et l'export ; la page affiche les libellés
+        assert f"data.{cle}" in page, f"la page ne lit jamais « data.{cle} »"
+    # Les champs d'item sont lus sur une variable dont le nom finit par
+    # « item » / « Item ». Chercher la clé nue donnerait des faux positifs :
+    # « .signal » apparaît aussi dans le sélecteur CSS « .signal-row ».
+    import re
+    for cle in WATCH_ITEM_CONTRACT:
+        motif = re.compile(r"\b\w*[iI]tem\." + re.escape(cle) + r"\b")
+        assert motif.search(page), f"la page ne lit jamais le champ d'item « {cle} »"
+
+
+def test_regwatch_never_injects_third_party_data_as_html():
+    """⚠️ Titres, libellés de source et URL viennent de flux tiers.
+
+    Un titre de flux peut contenir n'importe quoi. Posé via `innerHTML`, il
+    devient du balisage exécuté chez le visiteur. La page doit donc n'employer
+    `innerHTML` que pour vider un conteneur ou poser un gabarit qu'elle écrit
+    elle-même — jamais pour une valeur venue du serveur.
+    """
+    page = (_ROOT / "site" / "regwatch.html").read_text(encoding="utf-8")
+
+    for numero, ligne in enumerate(page.splitlines(), start=1):
+        if "innerHTML" not in ligne or ligne.strip().startswith("//"):
+            continue
+        for interdit in ("item.", "data.", "source.", "norm.", "+ label", "label +"):
+            assert interdit not in ligne, (
+                f"ligne {numero} : donnée tierce posée en HTML — « {ligne.strip()[:70]} »"
+            )
+
+    # Et la contrepartie positive : le titre passe bien par textContent.
+    assert "link.textContent = item.title" in page, \
+        "le titre doit être posé en texte, pas en HTML"
+
+    # Les liens sont filtrés : un « javascript: » venu d'un flux ne doit pas
+    # devenir un lien cliquable.
+    assert "function safeUrl" in page, "le filtre d'URL a disparu"
+    assert "'http:'" in page and "'https:'" in page, \
+        "safeUrl doit n'autoriser que http et https"
+
+
+def test_a_watch_refuses_an_unknown_norm():
+    """Une clé de norme inventée est refusée, pas ignorée en silence.
+
+    Le refus se teste sur la validation, pas en ouvrant le flux : /watch/stream
+    interrogerait sept sites tiers pour de vrai.
+    """
+    from regwatch.norms import InvalidSelection, parse_selection
+
+    try:
+        parse_selection(["iso9001", "iso-inexistante"])
+    except InvalidSelection:
+        return
+    raise AssertionError("une norme inconnue aurait dû être refusée")
 
 
 def main() -> int:

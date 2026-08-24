@@ -124,14 +124,39 @@
       </span>
     </a>
 
+    <!-- Outil — RegWatch -->
+    <a class="tool-card is-live" href="/regwatch">
+      <div class="tool-head">
+        <span class="tool-icon icon-amber">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3a9 9 0 0 1 9 9M12 7a5 5 0 0 1 5 5M3 21l6-6"/></svg>
+        </span>
+        <span class="tool-status status-live"><span class="dot dot-done"></span>En ligne</span>
+      </div>
+      <h2 class="tool-name">RegWatch</h2>
+      <p class="tool-desc">Veille de signaux publics autour des normes : révisions en cours, publications, calendriers. Le rattachement à un référentiel est déterministe — aucune IA ne décide de ce qui remonte. Chaque source affiche ce qu'elle vaut.</p>
+      <div class="tool-tags">
+        <span class="tag">Veille normative</span>
+        <span class="tag">ISO · ASPICE · UN R155</span>
+        <span class="tag">Sources publiques</span>
+      </div>
+      <span class="tool-pair">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2 4 6v6c0 5 3.4 9.4 8 10 4.6-.6 8-5 8-10V6z"/></svg>
+        Ne republie jamais le contenu des normes
+      </span>
+      <span class="tool-cta">Lancer une veille
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </span>
+    </a>
+
   </div>
 
-  <!-- Le positionnement ne se devine pas : à quatre outils dont deux sans IA
+  <!-- Le positionnement ne se devine pas : à cinq outils dont trois sans IA
        obligatoire, il doit être écrit. -->
   <div class="section-label">Parti pris</div>
   <div class="stance">
-    <p><strong>Deux de ces outils ne font appel à aucune intelligence artificielle pour produire leur résultat.</strong> Déterminer un ASIL ou une valeur de risque, ce sont des tables de décision : la réponse est exacte et instantanée. Y glisser un modèle de langage n'ajouterait qu'une latence et une incertitude.</p>
+    <p><strong>Trois de ces outils ne font appel à aucune intelligence artificielle pour produire leur résultat.</strong> Déterminer un ASIL ou une valeur de risque, ce sont des tables de décision : la réponse est exacte et instantanée. Rattacher un signal de veille à une norme, c'est une règle écrite, reproductible et testée hors ligne. Y glisser un modèle de langage n'ajouterait qu'une latence et une incertitude.</p>
     <p>L'IA intervient là où elle est réellement utile — balayer méthodiquement des mots-guides pour amorcer une réflexion — et <strong>jamais pour coter</strong>. Savoir quand ne pas utiliser un LLM fait partie du métier.</p>
+    <p><strong>RegWatch ne republie jamais le contenu d'une norme.</strong> Ces documents sont payants et protégés : l'outil ne remonte que le titre, la date et le lien vers la source — le corps des pages n'est même pas téléchargé. Et parce que toutes les sources ne se valent pas, chaque signal affiche le palier de la sienne : un comité ISO n'est pas un blog de conseil.</p>
     <p class="stance-pair"><strong>SafetyScope et ThreatScope se parlent.</strong> La sévérité d'un événement redouté devient l'impact « sécurité des personnes » d'un scénario de dommage. L'exposition et la contrôlabilité, elles, ne traversent pas : un attaquant choisit son moment, et peut neutraliser le recours du conducteur.</p>
   </div>
 

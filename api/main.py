@@ -5,7 +5,9 @@
   GET /sentinelscan  → démo de veille de fuite d'information
   GET /hara          → SafetyScope, analyse HARA / ASIL
   GET /tara          → ThreatScope, analyse TARA / risque cybersécurité
+  GET /regwatch      → RegWatch, veille de signaux publics autour des normes
   GET /audit/stream  → SSE : progression des agents + rapport final
+  GET /watch/stream  → SSE : progression de la veille + signaux retenus
   GET /scan/stream   → SSE : progression du scan + rapport final
   GET /static/*      → assets CSS
 
@@ -22,7 +24,7 @@ import logging
 import secrets
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -56,6 +58,11 @@ from threatscope.core import suggest_threats  # noqa: E402
 from threatscope.rating import full_scales  # noqa: E402
 from threatscope.report import build_excel as build_tara_excel  # noqa: E402
 from threatscope.treatment import treatment_scales  # noqa: E402
+from regwatch.core import WatchItem, WatchResult, run_watch  # noqa: E402
+from regwatch.explain import explain_items  # noqa: E402
+from regwatch.report import build_excel as build_watch_excel  # noqa: E402
+from regwatch.norms import InvalidSelection, parse_selection  # noqa: E402
+from regwatch.sources import source_catalog  # noqa: E402
 
 _DOCUMENTS_DIR = _ROOT / "data" / "sample_project"
 _SITE_DIR = _ROOT / "site"
@@ -104,6 +111,7 @@ def _failure_message(exc: BaseException, defaut: str) -> str:
 
 _audit_semaphore = asyncio.Semaphore(1)
 _scan_semaphore = asyncio.Semaphore(1)
+_watch_semaphore = asyncio.Semaphore(1)
 
 
 # --------------------------------------------------------------------------
@@ -143,6 +151,23 @@ async def hara_matrix():
 @app.get("/tara")
 async def tara_page():
     return FileResponse(_SITE_DIR / "tara.html")
+
+
+@app.get("/regwatch")
+async def regwatch_page():
+    return FileResponse(_SITE_DIR / "regwatch.html")
+
+
+@app.get("/regwatch/sources")
+async def regwatch_sources():
+    """Catalogue des normes et des sources — source de vérité unique.
+
+    Même contrat que `/hara/matrix` et `/tara/scales` : la page lit ce
+    catalogue et l'affiche. Elle ne réécrit ni les libellés de normes, ni les
+    paliers de fiabilité, ni la fenêtre de veille — ajouter une source la
+    rend visible sans toucher au HTML.
+    """
+    return source_catalog()
 
 
 @app.get("/tara/scales")
@@ -895,3 +920,381 @@ async def scan_stream(request: Request, t: str = ""):
 
     tache = asyncio.create_task(run())
     return _sse_response(request, queue, timeout=240.0, task=tache)
+
+# --------------------------------------------------------------------------
+# RegWatch — veille de signaux publics autour des normes
+#
+# ⚠️ **Pas de POST + jeton ici, et c'est délibéré.** SentinelScan échange ses
+# mots-clés contre un jeton opaque parce qu'un terme recherché est
+# potentiellement un nom d'entreprise, qui n'a rien à faire dans un journal
+# nginx. Les normes surveillées, elles, sont un énumérable fermé de cinq
+# référentiels publics : il n'y a rien à protéger. Recopier le mécanisme
+# serait du culte du cargo.
+#
+# La cadence est plus souple que celle du scan (1/min contre 1/3 min) parce
+# que le moteur garde 30 min de cache par URL : une seconde veille dans la
+# demi-heure ne touche pas le réseau du tout. Le limiteur sert à empêcher
+# qu'un visiteur monopolise l'unique exécution, et à borner le trafic sortant
+# d'une IP de datacenter unique.
+# --------------------------------------------------------------------------
+
+_WATCH_COOLDOWN_SECONDS = 60
+_MAX_WATCHES_PER_DAY = 200
+_last_watch_by_client: dict[str, float] = {}
+_watch_daily_usage = {"day": None, "count": 0}
+
+
+def _watch_refusal(client: str) -> str | None:
+    now = time.time()
+
+    today = datetime.now(timezone.utc).date()
+    if _watch_daily_usage["day"] != today:
+        _watch_daily_usage["day"] = today
+        _watch_daily_usage["count"] = 0
+
+    if _watch_daily_usage["count"] >= _MAX_WATCHES_PER_DAY:
+        return "Quota quotidien de la démonstration atteint. Réessayez demain."
+
+    for key, stamp in list(_last_watch_by_client.items()):
+        if now - stamp > _WATCH_COOLDOWN_SECONDS:
+            del _last_watch_by_client[key]
+
+    last = _last_watch_by_client.get(client)
+    if last is not None:
+        wait = int(_WATCH_COOLDOWN_SECONDS - (now - last))
+        return f"Une veille par minute. Réessayez dans {wait} s."
+
+    return None
+
+
+def _watch_payload(result) -> dict:
+    """Charge utile de l'événement `done`, servie à site/regwatch.html.
+
+    Extrait de la route **pour être testable sans réseau** : ouvrir le flux
+    lancerait une vraie veille sur sept sites tiers, ce qu'aucun test ne doit
+    faire. Un oubli de clé ici casse la page sans qu'aucun test de moteur ne
+    bouge — c'est arrivé avec `norms`, absent de cette charge utile alors que
+    la page en fait ses sections et ses filtres.
+    """
+    return {
+        "type": "done",
+        # La sélection, dans l'ordre du catalogue : la page en tire ses
+        # sections et ses filtres, y compris pour une norme sans aucun signal.
+        "norms": result.norms,
+        "duration": round(result.duration_seconds),
+        "lookbackDays": result.lookback_days,
+        "sourcesRead": result.sources_read,
+        "sourcesTotal": result.sources_total,
+        "countsByNorm": result.count_by_norm(),
+        "countsBySignal": result.count_by_signal(),
+        # ⚠️ La couverture fait partie du résultat, pas des notes de bas de
+        # page : une source muette ne doit jamais se présenter comme une
+        # source calme.
+        "unreachable": result.unreachable,
+        "degraded": result.degraded,
+        "undated": result.undated,
+        "errors": result.errors,
+        "items": [
+            {
+                "norm": item.norm_key,
+                "normLabel": item.norm_label,
+                "signal": item.signal,
+                "title": item.title,
+                "published": item.published.isoformat(),
+                "source": item.source_label,
+                "tier": item.source_tier,
+                "url": item.url,
+            }
+            for item in result.items
+        ],
+    }
+
+
+@app.get("/watch/stream")
+async def watch_stream(request: Request, norms: str = ""):
+    queue: asyncio.Queue[str | None] = asyncio.Queue()
+    loop = asyncio.get_event_loop()
+    client = _client_key(request)
+
+    def progress_callback(event: dict) -> None:
+        loop.call_soon_threadsafe(queue.put_nowait, json.dumps(event))
+
+    async def run():
+        try:
+            try:
+                selection = parse_selection(
+                    [key for key in norms.split(",") if key.strip()]
+                )
+            except InvalidSelection as exc:
+                await queue.put(json.dumps({"type": "error", "message": str(exc)}))
+                return
+
+            refusal = _watch_refusal(client)
+            if refusal:
+                await queue.put(json.dumps({"type": "error", "message": refusal}))
+                return
+
+            if _watch_semaphore.locked():
+                await queue.put(json.dumps({
+                    "type": "error",
+                    "message": "Une veille est déjà en cours. Réessayez dans un instant.",
+                }))
+                return
+
+            async with _watch_semaphore:
+                _last_watch_by_client[client] = time.time()
+                _watch_daily_usage["count"] += 1
+
+                await queue.put(json.dumps({
+                    "type": "start",
+                    "norms": [norm.key for norm in selection],
+                }))
+                result = await asyncio.to_thread(
+                    run_watch, selection, progress_callback
+                )
+
+                await queue.put(json.dumps(_watch_payload(result)))
+        except Exception:
+            _log.exception("Veille interrompue")
+            await queue.put(json.dumps({
+                "type": "error",
+                "message": "La veille a échoué. Réessayez dans quelques instants.",
+            }))
+        finally:
+            await queue.put(None)
+
+    tache = asyncio.create_task(run())
+    return _sse_response(request, queue, timeout=180.0, task=tache)
+
+# --------------------------------------------------------------------------
+# RegWatch — phrase « pourquoi ça compte » (optionnelle)
+#
+# ⚠️ **L'IA arrive en dernier et ne filtre jamais.** Ce qui est retenu a été
+# décidé par la classification déterministe, hors ligne. Cette étape ajoute
+# une phrase à des lignes **déjà retenues** — elle ne peut ni en écarter une,
+# ni changer un niveau de signal.
+#
+# ⚠️ **Même limiteur que SafetyScope et ThreatScope, délibérément** : les
+# trois puisent dans le même quota Groq gratuit. Un troisième compteur
+# donnerait une fois et demie plus d'appels sur une seule enveloppe.
+#
+# Le tableau revient du navigateur, comme pour les exports HARA et TARA : il
+# est donc revalidé intégralement ici. Un jeton est nécessaire — non pas pour
+# la confidentialité (les titres sont publics), mais parce qu'une liste de
+# signaux ne tient pas dans une query string.
+# --------------------------------------------------------------------------
+
+_MAX_EXPLAIN_ITEMS = 40
+
+
+class RegwatchExplainItem(BaseModel):
+    norm: str = ""
+    normLabel: str = ""
+    signal: str = ""
+    title: str = ""
+    published: str = ""
+    source: str = ""
+    tier: str = ""
+
+
+class RegwatchExplainRequest(BaseModel):
+    items: list[RegwatchExplainItem] = []
+
+
+def _rebuild_watch_items(payload: list[dict]) -> list[WatchItem]:
+    """Reconstruit les signaux venus du navigateur, en les revalidant.
+
+    Une date illisible écarte la ligne plutôt que de faire échouer l'appel
+    entier : le reste du tableau mérite quand même son explication.
+    """
+    items: list[WatchItem] = []
+    for brut in payload[:_MAX_EXPLAIN_ITEMS]:
+        titre = (brut.get("title") or "").strip()[:300]
+        if not titre:
+            continue
+        try:
+            publiee = date.fromisoformat((brut.get("published") or "")[:10])
+        except ValueError:
+            continue
+        items.append(WatchItem(
+            norm_key=(brut.get("norm") or "")[:40],
+            norm_label=(brut.get("normLabel") or "")[:80],
+            signal=(brut.get("signal") or "")[:60],
+            title=titre,
+            published=publiee,
+            # La clé interne de source ne circule pas : le navigateur ne
+            # l'a pas, et personne n'en a besoin ici.
+            source_key="",
+            source_label=(brut.get("source") or "")[:120],
+            source_tier=(brut.get("tier") or "")[:20],
+            # ⚠️ Lien et phrase ne sont lus que s'ils sont fournis. Ce qui
+            # garantit qu'ils ne partent JAMAIS au modèle, ce n'est pas
+            # cette fonction — c'est `RegwatchExplainItem`, qui ne les
+            # déclare pas : un champ absent du modèle de requête ne peut
+            # pas arriver. L'export, lui, en a besoin.
+            url=(brut.get("url") or "")[:500],
+            why=(brut.get("why") or "")[:400],
+        ))
+    return items
+
+
+@app.post("/regwatch/explain")
+async def regwatch_explain_prepare(request: Request, payload: RegwatchExplainRequest):
+    """Valide le lot et rend un jeton — une liste ne tient pas dans une URL."""
+    client = _client_key(request)
+
+    refusal = _suggest_refusal(client)
+    if refusal:
+        return JSONResponse({"error": refusal}, status_code=429)
+
+    items = [item.model_dump() for item in payload.items]
+    if not _rebuild_watch_items(items):
+        return JSONResponse(
+            {"error": "Aucun signal exploitable à expliquer. Relancez une veille."},
+            status_code=400,
+        )
+
+    return {"token": _issue_token(client, "regwatch-explain", {"items": items})}
+
+
+@app.get("/regwatch/explain/stream")
+async def regwatch_explain_stream(request: Request, t: str = ""):
+    queue: asyncio.Queue[str | None] = asyncio.Queue()
+    loop = asyncio.get_event_loop()
+    client = _client_key(request)
+
+    def task_callback(_task_output):
+        loop.call_soon_threadsafe(queue.put_nowait, json.dumps({
+            "type": "step_done", "index": 0, "total": 1,
+        }))
+
+    async def run():
+        try:
+            payload = _consume_token(t, client, "regwatch-explain")
+            if payload is None:
+                await queue.put(json.dumps({
+                    "type": "error",
+                    "message": "Session expirée. Relancez depuis la page.",
+                }))
+                return
+
+            refusal = _suggest_refusal(client)
+            if refusal:
+                await queue.put(json.dumps({"type": "error", "message": refusal}))
+                return
+
+            if _suggest_semaphore.locked():
+                await queue.put(json.dumps({
+                    "type": "error",
+                    "message": "Une proposition est déjà en cours. Réessayez dans un instant.",
+                }))
+                return
+
+            async with _suggest_semaphore:
+                _last_suggest_by_client[client] = time.time()
+                _suggest_daily_usage["count"] += 1
+                require_llm_key()
+
+                items = _rebuild_watch_items(payload["items"])
+                await queue.put(json.dumps({"type": "start", "items": len(items)}))
+                explique = await asyncio.to_thread(explain_items, items, task_callback)
+
+                # Aligné sur l'ordre posté : `explain_items` ne réordonne
+                # jamais, et un test du moteur le verrouille.
+                await queue.put(json.dumps({
+                    "type": "done",
+                    "explanations": [item.why for item in explique],
+                }))
+        except Exception as exc:
+            _log.exception("Explication RegWatch interrompue")
+            await queue.put(json.dumps({
+                "type": "error",
+                "message": _failure_message(
+                    exc, "L'explication a échoué. Le tableau reste utilisable tel quel."),
+            }))
+        finally:
+            await queue.put(None)
+
+    tache = asyncio.create_task(run())
+    return _sse_response(request, queue, timeout=180.0, task=tache)
+
+# --------------------------------------------------------------------------
+# RegWatch — export Excel
+#
+# Même magasin mémoire que les trois autres outils, avec `kind="regwatch"`.
+# Le tableau revient du navigateur et est revalidé ligne par ligne, comme
+# pour les exports HARA et TARA.
+# --------------------------------------------------------------------------
+
+class RegwatchReportItem(BaseModel):
+    norm: str = ""
+    normLabel: str = ""
+    signal: str = ""
+    title: str = ""
+    published: str = ""
+    source: str = ""
+    tier: str = ""
+    url: str = ""
+    why: str = ""
+
+
+class RegwatchReportRequest(BaseModel):
+    norms: list[str] = []
+    lookbackDays: int = 0
+    sourcesRead: int = 0
+    sourcesTotal: int = 0
+    unreachable: list[str] = []
+    degraded: list[str] = []
+    undated: list[str] = []
+    errors: list[str] = []
+    items: list[RegwatchReportItem] = []
+
+
+@app.post("/regwatch/report")
+async def regwatch_report_create(request: Request, payload: RegwatchReportRequest):
+    """Reconstruit la veille côté serveur, puis prépare le classeur.
+
+    ⚠️ La couverture est reprise telle que le navigateur la rapporte, mais
+    les **référentiels** sont revalidés : une clé inventée ne doit pas se
+    retrouver imprimée dans un classeur. Un export sans aucun signal reste
+    permis — un classeur qui ne dit que « rien de neuf, et voici les sources
+    muettes » est précisément ce qu'un veilleur doit pouvoir archiver.
+    """
+    try:
+        selection = parse_selection(payload.norms)
+    except InvalidSelection as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+
+    items = _rebuild_watch_items([item.model_dump() for item in payload.items])
+
+    maintenant = datetime.now(timezone.utc)
+    result = WatchResult(
+        norms=[norm.key for norm in selection],
+        lookback_days=payload.lookbackDays or 90,
+        started_at=maintenant,
+        finished_at=maintenant,
+        items=items,
+        unreachable=[label[:160] for label in payload.unreachable[:20]],
+        degraded=[label[:160] for label in payload.degraded[:20]],
+        undated=[label[:300] for label in payload.undated[:40]],
+        errors=[message[:300] for message in payload.errors[:40]],
+        sources_read=payload.sourcesRead,
+        sources_total=payload.sourcesTotal,
+    )
+
+    excel = await asyncio.to_thread(build_watch_excel, result)
+    report_id = _store_report(
+        _client_key(request),
+        "regwatch",
+        excel,
+        "regwatch_" + result.started_at.strftime("%Y%m%d_%H%M") + ".xlsx",
+    )
+    return {"report_id": report_id}
+
+
+@app.get("/regwatch/report/{report_id}.xlsx")
+async def regwatch_report_download(request: Request, report_id: str):
+    return _serve_report(
+        request, report_id, "regwatch",
+        "Rapport expiré ou introuvable. Relancez l'export.",
+    )

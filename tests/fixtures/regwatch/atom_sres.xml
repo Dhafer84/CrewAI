@@ -1,0 +1,57 @@
+<!-- Capturé le 23/08/2026 sur https://sres.ai/feed/atom/
+     Réduit aux premiers items, et les champs de contenu sont VIDÉS :
+     RegWatch ne lit que titre, lien, date et catégories. Le reste du
+     balisage n'est pas retouché.
+     Même source que rss_sres.xml, au format Atom.
+     -->
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:ns1="http://purl.org/syndication/thread/1.0" xml:lang="en-US">
+	<title type="text">SecuRESafe</title>
+	<subtitle type="text" />
+
+	<updated>2026-08-11T22:16:58Z</updated>
+
+	<link rel="alternate" type="text/html" href="https://sres.ai/" />
+	<id>https://sres.ai/feed/atom/</id>
+	<link rel="self" type="application/atom+xml" href="https://sres.ai/feed/atom/" />
+
+	<generator uri="https://wordpress.org/" version="7.1">WordPress</generator>
+<icon>https://sres.ai/wp-content/uploads/2023/09/cropped-SRES_favicon1-150x150.png</icon>
+	<entry>
+		<author>
+			<name>SecuRESafe</name>
+					</author>
+
+		<title type="html">Safety Standards for Humanoid and General-Purpose Robots: A Practical Guide</title>
+		<link rel="alternate" type="text/html" href="https://sres.ai/robotics-and-physical-ai/safety-standards-for-humanoid-and-general-purpose-robots-a-practical-guide/" />
+
+		<id>https://sres.ai/?p=21619</id>
+		<updated>2026-08-11T22:16:58Z</updated>
+		<published>2026-08-11T22:02:01Z</published>
+		<category scheme="https://sres.ai/" term="Robotics &amp; Physical AI" />
+		<summary type="html">[corps retiré de la fixture — RegWatch ne le lit jamais]</summary>
+
+		
+					<link rel="replies" type="text/html" href="https://sres.ai/robotics-and-physical-ai/safety-standards-for-humanoid-and-general-purpose-robots-a-practical-guide/#comments" ns1:count="0" />
+			<link rel="replies" type="application/atom+xml" href="https://sres.ai/robotics-and-physical-ai/safety-standards-for-humanoid-and-general-purpose-robots-a-practical-guide/feed/atom/" ns1:count="0" />
+			<ns1:total>0</ns1:total>
+			</entry>
+		<entry>
+		<author>
+			<name>SecuRESafe</name>
+					</author>
+
+		<title type="html">ISO 26262 Challenges for ADS: Item Definition and HARA</title>
+		<link rel="alternate" type="text/html" href="https://sres.ai/functional-safety/iso-26262-challenges-for-ads-item-definition-and-hara/" />
+
+		<id>https://sres.ai/?p=21598</id>
+		<updated>2026-08-10T17:12:58Z</updated>
+		<published>2026-08-07T17:30:55Z</published>
+		<category scheme="https://sres.ai/" term="Functional Safety" /><category scheme="https://sres.ai/" term="Autonomous Systems" />
+		<summary type="html">[corps retiré de la fixture — RegWatch ne le lit jamais]</summary>
+
+		
+					<link rel="replies" type="text/html" href="https://sres.ai/functional-safety/iso-26262-challenges-for-ads-item-definition-and-hara/#comments" ns1:count="0" />
+			<link rel="replies" type="application/atom+xml" href="https://sres.ai/functional-safety/iso-26262-challenges-for-ads-item-definition-and-hara/feed/atom/" ns1:count="0" />
+			<ns1:total>0</ns1:total>
+			</entry>
+		</feed>

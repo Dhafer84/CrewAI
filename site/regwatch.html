@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RegWatch — Veille normative et réglementaire</title>
+  <meta name="description" content="Veille de signaux publics autour des normes qualité et sécurité automobile : ASPICE, ISO 26262, ISO/SAE 21434, ISO/IEC 27001, ISO 9001. Titre, date et lien vers la source — jamais le contenu des normes.">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+
+  <nav>
+    <a class="nav-back" href="/">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Tous les outils
+    </a>
+    <a class="nav-link" href="https://github.com/Dhafer84/CrewAI" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      GitHub
+    </a>
+  </nav>
+
+  <section class="hero">
+    <div class="badge badge-purple">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v2M12 19v2M5 12H3M21 12h-2M7.8 7.8 6.4 6.4M17.6 17.6l-1.4-1.4M7.8 16.2l-1.4 1.4M17.6 6.4l-1.4 1.4"/><circle cx="12" cy="12" r="4"/></svg>
+      Démo live — veille à la demande
+    </div>
+    <h1>Reg<em>Watch</em></h1>
+    <p class="subtitle">Cochez les référentiels qui vous concernent : l'outil interroge leurs sources publiques et remonte ce qui a bougé — révisions, stades de rédaction, publications, calendriers. Titre, date et lien vers la source d'origine.</p>
+  </section>
+
+  <div class="warn-box">
+    <div class="warn-head">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+      Ce que fait cet outil, et ce qu'il ne fait pas
+    </div>
+    <ul class="warn-list">
+      <li><strong>Le contenu des normes n'est jamais republié.</strong> Elles sont payantes et protégées. RegWatch ne remonte que le titre, la date et le lien — le corps des pages n'est même pas téléchargé.</li>
+      <li><strong>La fenêtre est de <span id="window-days">90</span> jours, fixe.</strong> L'écran répond « qu'est-ce qui a bougé sur cette période », <em>pas</em> « depuis votre dernière visite » : l'outil ne garde aucune trace de vos passages.</li>
+      <li><strong>Le palier de chaque source est affiché.</strong> Un comité ISO et le blog d'un cabinet de conseil ne se valent pas, et ne sont pas présentés comme équivalents.</li>
+      <li><strong>Aucune IA ne décide de ce qui est retenu.</strong> Le rattachement à une norme et le niveau de signal sont déterministes, reproductibles, et testés hors ligne.</li>
+      <li><strong>Une source muette est signalée comme telle.</strong> « Rien de neuf » et « je n'ai pas pu regarder » sont deux réponses différentes — les confondre serait le pire défaut d'un outil de veille.</li>
+    </ul>
+  </div>
+
+  <div class="section-label">Référentiels à surveiller</div>
+  <div class="norm-grid" id="norm-grid"></div>
+
+  <div class="hero-actions">
+    <button class="btn btn-primary" id="btn-watch" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v2M12 19v2M5 12H3M21 12h-2"/><circle cx="12" cy="12" r="4"/></svg>
+      Lancer la veille
+    </button>
+    <button class="btn btn-ghost" id="btn-all">Tout cocher</button>
+  </div>
+  <p class="form-hint" id="form-hint">Sélectionnez au moins un référentiel. Comptez une dizaine de secondes.</p>
+
+  <div class="scan-progress" id="watch-progress">
+    <div class="section-label">Sources interrogées</div>
+    <div class="progress-list" id="progress-list"></div>
+  </div>
+
+  <div class="scan-results" id="watch-results">
+    <div id="coverage"></div>
+
+    <div class="section-label">Résultat</div>
+    <div class="stats" id="watch-stats"></div>
+    <div class="filters" id="signal-mix"></div>
+    <div class="filters" id="filters"></div>
+
+    <div class="explain-bar" id="explain-bar" hidden>
+      <button class="btn btn-ghost" id="btn-explain">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3a6 6 0 0 0-4 10.5V17h8v-3.5A6 6 0 0 0 12 3z"/><path d="M10 21h4"/></svg>
+        Pourquoi ça compte
+      </button>
+      <a class="btn-download" id="dl-excel" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><path d="M12 15V3"/></svg>
+        Excel
+      </a>
+      <p class="explain-note">Optionnel. Un modèle rédige une phrase par signal, <strong>à partir du seul intitulé</strong> — il n'a pas lu les documents et n'a rien décidé de ce qui est affiché ci-dessous. Le classeur, lui, emporte aussi les sources muettes.</p>
+    </div>
+
+    <div id="sections"></div>
+  </div>
+
+  <details class="sources-box" id="sources-box">
+    <summary>Sources interrogées, et ce que chacune vaut</summary>
+    <div class="sources-inner" id="sources-inner"></div>
+  </details>
+
+  <p class="disclaimer">Démonstration pédagogique. RegWatch ne remplace ni la lecture des normes, ni un abonnement à un service de veille réglementaire. Les libellés de signal sont déduits du titre seul : ils orientent, c'est le lien vers la source qui fait foi.</p>
+
+  <footer>
+    <div class="footer-inner">
+      <span class="footer-text">Veille à la demande · sources publiques · le contenu des normes n'est jamais republié</span>
+      <a class="nav-link footer-text" href="/">Tous les outils</a>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+(function() {
+  const grid     = document.getElementById('norm-grid');
+  const btn      = document.getElementById('btn-watch');
+  const btnAll   = document.getElementById('btn-all');
+  const hint     = document.getElementById('form-hint');
+  const progress = document.getElementById('watch-progress');
+  const list     = document.getElementById('progress-list');
+  const results  = document.getElementById('watch-results');
+  const coverage = document.getElementById('coverage');
+  const sections = document.getElementById('sections');
+  const filters  = document.getElementById('filters');
+
+  // Ordre d'affichage des niveaux de signal. Le seul endroit du client qui
+  // les nomme ; les libellés eux-mêmes viennent du serveur avec les items.
+  const SIGNAL_CLASS = {
+    'Publication / amendement': 'sig-pub',
+    'Travaux en cours':         'sig-draft',
+    'Annonce / calendrier':     'sig-event',
+    'Information':              'sig-info'
+  };
+  const SIGNAL_ORDER = Object.keys(SIGNAL_CLASS);
+
+  let catalog = null;   // /regwatch/sources — source de vérité unique
+  let es = null;
+  let lastResult = null;
+  let activeNorm = null;
+
+  // ⚠️ Les URL viennent de flux tiers. Un `javascript:` dans un <link>
+  // deviendrait un lien cliquable si on l'affectait tel quel à href.
+  // On n'autorise que http(s) ; le reste s'affiche en texte, sans lien.
+  function safeUrl(raw) {
+    try {
+      const parsed = new URL(raw, window.location.origin);
+      return (parsed.protocol === 'http:' || parsed.protocol === 'https:')
+             ? parsed.href : null;
+    } catch (e) { return null; }
+  }
+
+  function setHint(msg, isError) {
+    hint.textContent = msg;
+    hint.className = 'form-hint' + (isError ? ' error' : '');
+  }
+
+  function selected() {
+    return Array.from(grid.querySelectorAll('input:checked')).map(i => i.value);
+  }
+
+  function refreshButton() {
+    btn.disabled = selected().length === 0 || es !== null;
+    grid.querySelectorAll('.norm-card').forEach(card => {
+      card.classList.toggle('is-on', card.querySelector('input').checked);
+    });
+  }
+
+  function tierChip(tier) {
+    const chip = document.createElement('span');
+    chip.className = 'tier tier-' + tier;
+    chip.textContent = tier === 'officiel' ? 'officielle'
+                     : tier === 'communaute' ? 'communautaire' : 'commentaire';
+    return chip;
+  }
+
+  // ------------------------------------------------------------------
+  // Catalogue : normes, sources et paliers. La page n'écrit aucun de ces
+  // libellés en dur — ajouter une source la rend visible sans toucher au
+  // HTML. Même contrat que /hara/matrix et /tara/scales.
+  // ------------------------------------------------------------------
+  fetch('/regwatch/sources')
+    .then(r => r.json())
+    .then(data => {
+      catalog = data;
+      document.getElementById('window-days').textContent = data.lookbackDays;
+
+      data.norms.forEach(norm => {
+        const card = document.createElement('label');
+        card.className = 'norm-card';
+
+        const head = document.createElement('div');
+        head.className = 'norm-head';
+        const box = document.createElement('input');
+        box.type = 'checkbox';
+        box.value = norm.key;
+        box.addEventListener('change', refreshButton);
+        const name = document.createElement('span');
+        name.className = 'norm-name';
+        name.textContent = norm.label;
+        head.appendChild(box);
+        head.appendChild(name);
+        card.appendChild(head);
+
+        const srcs = document.createElement('div');
+        srcs.className = 'norm-src';
+        norm.sources.forEach(source => srcs.appendChild(tierChip(source.tier)));
+        card.appendChild(srcs);
+
+        grid.appendChild(card);
+      });
+
+      renderCatalog(data);
+      setHint('Sélectionnez au moins un référentiel. Fenêtre de '
+              + data.lookbackDays + ' jours, une dizaine de secondes.');
+    })
+    .catch(() => setHint('Catalogue des sources indisponible.', true));
+
+  function renderCatalog(data) {
+    const inner = document.getElementById('sources-inner');
+    const seen = new Set();
+    data.norms.forEach(norm => norm.sources.forEach(source => {
+      if (seen.has(source.key)) return;
+      seen.add(source.key);
+
+      const row = document.createElement('div');
+      row.className = 'source-row';
+
+      const top = document.createElement('div');
+      top.className = 'source-top';
+      const name = document.createElement('span');
+      name.className = 'source-name';
+      name.textContent = source.label;
+      top.appendChild(name);
+      top.appendChild(tierChip(source.tier));
+      row.appendChild(top);
+
+      const href = safeUrl(source.url);
+      const url = document.createElement(href ? 'a' : 'span');
+      url.className = 'source-url';
+      url.textContent = source.url;
+      if (href) { url.href = href; url.target = '_blank'; url.rel = 'noopener'; }
+      row.appendChild(url);
+
+      const note = document.createElement('p');
+      note.className = 'source-note';
+      note.textContent = source.note;
+      row.appendChild(note);
+
+      inner.appendChild(row);
+    }));
+  }
+
+  // ------------------------------------------------------------------
+  // Progression
+  // ------------------------------------------------------------------
+  function rowFor(index) {
+    let row = document.getElementById('s-' + index);
+    if (!row) {
+      row = document.createElement('div');
+      row.className = 'progress-row';
+      row.id = 's-' + index;
+      row.innerHTML = '<span class="dot dot-running"></span>'
+                    + '<span class="q-label"></span>'
+                    + '<span class="q-result"></span>';
+      list.appendChild(row);
+    }
+    return row;
+  }
+
+  // ------------------------------------------------------------------
+  // Résultat
+  // ------------------------------------------------------------------
+
+  // ⚠️ La couverture passe AVANT les résultats, jamais en note de bas de
+  // page : tant qu'une source est muette, une absence de signal ne prouve
+  // rien. Même règle que l'avertissement de couverture de SentinelScan.
+  function renderCoverage(data) {
+    coverage.innerHTML = '';
+
+    if (data.unreachable.length || data.degraded.length) {
+      const box = document.createElement('div');
+      box.className = 'cover-box';
+      const head = document.createElement('div');
+      head.className = 'cover-head';
+      head.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>';
+      head.appendChild(document.createTextNode(
+        'Couverture incomplète — une absence de signal ne prouve rien'));
+      box.appendChild(head);
+
+      const ul = document.createElement('ul');
+      ul.className = 'cover-list';
+      data.unreachable.forEach(label => {
+        const li = document.createElement('li');
+        li.textContent = label + ' : source injoignable.';
+        ul.appendChild(li);
+      });
+      data.degraded.forEach(label => {
+        const li = document.createElement('li');
+        li.textContent = label + ' : la page répond mais rien ne s\'en extrait '
+                       + '— la structure du site a probablement changé.';
+        ul.appendChild(li);
+      });
+      box.appendChild(ul);
+      coverage.appendChild(box);
+    }
+
+    if (data.undated.length) {
+      const box = document.createElement('div');
+      box.className = 'cover-box is-note';
+      const head = document.createElement('div');
+      head.className = 'cover-head';
+      head.textContent = data.undated.length + ' élément(s) pertinent(s) écarté(s), '
+                       + 'faute de date exploitable';
+      box.appendChild(head);
+      const ul = document.createElement('ul');
+      ul.className = 'cover-list';
+      data.undated.forEach(line => {
+        const li = document.createElement('li');
+        li.textContent = line;
+        ul.appendChild(li);
+      });
+      box.appendChild(ul);
+      coverage.appendChild(box);
+    }
+  }
+
+  function renderStats(data) {
+    const stats = document.getElementById('watch-stats');
+    stats.innerHTML = '';
+    const cells = [
+      [data.items.length, 'signal(aux) retenu(s)'],
+      [data.sourcesRead + '/' + data.sourcesTotal, 'sources lues'],
+      [data.lookbackDays + ' j', 'fenêtre'],
+      [data.duration + ' s', 'durée']
+    ];
+    cells.forEach(([value, label]) => {
+      const cell = document.createElement('div');
+      cell.className = 'stat';
+      const v = document.createElement('div');
+      v.className = 'stat-val';
+      v.textContent = value;
+      const l = document.createElement('div');
+      l.className = 'stat-label';
+      l.textContent = label;
+      cell.appendChild(v); cell.appendChild(l);
+      stats.appendChild(cell);
+    });
+  }
+
+  // Répartition par niveau de signal — c'est la réponse à la question que
+  // pose l'outil : « s'est-il passé quelque chose d'IMPORTANT ? ». Quinze
+  // signaux dont zéro publication, ce n'est pas la même nouvelle que quinze
+  // signaux dont quatre publications. Les zéros sont affichés : une absence
+  // de publication est une information.
+  function renderSignalMix(data) {
+    const mix = document.getElementById('signal-mix');
+    mix.innerHTML = '';
+    SIGNAL_ORDER.forEach(signal => {
+      const badge = document.createElement('span');
+      badge.className = 'sig-badge ' + SIGNAL_CLASS[signal];
+      badge.textContent = (data.countsBySignal[signal] || 0) + ' · ' + signal;
+      mix.appendChild(badge);
+    });
+  }
+
+  function renderFilters(data) {
+    filters.innerHTML = '';
+    const keys = [null].concat(data.norms || []);
+    keys.forEach(key => {
+      const chip = document.createElement('button');
+      chip.className = 'filter-chip' + (key === activeNorm ? ' is-on' : '');
+      chip.textContent = key === null
+        ? 'Tout (' + data.items.length + ')'
+        : labelOf(key) + ' (' + (data.countsByNorm[key] || 0) + ')';
+      chip.addEventListener('click', () => {
+        activeNorm = key;
+        renderFilters(data);
+        renderSections(data);
+      });
+      filters.appendChild(chip);
+    });
+  }
+
+  // Le libellé vient de l'item quand il y en a un, du catalogue sinon —
+  // une norme sans aucun signal n'apparaît dans aucun item.
+  function labelOf(key) {
+    const fromItem = lastResult
+      ? lastResult.items.find(item => item.norm === key) : null;
+    if (fromItem) return fromItem.normLabel;
+    const found = (catalog ? catalog.norms : []).find(n => n.key === key);
+    return found ? found.label : key;
+  }
+
+  // Les sources d'une norme, d'après le catalogue — pour dire si un « 0 »
+  // est une absence constatée ou une source qui n'a pas répondu.
+  function sourcesOf(key) {
+    const found = (catalog ? catalog.norms : []).find(n => n.key === key);
+    return found ? found.sources.map(s => s.label) : [];
+  }
+
+  function renderSections(data) {
+    sections.innerHTML = '';
+    const shown = activeNorm ? [activeNorm] : data.norms;
+
+    shown.forEach(key => {
+      const items = data.items.filter(item => item.norm === key);
+
+      const block = document.createElement('div');
+      block.className = 'norm-section';
+
+      const head = document.createElement('div');
+      head.className = 'norm-section-head';
+      const title = document.createElement('h3');
+      title.textContent = labelOf(key);
+      const count = document.createElement('span');
+      count.className = 'norm-count';
+      count.textContent = items.length + ' signal(aux)';
+      head.appendChild(title); head.appendChild(count);
+      block.appendChild(head);
+
+      if (!items.length) {
+        // ⚠️ « Rien de neuf » et « je n'ai pas pu regarder » sont deux
+        // réponses différentes. Le dire ici, norme par norme.
+        const muettes = sourcesOf(key).filter(
+          label => data.unreachable.includes(label) || data.degraded.includes(label));
+        const empty = document.createElement('div');
+        empty.className = 'norm-empty';
+        empty.textContent = muettes.length
+          ? 'Aucun signal retenu, mais ' + muettes.length + ' source(s) de ce '
+            + 'référentiel n\'ont pas répondu : n\'en concluez rien.'
+          : 'Aucun signal sur les ' + data.lookbackDays + ' derniers jours. '
+            + 'Les sources ont répondu — c\'est une absence constatée, pas une panne.';
+        block.appendChild(empty);
+        sections.appendChild(block);
+        return;
+      }
+
+      SIGNAL_ORDER.forEach(signal => {
+        items.filter(item => item.signal === signal).forEach(item => {
+          block.appendChild(signalRow(item));
+        });
+      });
+      // Un niveau que le serveur nommerait sans que le client le connaisse
+      // ne doit pas disparaître en silence.
+      items.filter(item => SIGNAL_ORDER.indexOf(item.signal) === -1)
+           .forEach(item => block.appendChild(signalRow(item)));
+
+      sections.appendChild(block);
+    });
+  }
+
+  function signalRow(item) {
+    const row = document.createElement('div');
+    row.className = 'signal-row';
+
+    const date = document.createElement('span');
+    date.className = 'signal-date';
+    date.textContent = item.published;
+    row.appendChild(date);
+
+    const body = document.createElement('div');
+    body.className = 'signal-body';
+
+    // ⚠️ Le titre vient d'un tiers : textContent, jamais innerHTML.
+    const href = safeUrl(item.url);
+    const link = document.createElement(href ? 'a' : 'span');
+    link.className = 'signal-title';
+    link.textContent = item.title;
+    if (href) { link.href = href; link.target = '_blank'; link.rel = 'noopener'; }
+    body.appendChild(link);
+
+    const meta = document.createElement('div');
+    meta.className = 'signal-meta';
+    const badge = document.createElement('span');
+    badge.className = 'sig-badge ' + (SIGNAL_CLASS[item.signal] || 'sig-info');
+    badge.textContent = item.signal;
+    meta.appendChild(badge);
+    meta.appendChild(tierChip(item.tier));
+    const src = document.createElement('span');
+    src.className = 'signal-src';
+    src.textContent = item.source;
+    meta.appendChild(src);
+    body.appendChild(meta);
+
+    // La phrase de l'IA, quand elle existe. Elle vient après le titre et la
+    // source, jamais à leur place : c'est le lien qui fait foi.
+    if (item.why) {
+      const why = document.createElement('p');
+      why.className = 'why';
+      const mark = document.createElement('span');
+      mark.className = 'why-mark';
+      mark.textContent = 'IA';
+      why.appendChild(mark);
+      // Texte produit par un modèle : textContent, comme tout le reste.
+      why.appendChild(document.createTextNode(item.why));
+      body.appendChild(why);
+    }
+
+    row.appendChild(body);
+    return row;
+  }
+
+  // ------------------------------------------------------------------
+  // Étape optionnelle : la phrase « pourquoi ça compte »
+  //
+  // ⚠️ Elle arrive APRÈS coup et n'enlève rien. Les explications reviennent
+  // alignées sur l'ordre envoyé — le moteur ne réordonne jamais, et un test
+  // le verrouille côté serveur.
+  // ------------------------------------------------------------------
+  const explainBar = document.getElementById('explain-bar');
+  const btnExplain = document.getElementById('btn-explain');
+  let explainStream = null;
+
+  async function explainToken(items) {
+    const resp = await fetch('/regwatch/explain', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: items.map(item => ({
+        norm: item.norm, normLabel: item.normLabel, signal: item.signal,
+        title: item.title, published: item.published,
+        source: item.source, tier: item.tier
+      })) })
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(data.error || 'Requête refusée.');
+    return data.token;
+  }
+
+  // ------------------------------------------------------------------
+  // Export Excel — le classeur emporte AUSSI ce qui n'a pas pu être vu.
+  // Un fichier de veille qui tait ses sources muettes transforme une panne
+  // en « rien de neuf ».
+  // ------------------------------------------------------------------
+  const dlExcel = document.getElementById('dl-excel');
+
+  dlExcel.addEventListener('click', async function(evt) {
+    evt.preventDefault();
+    if (!lastResult) return;
+    setHint('Préparation du classeur…');
+
+    try {
+      const resp = await fetch('/regwatch/report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          norms: lastResult.norms,
+          lookbackDays: lastResult.lookbackDays,
+          sourcesRead: lastResult.sourcesRead,
+          sourcesTotal: lastResult.sourcesTotal,
+          unreachable: lastResult.unreachable,
+          degraded: lastResult.degraded,
+          undated: lastResult.undated,
+          errors: lastResult.errors,
+          items: lastResult.items
+        })
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data.error || 'Export refusé.');
+      window.location.href = '/regwatch/report/'
+                             + encodeURIComponent(data.report_id) + '.xlsx';
+      setHint('Classeur prêt — il inclut la couverture et le détail des sources.');
+    } catch (err) {
+      setHint(err.message, true);
+    }
+  });
+
+  btnExplain.addEventListener('click', async function() {
+    if (!lastResult || !lastResult.items.length) return;
+    btnExplain.disabled = true;
+    setHint('Rédaction des explications…');
+
+    let token;
+    try {
+      token = await explainToken(lastResult.items);
+    } catch (err) {
+      setHint(err.message, true);
+      btnExplain.disabled = false;
+      return;
+    }
+
+    explainStream = new EventSource('/regwatch/explain/stream?t='
+                                    + encodeURIComponent(token));
+    explainStream.onmessage = function(evt) {
+      let data;
+      try { data = JSON.parse(evt.data); } catch (e) { return; }
+
+      if (data.type === 'done') {
+        (data.explanations || []).forEach((phrase, index) => {
+          if (lastResult.items[index]) lastResult.items[index].why = phrase || '';
+        });
+        renderSections(lastResult);
+        const ecrites = (data.explanations || []).filter(Boolean).length;
+        setHint(ecrites + ' explication(s) ajoutée(s). Le tableau, lui, ne '
+                + 'doit rien au modèle.');
+        explainStream.close(); explainStream = null;
+
+      } else if (data.type === 'error') {
+        setHint(data.message || 'Explication indisponible.', true);
+        btnExplain.disabled = false;
+        explainStream.close(); explainStream = null;
+
+      } else if (data.type === 'close') {
+        if (explainStream) { explainStream.close(); explainStream = null; }
+      }
+    };
+    explainStream.onerror = function() {
+      setHint('Connexion interrompue pendant l\'explication.', true);
+      btnExplain.disabled = false;
+      if (explainStream) { explainStream.close(); explainStream = null; }
+    };
+  });
+
+  // ------------------------------------------------------------------
+  // Lancement
+  // ------------------------------------------------------------------
+  btnAll.addEventListener('click', function() {
+    const boxes = Array.from(grid.querySelectorAll('input'));
+    const allOn = boxes.every(b => b.checked);
+    boxes.forEach(b => { b.checked = !allOn; });
+    btnAll.textContent = allOn ? 'Tout cocher' : 'Tout décocher';
+    refreshButton();
+  });
+
+  btn.addEventListener('click', function() {
+    list.innerHTML = '';
+    coverage.innerHTML = '';
+    sections.innerHTML = '';
+    filters.innerHTML = '';
+    document.getElementById('signal-mix').innerHTML = '';
+    document.getElementById('explain-bar').hidden = true;
+    results.classList.remove('visible');
+    activeNorm = null;
+
+    btn.disabled = true;
+    setHint('Connexion au moteur…');
+    progress.classList.add('visible');
+
+    // Les référentiels surveillés sont un énumérable fermé et public : rien
+    // à cacher, donc pas de POST + jeton comme dans SentinelScan, où un
+    // mot-clé est potentiellement un nom d'entreprise.
+    es = new EventSource('/watch/stream?norms='
+                         + encodeURIComponent(selected().join(',')));
+
+    es.onmessage = function(evt) {
+      let data;
+      try { data = JSON.parse(evt.data); } catch (e) { return; }
+
+      if (data.type === 'start') {
+        setHint('Veille en cours sur ' + data.norms.length + ' référentiel(s)…');
+
+      } else if (data.type === 'source_start') {
+        const row = rowFor(data.index);
+        row.querySelector('.q-label').textContent = data.source;
+        setHint('Source ' + (data.index + 1) + '/' + data.total + '…');
+
+      } else if (data.type === 'source_done') {
+        const row = rowFor(data.index);
+        const degraded = data.state === 'degraded';
+        row.querySelector('.dot').className = 'dot ' + (degraded ? 'dot-error' : 'dot-done');
+        row.querySelector('.q-result').textContent = degraded
+          ? 'structure non reconnue'
+          : (data.found > 0 ? data.found + ' signal(aux)' : '—');
+        if (degraded) row.classList.add('has-error');
+        else if (data.found > 0) row.classList.add('has-hits');
+
+      } else if (data.type === 'source_error') {
+        const row = rowFor(data.index);
+        row.querySelector('.dot').className = 'dot dot-error';
+        row.querySelector('.q-result').textContent = 'injoignable';
+        row.classList.add('has-error');
+
+      } else if (data.type === 'done') {
+        lastResult = data;
+        renderCoverage(data);
+        renderStats(data);
+        renderSignalMix(data);
+        renderFilters(data);
+        renderSections(data);
+        explainBar.hidden = data.items.length === 0;
+        btnExplain.disabled = false;
+        results.classList.add('visible');
+        setHint(data.unreachable.length || data.degraded.length
+          ? 'Veille terminée, mais la couverture est incomplète — lisez '
+            + 'l\'avertissement avant de conclure.'
+          : 'Veille terminée sur les ' + data.lookbackDays + ' derniers jours.',
+          data.unreachable.length > 0 || data.degraded.length > 0);
+        es.close(); es = null; refreshButton();
+        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      } else if (data.type === 'error') {
+        setHint(data.message || 'Erreur inconnue.', true);
+        progress.classList.remove('visible');
+        es.close(); es = null; refreshButton();
+
+      } else if (data.type === 'close') {
+        if (es) { es.close(); es = null; refreshButton(); }
+      }
+    };
+
+    es.onerror = function() {
+      setHint('Connexion interrompue.', true);
+      if (es) { es.close(); es = null; }
+      refreshButton();
+    };
+  });
+})();
+</script>
+</body>
+</html>

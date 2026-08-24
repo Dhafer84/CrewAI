@@ -1,0 +1,81 @@
+<!-- Capturé le 23/08/2026 sur https://sres.ai/feed/
+     Réduit aux premiers items, et les champs de contenu sont VIDÉS :
+     RegWatch ne lit que titre, lien, date et catégories. Le reste du
+     balisage n'est pas retouché.
+     -->
+<rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns0="http://www.w3.org/2005/Atom" xmlns:ns1="http://purl.org/rss/1.0/modules/syndication/" xmlns:ns3="http://wellformedweb.org/CommentAPI/" xmlns:ns4="http://purl.org/rss/1.0/modules/slash/" version="2.0">
+
+<channel>
+	<title>SecuRESafe</title>
+	<ns0:link href="https://sres.ai/feed/" rel="self" type="application/rss+xml" />
+	<link>https://sres.ai/</link>
+	<description />
+	<lastBuildDate>Tue, 11 Aug 2026 22:16:58 +0000</lastBuildDate>
+	<language>en-US</language>
+	<ns1:updatePeriod>
+	hourly	</ns1:updatePeriod>
+	<ns1:updateFrequency>
+	1	</ns1:updateFrequency>
+	<generator>https://wordpress.org/?v=7.1</generator>
+
+<image>
+	<url>https://sres.ai/wp-content/uploads/2023/09/cropped-SRES_favicon1-150x150.png</url>
+	<title>SecuRESafe</title>
+	<link>https://sres.ai/</link>
+	<width>32</width>
+	<height>32</height>
+</image> 
+	<item>
+		<title>Safety Standards for Humanoid and General-Purpose Robots: A Practical Guide</title>
+		<link>https://sres.ai/robotics-and-physical-ai/safety-standards-for-humanoid-and-general-purpose-robots-a-practical-guide/</link>
+					<comments>https://sres.ai/robotics-and-physical-ai/safety-standards-for-humanoid-and-general-purpose-robots-a-practical-guide/#respond</comments>
+		
+		<dc:creator>SecuRESafe</dc:creator>
+		<pubDate>Tue, 11 Aug 2026 22:02:01 +0000</pubDate>
+				<category>Robotics &amp; Physical AI</category>
+		<guid isPermaLink="false">https://sres.ai/?p=21619</guid>
+
+					<description>[corps retiré de la fixture — RegWatch ne le lit jamais]</description>
+		
+					<ns3:commentRss>https://sres.ai/robotics-and-physical-ai/safety-standards-for-humanoid-and-general-purpose-robots-a-practical-guide/feed/</ns3:commentRss>
+			<ns4:comments>0</ns4:comments>
+		
+		
+			</item>
+		<item>
+		<title>ISO 26262 Challenges for ADS: Item Definition and HARA</title>
+		<link>https://sres.ai/functional-safety/iso-26262-challenges-for-ads-item-definition-and-hara/</link>
+					<comments>https://sres.ai/functional-safety/iso-26262-challenges-for-ads-item-definition-and-hara/#respond</comments>
+		
+		<dc:creator>SecuRESafe</dc:creator>
+		<pubDate>Fri, 07 Aug 2026 17:30:55 +0000</pubDate>
+				<category>Functional Safety</category>
+		<category>Autonomous Systems</category>
+		<guid isPermaLink="false">https://sres.ai/?p=21598</guid>
+
+					<description>[corps retiré de la fixture — RegWatch ne le lit jamais]</description>
+		
+					<ns3:commentRss>https://sres.ai/functional-safety/iso-26262-challenges-for-ads-item-definition-and-hara/feed/</ns3:commentRss>
+			<ns4:comments>0</ns4:comments>
+		
+		
+			</item>
+		<item>
+		<title>SRES SafeStack | August 2026</title>
+		<link>https://sres.ai/news/sres-safestack-august-2026/</link>
+					<comments>https://sres.ai/news/sres-safestack-august-2026/#respond</comments>
+		
+		<dc:creator>SecuRESafe</dc:creator>
+		<pubDate>Mon, 03 Aug 2026 19:16:51 +0000</pubDate>
+				<category>News</category>
+		<guid isPermaLink="false">https://sres.ai/?p=21582</guid>
+
+					<description>[corps retiré de la fixture — RegWatch ne le lit jamais]</description>
+		
+					<ns3:commentRss>https://sres.ai/news/sres-safestack-august-2026/feed/</ns3:commentRss>
+			<ns4:comments>0</ns4:comments>
+		
+		
+			</item>
+		</channel>
+</rss>
