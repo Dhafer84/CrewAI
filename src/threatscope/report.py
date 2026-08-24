@@ -9,55 +9,39 @@ Il dit aussi ce qui **manque** — traitements non tranchés, écrits absents. U
 classeur qui tait ses trous est pire qu'un classeur qui les liste.
 """
 
+from i18n import DEFAULT_LANG, t
+
 from io import BytesIO
 
 from xlsxsafe import harden
 
-from .analysis import PARAMETER_LABELS, TaraAnalysis
+from .analysis import TaraAnalysis
 from .rating import (
-    FEASIBILITY_ORDER,
-    IMPACT_CATEGORIES,
-    IMPACT_ORDER,
+    feasibility_order,
+    impact_categories,
+    impact_order,
     MAX_POTENTIAL,
-    PARAMETERS,
+    parameters,
     determine_risk,
     full_scales,
 )
-from .treatment import TREATMENT_ORDER, TREATMENTS
+from .treatment import TREATMENT_ORDER, treatments
 
-_DISCLAIMER = (
-    "Démonstration pédagogique. Le barème de potentiel d'attaque employé ici "
-    "est une calibration propre à cet outil : il ne reproduit ni l'ISO/SAE "
-    "21434 ni l'ISO 18045, documents sous licence. La norme laisse chaque "
-    "organisation définir sa méthode de détermination du risque — celle-ci est "
-    "donc une méthode, pas la méthode, et ne se substitue à aucun référentiel."
-)
-
-_LIMITS = [
-    ("La cotation d'impact et de faisabilité relève du jugement de l'ingénieur",
-     "L'outil calcule et trace, il ne décide pas à votre place"),
-    ("Le barème de potentiel d'attaque est une calibration propre",
-     "À confronter au barème de votre organisation avant tout usage réel"),
-    ("La matrice de risque est une méthode parmi d'autres",
-     "La norme laisse chaque organisation définir la sienne"),
-    ("Les scénarios de menace ne sont pas exhaustifs",
-     "Une TARA complète balaie systématiquement les actifs et leurs propriétés"),
-    ("Les chemins d'attaque sont décrits en texte, sans arbre d'attaque",
-     "L'analyse de chemins d'une TARA réelle va plus loin"),
-    ("La sévérité reprise d'une HARA est une proposition",
-     "L'exposition et la contrôlabilité, elles, ne traversent jamais le pont"),
-    ("Aucune donnée ne quitte votre navigateur",
-     "Rien n'est enregistré sur le serveur, et le brouillon local disparaît à la "
-     "fermeture de l'onglet — ce classeur est le seul artefact durable, pensez à "
-     "l'archiver"),
-]
-
-# Colonnes laissées vides pour le suivi projet : c'est à l'équipe de les
-# remplir, pas à l'outil de les inventer.
-_GOAL_FOLLOWUP = ["Responsable", "Échéance", "Statut", "Vérification", "Commentaire"]
+def _limits(lang: str = DEFAULT_LANG) -> list[tuple[str, str]]:
+    return [
+        (t(f"xl.tara.limit.{cle}", lang), t(f"xl.tara.limit.{cle}.detail", lang))
+        for cle in ("judgment", "calibration", "matrix", "threats", "paths",
+                    "bridge", "privacy")
+    ]
 
 
-def build_excel(analysis: TaraAnalysis) -> bytes:
+def _goal_followup(lang: str = DEFAULT_LANG) -> list[str]:
+    """Colonnes de suivi laissées vides : à l'équipe de les remplir."""
+    return [t(f"xl.tara.col.{cle}", lang)
+            for cle in ("owner", "due", "status", "check", "comment")]
+
+
+def build_excel(analysis: TaraAnalysis, lang: str = DEFAULT_LANG) -> bytes:
     """Construit le classeur TARA et le rend sous forme d'octets."""
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
@@ -86,65 +70,68 @@ def build_excel(analysis: TaraAnalysis) -> bytes:
 
     # --- Synthèse ---------------------------------------------------------
     summary = workbook.active
-    summary.title = "Synthèse"
-    summary.append(["Analyse de menaces et de risques (TARA)"])
+    summary.title = t("xl.tara.sheet.summary", lang)
+    summary.append([t("xl.tara.title", lang)])
     summary["A1"].font = title_font
     summary.append([])
-    summary.append(["Item étudié", analysis.item])
-    summary.append(["Date (UTC)", analysis.created_at.strftime("%Y-%m-%d %H:%M")])
-    summary.append(["Scénarios de dommage", len(analysis.damages)])
-    summary.append(["Chemins d'attaque cotés", len(rows)])
-    summary.append(["Risque le plus élevé", analysis.max_risk or "—"])
-    summary.append(["Objectifs de cybersécurité produits", len(goals)])
-    summary.append(["Repris d'une analyse HARA", analysis.from_hara])
+    summary.append([t("xl.tara.item", lang), analysis.item])
+    summary.append([t("xl.tara.date", lang), analysis.created_at.strftime("%Y-%m-%d %H:%M")])
+    summary.append([t("xl.tara.damages", lang), len(analysis.damages)])
+    summary.append([t("xl.tara.paths", lang), len(rows)])
+    summary.append([t("xl.tara.maxrisk", lang), analysis.max_risk or "—"])
+    summary.append([t("xl.tara.goals.count", lang), len(goals)])
+    summary.append([t("xl.tara.fromhara", lang), analysis.from_hara])
     summary.append([])
 
     # Ce qui manque passe AVANT la répartition : c'est l'information la plus
     # susceptible d'être ignorée, et la plus coûteuse à découvrir tard.
     if gaps:
-        summary.append([f"⚠ {len(gaps)} point(s) à compléter avant de clore l'analyse"])
+        summary.append([t("xl.tara.gaps", lang, n=len(gaps))])
         summary[summary.max_row][0].font = Font(bold=True)
         for ref, problem in gaps:
-            summary.append([f"Menace {ref}", problem])
+            summary.append([t("xl.tara.threat.ref", lang, ref=ref), problem])
     else:
-        summary.append(["Tous les risques à traiter sont tranchés et justifiés."])
+        summary.append([t("xl.tara.allsettled", lang)])
     summary.append([])
 
-    summary.append(["Répartition des valeurs de risque"])
+    summary.append([t("xl.tara.byrisk", lang)])
     summary[summary.max_row][0].font = Font(bold=True)
     for value, count in analysis.count_by_risk().items():
-        summary.append([f"Risque {value}", count])
+        summary.append([t("xl.tara.risk.value", lang, value=value), count])
     summary.append([])
-    summary.append([_DISCLAIMER])
+    summary.append([t("xl.tara.disclaimer", lang)])
     summary[summary.max_row][0].alignment = Alignment(wrap_text=True, vertical="top")
     autosize(summary, [38, 62])
 
     # --- Tableau TARA -----------------------------------------------------
-    table = workbook.create_sheet("Tableau TARA")
-    parameter_keys = list(PARAMETERS)
+    table = workbook.create_sheet(t("xl.tara.sheet.table", lang))
+    parameter_keys = list(parameters(lang))
+    bareme = parameters(lang)
     write_header(table, [
-        "Réf.", "Actif", "Scénario de dommage", "Traçabilité",
-        *IMPACT_CATEGORIES.values(), "Impact retenu",
-        "Scénario de menace", "Chemin d'attaque",
-        *[PARAMETER_LABELS[key] for key in parameter_keys],
-        "Potentiel", "Faisabilité", "Risque",
-        "Traitement", "Objectif / justification", "Complétude",
+        t("xl.tara.col.ref", lang), t("xl.tara.col.asset", lang),
+        t("xl.tara.col.damage", lang), t("xl.tara.col.traceability", lang),
+        *impact_categories(lang).values(), t("xl.tara.col.impact", lang),
+        t("xl.tara.col.threat", lang), t("xl.tara.col.path", lang),
+        *[bareme[key][0] for key in parameter_keys],
+        t("xl.tara.col.potential", lang), t("xl.tara.col.feasibility", lang),
+        t("xl.tara.col.risk", lang), t("xl.tara.col.treatment", lang),
+        t("xl.tara.col.written", lang), t("xl.tara.col.complete", lang),
     ])
 
     for row in rows:
         damage, threat = row.damage, row.threat
-        levels = [PARAMETERS[key][1][getattr(threat, key)][0] for key in parameter_keys]
+        levels = [bareme[key][1][getattr(threat, key)][0] for key in parameter_keys]
         table.append([
             row.ref, damage.asset, damage.description, damage.traceability,
-            IMPACT_ORDER[damage.safety], IMPACT_ORDER[damage.financial],
-            IMPACT_ORDER[damage.operational], IMPACT_ORDER[damage.privacy],
+            impact_order(lang)[damage.safety], impact_order(lang)[damage.financial],
+            impact_order(lang)[damage.operational], impact_order(lang)[damage.privacy],
             damage.impact_label,
             threat.description, threat.path,
             *levels,
             f"{threat.potential} / {MAX_POTENTIAL}", threat.feasibility_label, row.risk,
             threat.decision_label or "—",
             threat.written or "—",
-            "Complet" if row.complete else " · ".join(row.problems),
+            t("xl.tara.complete", lang) if row.complete else " · ".join(row.problems),
         ])
 
     for line in table.iter_rows(min_row=2):
@@ -154,16 +141,17 @@ def build_excel(analysis: TaraAnalysis) -> bytes:
                      18, 18, 18, 18, 18, 12, 14, 8, 20, 44, 32])
 
     # --- Objectifs de cybersécurité ---------------------------------------
-    sheet = workbook.create_sheet("Objectifs de cybersécurité")
-    write_header(sheet, ["Réf.", "Objectif de cybersécurité", "Issu de la menace",
-                         "Risque traité", "Actif", *_GOAL_FOLLOWUP])
+    sheet = workbook.create_sheet(t("xl.tara.sheet.goals", lang))
+    write_header(sheet, [t("xl.tara.col.ref", lang), t("xl.tara.col.goal", lang),
+                         t("xl.tara.col.fromthreat", lang),
+                         t("xl.tara.col.riskteated", lang),
+                         t("xl.tara.col.asset", lang), *_goal_followup(lang)])
     if goals:
         for index, row in enumerate(goals, start=1):
             sheet.append([f"OC-{index}", row.threat.goal, row.ref, row.risk,
                           row.damage.asset])
     else:
-        sheet.append(["—", "Aucun objectif produit : aucune décision de réduire un risque "
-                      "n'a été prise et rédigée."])
+        sheet.append(["—", t("xl.tara.nogoal", lang)])
     for line in sheet.iter_rows(min_row=2):
         for cell in line:
             cell.alignment = Alignment(vertical="top", wrap_text=True)
@@ -172,52 +160,54 @@ def build_excel(analysis: TaraAnalysis) -> bytes:
     # --- Barème appliqué --------------------------------------------------
     # Sans lui, le classeur ne serait pas relisible : impossible de savoir
     # comment un « risque 4 » a été obtenu.
-    scales = workbook.create_sheet("Barème appliqué")
-    scales.append(["Barème de potentiel d'attaque réellement appliqué"])
+    scales = workbook.create_sheet(t("xl.tara.sheet.scales", lang))
+    scales.append([t("xl.tara.scales.title", lang)])
     scales["A1"].font = title_font
     scales.append([])
-    scales.append([full_scales()["calibration"]])
+    scales.append([full_scales(lang)["calibration"]])
     scales[scales.max_row][0].alignment = Alignment(wrap_text=True, vertical="top")
     scales.append([])
 
-    write_header(scales, ["Paramètre", "Niveau", "Points"])
+    write_header(scales, [t("xl.tara.scales.param", lang), t("xl.tara.scales.level", lang),
+                          t("xl.tara.scales.points", lang)])
     for key in parameter_keys:
-        label, levels_map = PARAMETERS[key]
+        label, levels_map = bareme[key]
         for level, (level_label, points) in sorted(levels_map.items()):
             scales.append([label if level == 0 else "", level_label, points])
     scales.append([])
 
-    scales.append([f"Total possible : 0 à {MAX_POTENTIAL} points"])
+    scales.append([t("xl.tara.scales.total", lang, n=MAX_POTENTIAL)])
     scales[scales.max_row][0].font = Font(bold=True)
-    write_header(scales, ["Potentiel d'attaque", "Faisabilité"])
+    write_header(scales, [t("xl.tara.scales.potential", lang), t("xl.tara.col.feasibility", lang)])
     previous = 0
-    for threshold in full_scales()["feasibilityThresholds"]:
+    for threshold in full_scales(lang)["feasibilityThresholds"]:
         scales.append([f"{previous} à {threshold['upTo']}",
-                       FEASIBILITY_ORDER[threshold["level"]]])
+                       feasibility_order(lang)[threshold["level"]]])
         previous = threshold["upTo"] + 1
-    scales.append([f"{previous} et au-delà", FEASIBILITY_ORDER[0]])
+    scales.append([f"{previous} et au-delà", feasibility_order(lang)[0]])
     scales.append([])
 
-    scales.append(["Matrice impact × faisabilité → valeur de risque"])
+    scales.append([t("xl.tara.matrix", lang)])
     scales[scales.max_row][0].font = Font(bold=True)
-    write_header(scales, ["Impact \\ Faisabilité", *FEASIBILITY_ORDER])
-    for impact, impact_label in enumerate(IMPACT_ORDER):
+    write_header(scales, [t("xl.tara.matrix.corner", lang), *feasibility_order(lang)])
+    for impact, impact_label in enumerate(impact_order(lang)):
         scales.append([impact_label,
-                       *[determine_risk(impact, f) for f in range(len(FEASIBILITY_ORDER))]])
+                       *[determine_risk(impact, f) for f in range(len(feasibility_order(lang)))]])
     scales.append([])
 
-    scales.append(["Décisions de traitement et écrit exigé"])
+    scales.append([t("xl.tara.decisions", lang)])
     scales[scales.max_row][0].font = Font(bold=True)
-    write_header(scales, ["Décision", "Ce qu'elle impose d'écrire", "Portée"])
+    write_header(scales, [t("xl.tara.col.decision", lang), t("xl.tara.decision.requires", lang),
+                          t("xl.tara.decision.scope", lang)])
     for key in TREATMENT_ORDER:
-        option = TREATMENTS[key]
+        option = treatments(lang)[key]
         scales.append([option["label"], option["prompt"], option["hint"]])
     autosize(scales, [30, 34, 20, 20, 20])
 
     # --- Limites ----------------------------------------------------------
-    limits = workbook.create_sheet("Limites")
-    write_header(limits, ["Ce que cet outil ne fait pas", "Pourquoi c'est important"])
-    for row_values in _LIMITS:
+    limits = workbook.create_sheet(t("xl.tara.sheet.limits", lang))
+    write_header(limits, [t("xl.tara.limits.title", lang), t("xl.tara.limits.why", lang)])
+    for row_values in _limits(lang):
         limits.append(list(row_values))
     for line in limits.iter_rows(min_row=2):
         for cell in line:

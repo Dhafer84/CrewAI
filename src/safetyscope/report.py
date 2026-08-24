@@ -5,6 +5,8 @@ l'ingénieur, et laisse vides les colonnes qui relèvent de la suite de la
 démarche (objectif de sécurité, état sûr, responsable).
 """
 
+from i18n import DEFAULT_LANG, t
+
 from io import BytesIO
 
 from xlsxsafe import harden
@@ -12,35 +14,20 @@ from xlsxsafe import harden
 from .analysis import HaraAnalysis
 from .asil import (
     ASIL_ORDER,
-    CONTROLLABILITY_LABELS,
-    EXPOSURE_LABELS,
-    SEVERITY_LABELS,
+    controllability_labels,
+    exposure_labels,
+    severity_labels,
 )
 
-_DISCLAIMER = (
-    "Démonstration pédagogique. Cet outil implémente la logique de "
-    "détermination ASIL avec des formulations qui lui sont propres. Il ne "
-    "reproduit pas le texte de l'ISO 26262, document sous licence, et ne s'y "
-    "substitue en aucun cas."
-)
-
-_LIMITS = [
-    ("La cotation S/E/C relève du jugement de l'ingénieur",
-     "L'outil calcule, il ne décide pas à votre place"),
-    ("Les situations de conduite ne sont pas exhaustives",
-     "Une HARA complète balaie systématiquement les situations opérationnelles"),
-    ("Les décompositions supposent une indépendance suffisante",
-     "Cette indépendance doit être démontrée, pas postulée"),
-    ("Aucun objectif de sécurité n'est généré automatiquement",
-     "Sa formulation et l'état sûr associé restent à rédiger"),
-    ("Aucune donnée ne quitte votre navigateur",
-     "Rien n'est enregistré sur le serveur, et le brouillon local disparaît à la "
-     "fermeture de l'onglet — ce classeur est le seul artefact durable, pensez à "
-     "l'archiver"),
-]
+def _limits(lang: str = DEFAULT_LANG) -> list[tuple[str, str]]:
+    """Ce que l'outil ne fait pas — dans la langue du classeur."""
+    return [
+        (t(f"xl.hara.limit.{cle}", lang), t(f"xl.hara.limit.{cle}.detail", lang))
+        for cle in ("judgment", "situations", "decomp", "goal", "privacy")
+    ]
 
 
-def build_excel(analysis: HaraAnalysis) -> bytes:
+def build_excel(analysis: HaraAnalysis, lang: str = DEFAULT_LANG) -> bytes:
     """Construit le classeur HARA et le rend sous forme d'octets."""
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
@@ -65,11 +52,13 @@ def build_excel(analysis: HaraAnalysis) -> bytes:
 
     # --- Analyse HARA ---
     hara = workbook.active
-    hara.title = "Analyse HARA"
+    hara.title = t("xl.hara.sheet.analysis", lang)
     write_header(hara, [
-        "N°", "Dysfonctionnement", "Situation de conduite",
-        "S", "E", "C", "Cotation", "ASIL",
-        "Objectif de sécurité", "État sûr", "Responsable", "Commentaire",
+        t("xl.hara.col.number", lang), t("xl.hara.col.malfunction", lang),
+        t("xl.hara.col.situation", lang), "S", "E", "C",
+        t("xl.hara.col.rating", lang), t("xl.hara.col.asil", lang),
+        t("xl.hara.col.goal", lang), t("xl.hara.col.safestate", lang),
+        t("xl.hara.col.owner", lang), t("xl.hara.col.comment", lang),
     ])
     for number, event in enumerate(analysis.events, start=1):
         hara.append([
@@ -90,60 +79,61 @@ def build_excel(analysis: HaraAnalysis) -> bytes:
     autosize(hara, [10, 44, 40, 5, 5, 5, 12, 10, 34, 26, 18, 30])
 
     # --- Synthèse ---
-    summary = workbook.create_sheet("Synthèse")
-    summary["A1"] = "SafetyScope — analyse de risques HARA"
+    summary = workbook.create_sheet(t("xl.hara.sheet.summary", lang))
+    summary["A1"] = t("xl.hara.title", lang)
     summary["A1"].font = title_font
     summary.append([])
-    summary.append(["Item étudié", analysis.item])
-    summary.append(["Date (UTC)", analysis.created_at.strftime("%Y-%m-%d %H:%M")])
-    summary.append(["Événements redoutés", len(analysis.events)])
-    summary.append(["ASIL le plus élevé", analysis.max_asil])
+    summary.append([t("xl.hara.item", lang), analysis.item])
+    summary.append([t("xl.hara.date", lang), analysis.created_at.strftime("%Y-%m-%d %H:%M")])
+    summary.append([t("xl.hara.events", lang), len(analysis.events)])
+    summary.append([t("xl.hara.max", lang), analysis.max_asil])
     summary.append([])
 
     counts = analysis.count_by_asil()
-    write_header(summary, ["ASIL", "Nombre d'événements"])
+    write_header(summary, [t("xl.hara.col.asil", lang), t("xl.hara.count", lang)])
     for level in ASIL_ORDER:
         summary.append([level, counts[level]])
     summary.append([])
 
-    summary.append(["Décompositions admises pour " + analysis.max_asil])
+    summary.append([t("xl.hara.decomp", lang) + analysis.max_asil])
     summary[summary.max_row][0].font = Font(bold=True)
     if analysis.decompositions:
         for first, second in analysis.decompositions:
             summary.append([
                 f"{first}({analysis.max_asil}) + {second}({analysis.max_asil})"
             ])
-        summary.append([
-            "Sous réserve d'une indépendance suffisante entre les éléments."
-        ])
+        summary.append([t("xl.hara.decomp.note", lang)])
     else:
-        summary.append(["Aucune — un QM ne se décompose pas."])
+        summary.append([t("xl.hara.decomp.none", lang)])
     summary.append([])
-    summary.append([_DISCLAIMER])
+    summary.append([t("xl.hara.disclaimer", lang)])
     summary[summary.max_row][0].alignment = Alignment(wrap_text=True, vertical="top")
     autosize(summary, [30, 60])
 
     # --- Échelles ---
-    scales = workbook.create_sheet("Échelles")
-    scales["A1"] = "Échelles de cotation"
+    scales = workbook.create_sheet(t("xl.hara.sheet.scales", lang))
+    scales["A1"] = t("xl.hara.scales.title", lang)
     scales["A1"].font = title_font
     scales.append([])
-    for axis, labels in (
-        ("Sévérité (S)", SEVERITY_LABELS),
-        ("Exposition (E)", EXPOSURE_LABELS),
-        ("Contrôlabilité (C)", CONTROLLABILITY_LABELS),
+    # ⚠️ La lettre S/E/C est passée explicitement, et non déduite du
+    # libellé : l'ancienne version lisait `axis[-2]`, ce qui ne survivait à
+    # la traduction que par chance.
+    for lettre, axis, labels in (
+        ("S", t("xl.hara.col.severity", lang), severity_labels(lang)),
+        ("E", t("xl.hara.col.exposure", lang), exposure_labels(lang)),
+        ("C", t("xl.hara.col.controllability", lang), controllability_labels(lang)),
     ):
         scales.append([axis])
         scales[scales.max_row][0].font = Font(bold=True)
         for value, label in sorted(labels.items()):
-            scales.append([f"{axis[-2]}{value}", label])
+            scales.append([f"{lettre}{value}", label])
         scales.append([])
     autosize(scales, [20, 56])
 
     # --- Limites ---
-    limits = workbook.create_sheet("Limites")
-    write_header(limits, ["Limite", "Ce que cela implique"])
-    for row in _LIMITS:
+    limits = workbook.create_sheet(t("xl.hara.sheet.limits", lang))
+    write_header(limits, [t("xl.hara.limits.col", lang), t("xl.hara.limits.detail", lang)])
+    for row in _limits(lang):
         limits.append(list(row))
     for row in limits.iter_rows(min_row=2):
         for cell in row:

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ThreatScope — Analyse de menaces et de risques TARA</title>
+  <title data-i18n="tara.title">ThreatScope — Analyse de menaces et de risques TARA</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -12,20 +12,20 @@
   <nav>
     <a class="nav-back" href="/">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-      Tous les outils
+      <span data-i18n="nav.back">Tous les outils</span>
     </a>
     <a class="nav-link" href="https://github.com/Dhafer84/CrewAI" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-      GitHub
+      <span data-i18n="nav.github">GitHub</span>
     </a>
   </nav>
 
   <section class="hero">
     <div class="badge badge-purple">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>
-      Cotation instantanée — aucun temps d'attente
+      <span data-i18n="tara.badge">Cotation instantanée — aucun temps d'attente</span>
     </div>
-    <h1>Threat<em>Scope</em></h1>
+    <h1 data-i18n="tara.h1">Threat<em>Scope</em></h1>
     <p class="subtitle">Analyse de menaces et de risques cybersécurité, dans l'esprit de la démarche TARA de l'ISO/SAE 21434. La faisabilité d'une attaque se cote, elle ne se devine pas&nbsp;: le résultat est <strong>déterministe et immédiat</strong>, sans intelligence artificielle.</p>
   </section>
 
@@ -43,50 +43,50 @@
     </div>
     <p class="bridge-sub" id="bridge-sub"></p>
     <div class="bridge-rule" id="bridge-rule"></div>
-    <button class="bridge-clear" id="bridge-clear">Repartir d'une analyse vierge</button>
+    <button class="bridge-clear" id="bridge-clear"><span data-i18n="tara.reset">Repartir d'une analyse vierge</span></button>
   </div>
 
   <p class="form-hint bridge-absent" id="bridge-absent" hidden>
     Vous avez déjà mené une analyse HARA&nbsp;? <a href="/hara">SafetyScope</a> peut alimenter cette page&nbsp;: la sévérité de vos événements redoutés y devient l'impact «&nbsp;sécurité des personnes&nbsp;» de vos scénarios de dommage.
   </p>
 
-  <div class="section-label">Item étudié</div>
+  <div class="section-label" data-i18n="tara.item">Item étudié</div>
   <input type="text" id="item-name" class="kw-input item-field" maxlength="120"
          placeholder="ex : Passerelle télématique embarquée" autocomplete="off">
 
-  <div class="section-label" style="margin-top:40px">Scénarios de dommage</div>
+  <div class="section-label" style="margin-top:40px" data-i18n="tara.section.damages">Scénarios de dommage</div>
   <p class="form-hint" style="margin-bottom:16px">Chaque scénario de dommage porte la cotation d'<strong>impact</strong> — quatre catégories, toutes à renseigner. Les scénarios de menace qu'il contient portent la <strong>faisabilité de l'attaque</strong>. Le risque naît du croisement des deux.</p>
   <div id="damages"></div>
 
   <div class="events-actions">
     <button class="btn btn-ghost" id="btn-add-damage">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-      Ajouter un scénario de dommage
+      <span data-i18n="tara.add">Ajouter un scénario de dommage</span>
     </button>
     <span class="form-hint" id="count-hint"></span>
   </div>
 
   <details class="calib">
-    <summary>Comment ce barème est calibré</summary>
+    <summary data-i18n="tara.calibration.head">Comment ce barème est calibré</summary>
     <p id="calib-text"></p>
   </details>
 
   <div class="summary-head" style="margin-top:44px">
-    <div class="section-label" style="margin-bottom:0">Synthèse</div>
+    <div class="section-label" style="margin-bottom:0" data-i18n="tara.section.summary">Synthèse</div>
     <button class="btn-download" id="btn-export" disabled>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><path d="M12 15V3"/></svg>
-      Exporter en Excel
+      <span data-i18n="tara.export">Exporter en Excel</span>
     </button>
   </div>
   <p class="form-hint" id="export-hint"></p>
   <div class="tara-summary">
     <div class="summary-main">
-      <div class="summary-label">Risque le plus élevé</div>
+      <div class="summary-label" data-i18n="tara.max">Risque le plus élevé</div>
       <div class="risk-badge risk-none" id="max-risk">—</div>
-      <div class="summary-note" id="rated-note">Aucun chemin d'attaque coté</div>
+      <div class="summary-note" id="rated-note" data-i18n="tara.none">Aucun chemin d'attaque coté</div>
     </div>
     <div class="summary-side">
-      <div class="summary-label">Répartition des valeurs de risque</div>
+      <div class="summary-label" data-i18n="tara.spread">Répartition des valeurs de risque</div>
       <div class="risk-spread" id="spread"></div>
       <div class="treatment-note" id="treatment-note"></div>
     </div>
@@ -94,19 +94,21 @@
 
   <!-- Le bout de la chaîne. Une TARA ne produit pas un chiffre, elle produit
        des exigences — autant les montrer comme telles. -->
-  <div class="section-label" style="margin-top:44px">Objectifs de cybersécurité produits</div>
+  <div class="section-label" style="margin-top:44px" data-i18n="tara.goals">Objectifs de cybersécurité produits</div>
   <p class="form-hint" id="goals-hint" style="margin-bottom:16px"></p>
   <div id="goals-list"></div>
 
   <footer>
     <div class="footer-inner">
-      <span class="footer-text">ThreatScope · démonstration pédagogique, ne remplace pas la norme</span>
-      <a class="nav-link footer-text" href="/">Tous les outils</a>
+      <span class="footer-text" data-i18n="footer.tara">ThreatScope · démonstration pédagogique, ne remplace pas la norme</span>
+      <a class="nav-link footer-text" href="/" data-i18n="footer.tools">Tous les outils</a>
     </div>
   </footer>
 
 </div>
 
+<script src="/i18n/fr.js"></script>
+<script src="/static/i18n.js"></script>
 <script>
 (function() {
   // Les plafonds viennent du moteur (`analysis_limits()`), comme le barème :
@@ -139,7 +141,7 @@
       refreshSummary();
       watchForChanges();
     })
-    .catch(() => { countEl.textContent = 'Impossible de charger le barème.'; });
+    .catch(() => { countEl.textContent = T('tara.js.scales.ko'); });
 
   // --- Reprise d'une analyse HARA ----------------------------------------
   // Le transfert est entièrement côté navigateur : sessionStorage, même
@@ -196,17 +198,14 @@
     document.getElementById('bridge-banner').hidden = false;
 
     document.getElementById('bridge-title').textContent =
-      added + ' événement' + (added > 1 ? 's' : '') + ' redouté' + (added > 1 ? 's' : '')
-      + ' repris de votre analyse HARA'
-      + (handoff.item ? ' — « ' + handoff.item + ' »' : '');
+      T('tara.js.bridge.title', { n: added,
+          item: handoff.item ? T('tara.js.bridge.item', { item: handoff.item }) : '' });
 
     // Le plafond de la démonstration ne doit jamais escamoter du travail en
     // silence : si des événements sont restés à la porte, on le dit.
     document.getElementById('bridge-sub').textContent = added < total
-      ? 'Sur ' + total + ' événements cotés, ' + added + ' ont été repris — cette démonstration '
-        + 'est plafonnée à ' + MAX_DAMAGES + ' scénarios de dommage.'
-      : 'Chaque événement est devenu un scénario de dommage à retravailler. '
-        + 'Rien n\'est coté d\'office : les propositions sont à confirmer.';
+      ? T('tara.js.bridge.capped', { total: total, added: added, max: MAX_DAMAGES })
+      : T('tara.js.bridge.all');
 
     document.getElementById('bridge-rule').innerHTML = bridgeRuleHtml();
   }
@@ -217,12 +216,11 @@
     const why = scales.haraBridge.why;
     return (
       '<div class="bridge-line bridge-yes"><span class="bridge-mark">✓</span>'
-        + '<span><strong>La sévérité traverse</strong> — elle devient l\'impact « sécurité des '
-        + 'personnes ». ' + why.severity + '</span></div>'
+        + '<span>' + T('tara.js.rule.severity') + why.severity + '</span></div>'
       + '<div class="bridge-line bridge-no"><span class="bridge-mark">✕</span>'
-        + '<span><strong>L\'exposition ne traverse pas.</strong> ' + why.exposure + '</span></div>'
+        + '<span>' + T('tara.js.rule.exposure') + why.exposure + '</span></div>'
       + '<div class="bridge-line bridge-no"><span class="bridge-mark">✕</span>'
-        + '<span><strong>La contrôlabilité ne traverse pas.</strong> ' + why.controllability
+        + '<span>' + T('tara.js.rule.controllability') + why.controllability
         + '</span></div>'
       + '<div class="bridge-note">' + why.replacement + '</div>'
     );
@@ -389,11 +387,9 @@
   function showDraftBanner(restored, fromHara) {
     document.getElementById('bridge-banner').hidden = false;
     document.getElementById('bridge-title').textContent =
-      'Brouillon restauré — ' + restored + ' scénario' + (restored > 1 ? 's' : '')
-      + ' de dommage';
+      T('tara.js.draft', { n: restored });
     document.getElementById('bridge-sub').textContent =
-      'Votre saisie a été retrouvée telle que vous l\'aviez laissée. Elle n\'a jamais '
-      + 'quitté ce navigateur et disparaîtra à la fermeture de l\'onglet.';
+      T('tara.js.draft.sub');
     // La règle du pont n'est rappelée que si une carte en vient réellement.
     document.getElementById('bridge-rule').innerHTML = fromHara ? bridgeRuleHtml() : '';
   }
@@ -433,23 +429,23 @@
     card.innerHTML =
       '<div class="damage-head">' +
         '<span class="damage-num"></span>' +
-        '<button class="event-del" title="Supprimer" aria-label="Supprimer ce scénario de dommage">' +
+        '<button class="event-del" title="' + T('tara.js.delete') + '" aria-label="' + T('tara.js.del.damage') + '">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
         '</button>' +
       '</div>' +
-      '<input type="text" class="kw-input event-input damage-asset" maxlength="120" placeholder="Actif concerné — ex : calculateur de freinage">' +
-      '<input type="text" class="kw-input event-input damage-text" maxlength="180" placeholder="Conséquence redoutée — ex : freinage commandé sans action du conducteur">' +
+      '<input type="text" class="kw-input event-input damage-asset" maxlength="120" placeholder="' + T('tara.js.ph.asset') + '">' +
+      '<input type="text" class="kw-input event-input damage-text" maxlength="180" placeholder="' + T('tara.js.ph.damage') + '">' +
       '<div class="impact-grid">' + selects +
-        '<div class="rating-result"><span class="rating-label">Impact retenu</span>' +
+        '<div class="rating-result"><span class="rating-label">' + T('tara.js.impact.kept') + '</span>' +
         '<span class="impact-badge" data-role="impact">—</span></div>' +
       '</div>' +
       '<div class="threats">' +
-        '<div class="threats-label">Scénarios de menace</div>' +
+        '<div class="threats-label">' + T('tara.js.threats.label') + '</div>' +
         '<div class="threat-list"></div>' +
         '<div class="damage-actions">' +
           '<button class="btn btn-ghost btn-sm btn-add-threat">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>' +
-            'Ajouter une menace' +
+            T('tara.js.add.threat') +
           '</button>' +
           '<button class="btn btn-ghost btn-sm btn-suggest btn-suggest-threats">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>' +
@@ -485,8 +481,7 @@
   // ⚠️ Les menaces proposées arrivent NON COTÉES — ni faisabilité, ni
   // traitement. C'est le cœur du positionnement de l'outil.
   const DEFAULT_SUGGEST_HINT =
-    'L\'IA balaie les catégories de menace à partir de l\'actif décrit. '
-    + 'Elle ne cote jamais : la faisabilité et le traitement restent votre jugement.';
+    T('tara.js.suggest.hint');
 
   function isBlankThreat(card) {
     const vide = card.querySelector('.threat-text').value.trim() === ''
@@ -516,7 +511,7 @@
       const asset  = damageCard.querySelector('.damage-asset').value.trim();
       const damage = damageCard.querySelector('.damage-text').value.trim();
       if (asset.length < 3 && damage.length < 3) {
-        setHint('Décrivez d\'abord l\'actif ou la conséquence redoutée.', true);
+        setHint(T('tara.js.need.context'), true);
         damageCard.querySelector('.damage-asset').focus();
         return;
       }
@@ -535,7 +530,7 @@
           })
         });
         const data = await resp.json().catch(() => ({}));
-        if (!resp.ok) throw new Error(data.error || 'Requête refusée.');
+        if (!resp.ok) throw new Error(data.error || T('tara.js.refused'));
         token = data.token;
       } catch (err) {
         setHint(err.message, true);
@@ -550,12 +545,12 @@
         try { data = JSON.parse(evt.data); } catch { return; }
 
         if (data.type === 'start') {
-          setHint('Balayage des catégories de menace…');
+          setHint(T('tara.js.sweep'));
 
         } else if (data.type === 'step_done') {
           setHint(data.index === 0
-            ? 'Proposition établie, relecture en cours…'
-            : 'Relecture terminée.');
+            ? T('tara.js.review')
+            : T('tara.js.reviewed'));
 
         } else if (data.type === 'done') {
           const list = data.suggestions || [];
@@ -571,12 +566,12 @@
           refreshDamage(damageCard);
           refreshSummary();
           setHint(added === 0
-            ? 'Aucune proposition exploitable. Saisissez les menaces à la main.'
+            ? T('tara.js.nothing')
             : added + ' menace(s) ajoutée(s), non cotées — à vous d\'évaluer la faisabilité.');
           close();
 
         } else if (data.type === 'error') {
-          setHint(data.message || 'Erreur inconnue.', true);
+          setHint(data.message || T('tara.js.unknown'), true);
           close();
 
         } else if (data.type === 'close') {
@@ -599,7 +594,7 @@
       .map(function(part) { return (part || '').trim(); })
       .filter(function(part) { return part !== ''; });
     card.querySelector('.damage-text').value = parts.join(' — ');
-    markOrigin(card, 'Événement redouté ' + prefill.n, prefill.severity, prefill.asil);
+    markOrigin(card, T('tara.js.origin.label', { n: prefill.n }), prefill.severity, prefill.asil);
   }
 
   // Traçabilité et proposition de sévérité. Séparé du préremplissage pour que
@@ -612,18 +607,18 @@
 
     const origin = document.createElement('div');
     origin.className = 'damage-origin';
-    origin.textContent = 'Repris de l\'' + label.charAt(0).toLowerCase() + label.slice(1)
-      + (asil ? ' — coté ASIL ' + asil + ' en HARA' : '');
+    origin.textContent = T('tara.js.origin', {
+      label: label.charAt(0).toLowerCase() + label.slice(1),
+      asil: asil ? T('tara.js.origin.asil', { asil: asil }) : '' });
     card.querySelector('.damage-head').insertAdjacentElement('afterend', origin);
 
     const impact = scales.haraBridge.severityToImpact[severity];
     const proposal = document.createElement('div');
     proposal.className = 'impact-proposal' + (applied ? ' is-applied' : '');
     proposal.innerHTML =
-      '<span>Sévérité <strong>S' + severity + '</strong> en HARA → impact sécurité '
-      + 'des personnes proposé : <strong>' + scales.impactOrder[impact] + '</strong></span>'
-      + '<button class="btn-apply" type="button">'
-      + (applied ? 'Appliqué' : 'Appliquer') + '</button>';
+      '<span>' + T('tara.js.proposal', { severity: severity, impact: scales.impactOrder[impact] })
+      + '</span><button class="btn-apply" type="button">'
+      + (applied ? T('tara.js.applied') : T('tara.js.apply')) + '</button>';
     card.querySelector('.impact-grid').insertAdjacentElement('afterend', proposal);
 
     proposal.querySelector('.btn-apply').addEventListener('click', function() {
@@ -631,7 +626,7 @@
       safety.value = String(impact);
       safety.dispatchEvent(new Event('change', { bubbles: true }));
       proposal.classList.add('is-applied');
-      proposal.querySelector('.btn-apply').textContent = 'Appliqué';
+      proposal.querySelector('.btn-apply').textContent = T('tara.js.applied');
     });
   }
 
@@ -683,16 +678,16 @@
     card.innerHTML =
       '<div class="threat-head">' +
         '<span class="threat-num"></span>' +
-        '<button class="event-del" title="Supprimer" aria-label="Supprimer ce scénario de menace">' +
+        '<button class="event-del" title="' + T('tara.js.delete') + '" aria-label="' + T('tara.js.del.threat') + '">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
         '</button>' +
       '</div>' +
-      '<input type="text" class="kw-input threat-text" maxlength="180" placeholder="Menace — ex : élévation de privilèges via l\'interface de diagnostic">' +
-      '<input type="text" class="kw-input attack-path" maxlength="220" placeholder="Chemin d\'attaque — ex : accès au port OBD, puis contournement de l\'authentification UDS">' +
+      '<input type="text" class="kw-input threat-text" maxlength="180" placeholder="' + T('tara.js.ph.threat') + '">' +
+      '<input type="text" class="kw-input attack-path" maxlength="220" placeholder="' + T('tara.js.ph.path') + '">' +
       '<div class="feasibility-grid">' + selects + '</div>' +
       '<div class="threat-result">' +
-        '<span class="potential-note" data-role="potential">Faisabilité non cotée</span>' +
-        '<div class="rating-result"><span class="rating-label">Risque</span>' +
+        '<span class="potential-note" data-role="potential">' + T('tara.js.feas.none') + '</span>' +
+        '<div class="rating-result"><span class="rating-label">' + T('tara.js.risk') + '</span>' +
         '<span class="' + riskClass(null) + '" data-role="risk">—</span></div>' +
       '</div>' +
       // Le traitement n'apparaît qu'une fois le risque connu : décider avant
@@ -765,11 +760,12 @@
     const note = threatCard.querySelector('[data-role="potential"]');
 
     if (potential === null) {
-      note.textContent = 'Faisabilité non cotée';
+      note.textContent = T('tara.js.feas.none');
     } else {
-      note.textContent = potential + ' / ' + scales.maxPotential + ' pt · faisabilité '
-                       + scales.feasibilityOrder[feasibility].toLowerCase()
-                       + (impact === null ? ' · impact du dommage non coté' : '');
+      note.textContent = T('tara.js.feas', {
+        potential: potential, max: scales.maxPotential,
+        level: scales.feasibilityOrder[feasibility].toLowerCase(),
+        damage: impact === null ? T('tara.js.feas.nodamage') : '' });
     }
 
     const risk = threatRisk(damageCard, threatCard);
@@ -786,7 +782,7 @@
   // rien de tout cela n'est réécrit ici.
 
   function treatmentOptions() {
-    let html = '<option value="">— décision non prise</option>';
+    let html = '<option value="">' + T('tara.js.nodecision') + '</option>';
     scales.treatment.order.forEach(function(key) {
       html += '<option value="' + key + '">' + scales.treatment.options[key].label + '</option>';
     });
@@ -841,13 +837,12 @@
       input.classList.toggle('is-goal', t.option.requires === 'goal');
     } else {
       hint.textContent = t.needed
-        ? 'Un risque au-dessus de ' + scales.treatment.decisionThreshold
-          + ' doit être tranché explicitement — et l\'écrit qui va avec.'
-        : 'Un risque de ' + t.risk + ' peut être retenu sans autre forme de procès.';
+        ? T('tara.js.treat.needed', { threshold: scales.treatment.decisionThreshold })
+        : T('tara.js.treat.ok', { risk: t.risk });
       input.hidden = true;
     }
 
-    state.textContent = t.complete ? 'complet' : 'à compléter';
+    state.textContent = t.complete ? T('tara.js.complete') : T('tara.js.incomplete');
     state.className = 'treatment-state ' + (t.complete ? 'is-ok' : 'is-todo');
     block.classList.toggle('is-incomplete', !t.complete);
   }
@@ -872,9 +867,9 @@
   // suppression, les listes restent numérotées 1..N.
   function renumber() {
     Array.from(damages.children).forEach(function(card, index) {
-      card.querySelector('.damage-num').textContent = 'Scénario de dommage ' + (index + 1);
+      card.querySelector('.damage-num').textContent = T('tara.js.damage.num', { n: index + 1 });
       Array.from(card.querySelectorAll('.threat-card')).forEach(function(threat, position) {
-        threat.querySelector('.threat-num').textContent = 'Menace ' + (index + 1) + '.' + (position + 1);
+        threat.querySelector('.threat-num').textContent = T('tara.js.threat.num', { n: index + 1, p: position + 1 });
       });
     });
   }
@@ -892,8 +887,8 @@
     const n = damages.children.length;
     btnAdd.disabled = n >= MAX_DAMAGES;
     countEl.textContent = n >= MAX_DAMAGES
-      ? MAX_DAMAGES + ' scénarios de dommage maximum pour cette démonstration.'
-      : n + ' / ' + MAX_DAMAGES + ' scénarios de dommage';
+      ? T('tara.js.max', { n: MAX_DAMAGES })
+      : T('tara.js.count', { n: n, max: MAX_DAMAGES });
   }
 
   // --- Synthèse -----------------------------------------------------------
@@ -921,8 +916,8 @@
     badge.textContent = maxRisk === null ? '—' : maxRisk;
 
     document.getElementById('rated-note').textContent = rated === 0
-      ? 'Aucun chemin d\'attaque coté'
-      : rated + ' chemin' + (rated > 1 ? 's' : '') + ' d\'attaque coté' + (rated > 1 ? 's' : '');
+      ? T('tara.none')
+      : T('tara.js.rated', { n: rated });
 
     const spread = document.getElementById('spread');
     spread.innerHTML = '';
@@ -939,16 +934,14 @@
     const treatmentNote = document.getElementById('treatment-note');
     treatmentNote.className = 'treatment-note' + (incomplete ? ' is-todo' : '');
     treatmentNote.textContent = rated === 0
-      ? 'Cotez un impact et une faisabilité pour obtenir une valeur de risque.'
+      ? T('tara.js.needrating')
       : incomplete > 0
         ? incomplete + ' traitement' + (incomplete > 1 ? 's' : '') + ' à compléter sur '
           + toTreat + ' risque' + (toTreat > 1 ? 's' : '') + ' au-dessus de '
           + scales.treatment.decisionThreshold + '.'
         : toTreat === 0
-          ? 'Aucun risque n\'appelle de traitement.'
-          : toTreat === 1
-            ? 'Le risque à traiter est tranché et justifié.'
-            : 'Les ' + toTreat + ' risques à traiter sont tranchés et justifiés.';
+          ? T('tara.js.notreat')
+          : T('tara.js.treated', { n: toTreat });
 
     refreshGoals();
     refreshExport();
@@ -972,10 +965,8 @@
     }).join('');
 
     hint.textContent = goals.length === 0
-      ? 'Aucun pour l\'instant. Un objectif naît d\'une décision de réduire un risque — '
-        + 'c\'est la sortie utile de la démarche : une TARA produit des exigences, pas un chiffre.'
-      : goals.length + ' objectif' + (goals.length > 1 ? 's' : '')
-        + ' de cybersécurité, à verser aux exigences du projet.';
+      ? T('tara.js.nogoal')
+      : T('tara.js.goals', { n: goals.length });
   }
 
   // Le texte vient d'un champ de saisie : il ne s'injecte pas dans du HTML.
@@ -1047,7 +1038,7 @@
 
   btnExport.addEventListener('click', async function() {
     btnExport.disabled = true;
-    exportHint.textContent = 'Préparation du classeur…';
+    exportHint.textContent = T('tara.js.export.prep');
     exportHint.className = 'form-hint';
     try {
       const resp = await fetch('/tara/report', {
@@ -1059,8 +1050,8 @@
         })
       });
       const data = await resp.json().catch(() => ({}));
-      if (!resp.ok) throw new Error(data.error || 'Export refusé.');
-      exportHint.textContent = 'Classeur prêt — le téléchargement démarre.';
+      if (!resp.ok) throw new Error(data.error || T('tara.js.export.ko'));
+      exportHint.textContent = T('tara.js.export.ok');
       window.location.href = '/tara/report/' + encodeURIComponent(data.report_id) + '.xlsx';
     } catch (err) {
       exportHint.textContent = err.message;

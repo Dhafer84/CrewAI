@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SentinelScan — Veille de fuite d'information</title>
+  <title data-i18n="ss.title">SentinelScan — Veille de fuite d'information</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -12,64 +12,64 @@
   <nav>
     <a class="nav-back" href="/">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-      Tous les outils
+      <span data-i18n="nav.back">Tous les outils</span>
     </a>
     <a class="nav-link" href="https://github.com/Dhafer84/CrewAI" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-      GitHub
+      <span data-i18n="nav.github">GitHub</span>
     </a>
   </nav>
 
   <section class="hero">
     <div class="badge badge-blue">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      Démo live — OSINT passif
+      <span data-i18n="ss.badge">Démo live — OSINT passif</span>
     </div>
-    <h1>Sentinel<em>Scan</em></h1>
-    <p class="subtitle">Veille de fuite d'information sur les dépôts publics GitHub. Saisissez des termes distinctifs — nom d'entreprise, projet interne, domaine e-mail — l'outil identifie les expositions et les classe par criticité.</p>
+    <h1 data-i18n="ss.h1">Sentinel<em>Scan</em></h1>
+    <p class="subtitle" data-i18n="ss.subtitle">Veille de fuite d'information sur les dépôts publics GitHub. Saisissez des termes distinctifs — nom d'entreprise, projet interne, domaine e-mail — l'outil identifie les expositions et les classe par criticité.</p>
   </section>
 
   <!-- Avertissement d'usage — à accepter avant tout scan -->
   <div class="warn-box">
     <div class="warn-head">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
-      Conditions d'usage
+      <span data-i18n="ss.warn.head">Conditions d'usage</span>
     </div>
     <ul class="warn-list">
-      <li>Ne scannez qu'un <strong>périmètre dont vous avez la responsabilité</strong>. Identifier les expositions d'un tiers sans mandat vous engage.</li>
-      <li>Sources <strong>publiques exclusivement</strong> — rien n'est tenté sur un dépôt privé.</li>
-      <li>La valeur d'un secret n'est <strong>jamais lue, affichée ni stockée</strong>. Seules les métadonnées sont remontées.</li>
-      <li>Si un secret est exposé : <strong>révoquez-le</strong>. Ne le testez pas — c'est un accès non autorisé, même s'il appartient à votre employeur.</li>
+      <li data-i18n="ss.warn.1">Ne scannez qu'un <strong>périmètre dont vous avez la responsabilité</strong>. Identifier les expositions d'un tiers sans mandat vous engage.</li>
+      <li data-i18n="ss.warn.2">Sources <strong>publiques exclusivement</strong> — rien n'est tenté sur un dépôt privé.</li>
+      <li data-i18n="ss.warn.3">La valeur d'un secret n'est <strong>jamais lue, affichée ni stockée</strong>. Seules les métadonnées sont remontées.</li>
+      <li data-i18n="ss.warn.4">Si un secret est exposé : <strong>révoquez-le</strong>. Ne le testez pas — c'est un accès non autorisé, même s'il appartient à votre employeur.</li>
     </ul>
     <label class="warn-accept">
       <input type="checkbox" id="accept">
-      <span>J'ai compris et je scanne un périmètre dont j'ai la responsabilité.</span>
+      <span data-i18n="ss.warn.accept">J'ai compris et je scanne un périmètre dont j'ai la responsabilité.</span>
     </label>
   </div>
 
-  <div class="section-label">Termes de recherche</div>
+  <div class="section-label" data-i18n="ss.section.terms">Termes de recherche</div>
   <div class="scan-form">
     <input type="text" id="kw-input" class="kw-input" maxlength="120"
            placeholder="ex : mon-entreprise, projet-interne" autocomplete="off" spellcheck="false">
     <button class="btn btn-primary" id="btn-scan" disabled>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      Lancer le scan
+      <span data-i18n="ss.cta">Lancer le scan</span>
     </button>
   </div>
-  <p class="form-hint" id="form-hint">3 termes maximum, séparés par des virgules. Les termes trop génériques sont refusés — ils ne remontent que du bruit. Comptez environ 90 s.</p>
+  <p class="form-hint" id="form-hint" data-i18n="ss.hint">3 termes maximum, séparés par des virgules. Les termes trop génériques sont refusés — ils ne remontent que du bruit. Comptez environ 90 s.</p>
 
   <div class="scan-progress" id="scan-progress">
-    <div class="section-label">Progression</div>
+    <div class="section-label" data-i18n="ss.section.progress">Progression</div>
     <div class="progress-list" id="progress-list"></div>
   </div>
 
   <div class="scan-results" id="scan-results">
-    <div class="section-label">Résultat</div>
+    <div class="section-label" data-i18n="ss.section.result">Résultat</div>
     <div class="crit-grid" id="crit-grid"></div>
     <div class="report-box">
       <div class="report-header">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        <span class="report-title">Rapport de veille</span>
+        <span class="report-title" data-i18n="ss.report.title">Rapport de veille</span>
         <span class="report-date" id="scan-date"></span>
         <a class="btn-download" id="dl-excel" href="#" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><path d="M12 15V3"/></svg>
@@ -82,13 +82,15 @@
 
   <footer>
     <div class="footer-inner">
-      <span class="footer-text">OSINT passif · sources publiques · les termes ne transitent jamais par une URL</span>
-      <a class="nav-link footer-text" href="/">Tous les outils</a>
+      <span class="footer-text" data-i18n="footer.sentinelscan">OSINT passif · sources publiques · les termes ne transitent jamais par une URL</span>
+      <a class="nav-link footer-text" href="/" data-i18n="footer.tools">Tous les outils</a>
     </div>
   </footer>
 
 </div>
 
+<script src="/i18n/fr.js"></script>
+<script src="/static/i18n.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script>
 (function() {
@@ -155,7 +157,7 @@
       critGrid.appendChild(box);
     });
     document.getElementById('scan-date').textContent =
-      '· ' + findings + ' détection(s) en ' + duration + ' s';
+      T('ss.js.count', { n: findings, found: findings, duration: duration });
   }
 
   // Les mots-clés partent en POST et sont échangés contre un jeton opaque.
@@ -168,7 +170,7 @@
       body: JSON.stringify({ keywords: keywords() })
     });
     const data = await resp.json().catch(() => ({}));
-    if (!resp.ok) throw new Error(data.error || 'Requête refusée.');
+    if (!resp.ok) throw new Error(data.error || T('ss.js.refused'));
     return data.token;
   }
 
@@ -194,25 +196,25 @@
       try { data = JSON.parse(evt.data); } catch { return; }
 
       if (data.type === 'start') {
-        setHint('Scan en cours sur : ' + data.keywords.join(', '));
+        setHint(T('ss.js.running', { terms: data.keywords.join(', ') }));
 
       } else if (data.type === 'query_start') {
         const row = rowFor(data.index);
         row.querySelector('.q-label').textContent =
           data.keyword + ' — ' + data.detection;
-        setHint('Requête ' + (data.index + 1) + '/' + data.total + '…');
+        setHint(T('ss.js.query', { index: data.index + 1, total: data.total }));
 
       } else if (data.type === 'query_done') {
         const row = rowFor(data.index);
         row.querySelector('.dot').className = 'dot dot-done';
         row.querySelector('.q-result').textContent =
-          data.found > 0 ? data.found + ' détection(s)' : '—';
+          data.found > 0 ? T('ss.js.found', { n: data.found }) : '—';
         if (data.found > 0) row.classList.add('has-hits');
 
       } else if (data.type === 'query_error') {
         const row = rowFor(data.index);
         row.querySelector('.dot').className = 'dot dot-error';
-        row.querySelector('.q-result').textContent = 'échec';
+        row.querySelector('.q-result').textContent = T('ss.js.failed');
         row.classList.add('has-error');
 
       } else if (data.type === 'done') {
@@ -225,16 +227,15 @@
         }
         results.classList.add('visible');
         if (data.incomplete > 0) {
-          setHint('Couverture incomplète — GitHub a abandonné ' + data.incomplete
-                + ' requête(s). Ne concluez pas à une absence d\'exposition.', true);
+          setHint(T('ss.js.incomplete', { n: data.incomplete }), true);
         } else {
-          setHint('Scan terminé. Chaque constat reste à qualifier.');
+          setHint(T('ss.js.done'));
         }
         es.close(); es = null; refreshButton();
         results.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
       } else if (data.type === 'error') {
-        setHint(data.message || 'Erreur inconnue.', true);
+        setHint(data.message || T('ss.js.unknown'), true);
         progress.classList.remove('visible');
         es.close(); es = null; refreshButton();
 

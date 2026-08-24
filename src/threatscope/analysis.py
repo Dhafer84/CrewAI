@@ -15,17 +15,17 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from .rating import (
-    FEASIBILITY_ORDER,
-    IMPACT_CATEGORIES,
-    IMPACT_ORDER,
+    feasibility_order,
+    impact_categories,
+    impact_order,
     InvalidRating,
-    PARAMETERS,
+    parameters,
     attack_potential,
     determine_risk,
     feasibility_from_potential,
     overall_impact,
 )
-from .treatment import TREATMENTS, check
+from .treatment import TREATMENT_ORDER, check, requires_field, treatments
 
 MAX_DAMAGES = 6
 MAX_THREATS_PER_DAMAGE = 4
@@ -73,18 +73,18 @@ class ThreatScenario:
 
     @property
     def feasibility_label(self) -> str:
-        return FEASIBILITY_ORDER[self.feasibility]
+        return feasibility_order()[self.feasibility]
 
     @property
     def decision_label(self) -> str:
-        return TREATMENTS[self.decision]["label"] if self.decision else ""
+        return treatments()[self.decision]["label"] if self.decision else ""
 
     @property
     def written(self) -> str:
         """L'écrit que la décision imposait : objectif ou justification."""
         if not self.decision:
             return ""
-        return self.goal if TREATMENTS[self.decision]["requires"] == "goal" else self.rationale
+        return self.goal if requires_field(self.decision) == "goal" else self.rationale
 
 
 @dataclass(frozen=True)
@@ -113,14 +113,14 @@ class DamageScenario:
 
     @property
     def impact_label(self) -> str:
-        return IMPACT_ORDER[self.impact]
+        return impact_order()[self.impact]
 
     def category_labels(self) -> dict[str, str]:
         return {
-            IMPACT_CATEGORIES["safety"]: IMPACT_ORDER[self.safety],
-            IMPACT_CATEGORIES["financial"]: IMPACT_ORDER[self.financial],
-            IMPACT_CATEGORIES["operational"]: IMPACT_ORDER[self.operational],
-            IMPACT_CATEGORIES["privacy"]: IMPACT_ORDER[self.privacy],
+            impact_categories()["safety"]: impact_order()[self.safety],
+            impact_categories()["financial"]: impact_order()[self.financial],
+            impact_categories()["operational"]: impact_order()[self.operational],
+            impact_categories()["privacy"]: impact_order()[self.privacy],
         }
 
     @property
@@ -188,7 +188,7 @@ class TaraAnalysis:
         return [
             row for row in self.rows()
             if row.threat.decision
-            and TREATMENTS[row.threat.decision]["requires"] == "goal"
+            and requires_field(row.threat.decision) == "goal"
             and row.threat.goal.strip()
         ]
 
@@ -215,7 +215,7 @@ def _clean_text(value, limit: int, label: str) -> str:
 
 def _decision(value, label: str) -> str:
     value = _clean_text(value, 32, label)
-    if value and value not in TREATMENTS:
+    if value and value not in TREATMENT_ORDER:
         raise InvalidAnalysis(f"{label} : décision de traitement inconnue.")
     return value
 
@@ -320,4 +320,4 @@ def build_analysis(item, raw_damages) -> TaraAnalysis:
 
 
 # Réexporté pour que `report` n'ait pas à connaître `rating`.
-PARAMETER_LABELS = {key: label for key, (label, _levels) in PARAMETERS.items()}
+PARAMETER_LABELS = {key: label for key, (label, _levels) in parameters().items()}

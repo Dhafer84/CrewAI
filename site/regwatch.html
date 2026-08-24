@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RegWatch — Veille normative et réglementaire</title>
+  <title data-i18n="rw.title">RegWatch — Veille normative et réglementaire</title>
   <meta name="description" content="Veille de signaux publics autour des normes qualité et sécurité automobile : ASPICE, ISO 26262, ISO/SAE 21434, ISO/IEC 27001, ISO 9001. Titre, date et lien vers la source — jamais le contenu des normes.">
   <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -13,27 +13,27 @@
   <nav>
     <a class="nav-back" href="/">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-      Tous les outils
+      <span data-i18n="nav.back">Tous les outils</span>
     </a>
     <a class="nav-link" href="https://github.com/Dhafer84/CrewAI" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-      GitHub
+      <span data-i18n="nav.github">GitHub</span>
     </a>
   </nav>
 
   <section class="hero">
     <div class="badge badge-purple">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v2M12 19v2M5 12H3M21 12h-2M7.8 7.8 6.4 6.4M17.6 17.6l-1.4-1.4M7.8 16.2l-1.4 1.4M17.6 6.4l-1.4 1.4"/><circle cx="12" cy="12" r="4"/></svg>
-      Démo live — veille à la demande
+      <span data-i18n="rw.badge">Démo live — veille à la demande</span>
     </div>
-    <h1>Reg<em>Watch</em></h1>
-    <p class="subtitle">Cochez les référentiels qui vous concernent : l'outil interroge leurs sources publiques et remonte ce qui a bougé — révisions, stades de rédaction, publications, calendriers. Titre, date et lien vers la source d'origine.</p>
+    <h1 data-i18n="rw.h1">Reg<em>Watch</em></h1>
+    <p class="subtitle" data-i18n="rw.subtitle">Cochez les référentiels qui vous concernent : l'outil interroge leurs sources publiques et remonte ce qui a bougé — révisions, stades de rédaction, publications, calendriers. Titre, date et lien vers la source d'origine.</p>
   </section>
 
   <div class="warn-box">
     <div class="warn-head">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
-      Ce que fait cet outil, et ce qu'il ne fait pas
+      <span data-i18n="rw.scope">Ce que fait cet outil, et ce qu'il ne fait pas</span>
     </div>
     <ul class="warn-list">
       <li><strong>Le contenu des normes n'est jamais republié.</strong> Elles sont payantes et protégées. RegWatch ne remonte que le titre, la date et le lien — le corps des pages n'est même pas téléchargé.</li>
@@ -44,27 +44,27 @@
     </ul>
   </div>
 
-  <div class="section-label">Référentiels à surveiller</div>
+  <div class="section-label" data-i18n="rw.section.norms">Référentiels à surveiller</div>
   <div class="norm-grid" id="norm-grid"></div>
 
   <div class="hero-actions">
     <button class="btn btn-primary" id="btn-watch" disabled>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v2M12 19v2M5 12H3M21 12h-2"/><circle cx="12" cy="12" r="4"/></svg>
-      Lancer la veille
+      <span data-i18n="rw.cta">Lancer la veille</span>
     </button>
-    <button class="btn btn-ghost" id="btn-all">Tout cocher</button>
+    <button class="btn btn-ghost" id="btn-all" data-i18n="rw.checkall">Tout cocher</button>
   </div>
-  <p class="form-hint" id="form-hint">Sélectionnez au moins un référentiel. Comptez une dizaine de secondes.</p>
+  <p class="form-hint" id="form-hint" data-i18n="rw.hint">Sélectionnez au moins un référentiel. Comptez une dizaine de secondes.</p>
 
   <div class="scan-progress" id="watch-progress">
-    <div class="section-label">Sources interrogées</div>
+    <div class="section-label" data-i18n="rw.section.sources">Sources interrogées</div>
     <div class="progress-list" id="progress-list"></div>
   </div>
 
   <div class="scan-results" id="watch-results">
     <div id="coverage"></div>
 
-    <div class="section-label">Résultat</div>
+    <div class="section-label" data-i18n="rw.section.result">Résultat</div>
     <div class="stats" id="watch-stats"></div>
     <div class="filters" id="signal-mix"></div>
     <div class="filters" id="filters"></div>
@@ -72,7 +72,7 @@
     <div class="explain-bar" id="explain-bar" hidden>
       <button class="btn btn-ghost" id="btn-explain">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3a6 6 0 0 0-4 10.5V17h8v-3.5A6 6 0 0 0 12 3z"/><path d="M10 21h4"/></svg>
-        Pourquoi ça compte
+        <span data-i18n="rw.explain.cta">Pourquoi ça compte</span>
       </button>
       <a class="btn-download" id="dl-excel" href="#">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><path d="M12 15V3"/></svg>
@@ -85,21 +85,23 @@
   </div>
 
   <details class="sources-box" id="sources-box">
-    <summary>Sources interrogées, et ce que chacune vaut</summary>
+    <summary data-i18n="rw.sources.title">Sources interrogées, et ce que chacune vaut</summary>
     <div class="sources-inner" id="sources-inner"></div>
   </details>
 
-  <p class="disclaimer">Démonstration pédagogique. RegWatch ne remplace ni la lecture des normes, ni un abonnement à un service de veille réglementaire. Les libellés de signal sont déduits du titre seul : ils orientent, c'est le lien vers la source qui fait foi.</p>
+  <p class="disclaimer" data-i18n="rw.disclaimer">Démonstration pédagogique. RegWatch ne remplace ni la lecture des normes, ni un abonnement à un service de veille réglementaire. Les libellés de signal sont déduits du titre seul : ils orientent, c'est le lien vers la source qui fait foi.</p>
 
   <footer>
     <div class="footer-inner">
-      <span class="footer-text">Veille à la demande · sources publiques · le contenu des normes n'est jamais republié</span>
-      <a class="nav-link footer-text" href="/">Tous les outils</a>
+      <span class="footer-text" data-i18n="footer.regwatch">Veille à la demande · sources publiques · le contenu des normes n'est jamais republié</span>
+      <a class="nav-link footer-text" href="/" data-i18n="footer.tools">Tous les outils</a>
     </div>
   </footer>
 
 </div>
 
+<script src="/i18n/fr.js"></script>
+<script src="/static/i18n.js"></script>
 <script>
 (function() {
   const grid     = document.getElementById('norm-grid');
@@ -200,10 +202,9 @@
       });
 
       renderCatalog(data);
-      setHint('Sélectionnez au moins un référentiel. Fenêtre de '
-              + data.lookbackDays + ' jours, une dizaine de secondes.');
+      setHint(T('rw.js.hint', { n: data.lookbackDays }));
     })
-    .catch(() => setHint('Catalogue des sources indisponible.', true));
+    .catch(() => setHint(T('rw.js.catalogue.ko'), true));
 
   function renderCatalog(data) {
     const inner = document.getElementById('sources-inner');
@@ -274,20 +275,19 @@
       head.className = 'cover-head';
       head.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>';
       head.appendChild(document.createTextNode(
-        'Couverture incomplète — une absence de signal ne prouve rien'));
+        T('rw.js.cover.head')));
       box.appendChild(head);
 
       const ul = document.createElement('ul');
       ul.className = 'cover-list';
       data.unreachable.forEach(label => {
         const li = document.createElement('li');
-        li.textContent = label + ' : source injoignable.';
+        li.textContent = T('rw.js.unreachable', { label: label });
         ul.appendChild(li);
       });
       data.degraded.forEach(label => {
         const li = document.createElement('li');
-        li.textContent = label + ' : la page répond mais rien ne s\'en extrait '
-                       + '— la structure du site a probablement changé.';
+        li.textContent = T('rw.js.degraded', { label: label });
         ul.appendChild(li);
       });
       box.appendChild(ul);
@@ -299,8 +299,7 @@
       box.className = 'cover-box is-note';
       const head = document.createElement('div');
       head.className = 'cover-head';
-      head.textContent = data.undated.length + ' élément(s) pertinent(s) écarté(s), '
-                       + 'faute de date exploitable';
+      head.textContent = T('rw.js.undated', { n: data.undated.length });
       box.appendChild(head);
       const ul = document.createElement('ul');
       ul.className = 'cover-list';
@@ -318,10 +317,10 @@
     const stats = document.getElementById('watch-stats');
     stats.innerHTML = '';
     const cells = [
-      [data.items.length, 'signal(aux) retenu(s)'],
-      [data.sourcesRead + '/' + data.sourcesTotal, 'sources lues'],
-      [data.lookbackDays + ' j', 'fenêtre'],
-      [data.duration + ' s', 'durée']
+      [data.items.length, T('rw.js.stat.signals', { n: data.items.length })],
+      [data.sourcesRead + '/' + data.sourcesTotal, T('rw.js.stat.sources')],
+      [data.lookbackDays + ' j', T('rw.js.stat.window')],
+      [data.duration + ' s', T('rw.js.stat.duration')]
     ];
     cells.forEach(([value, label]) => {
       const cell = document.createElement('div');
@@ -416,10 +415,8 @@
         const empty = document.createElement('div');
         empty.className = 'norm-empty';
         empty.textContent = muettes.length
-          ? 'Aucun signal retenu, mais ' + muettes.length + ' source(s) de ce '
-            + 'référentiel n\'ont pas répondu : n\'en concluez rien.'
-          : 'Aucun signal sur les ' + data.lookbackDays + ' derniers jours. '
-            + 'Les sources ont répondu — c\'est une absence constatée, pas une panne.';
+          ? T('rw.js.none.mute', { n: muettes.length })
+          : T('rw.js.none.ok', { n: data.lookbackDays });
         block.appendChild(empty);
         sections.appendChild(block);
         return;
@@ -512,7 +509,7 @@
       })) })
     });
     const data = await resp.json().catch(() => ({}));
-    if (!resp.ok) throw new Error(data.error || 'Requête refusée.');
+    if (!resp.ok) throw new Error(data.error || T('rw.js.refused'));
     return data.token;
   }
 
@@ -526,7 +523,7 @@
   dlExcel.addEventListener('click', async function(evt) {
     evt.preventDefault();
     if (!lastResult) return;
-    setHint('Préparation du classeur…');
+    setHint(T('rw.js.export.prep'));
 
     try {
       const resp = await fetch('/regwatch/report', {
@@ -545,10 +542,10 @@
         })
       });
       const data = await resp.json().catch(() => ({}));
-      if (!resp.ok) throw new Error(data.error || 'Export refusé.');
+      if (!resp.ok) throw new Error(data.error || T('rw.js.export.ko'));
       window.location.href = '/regwatch/report/'
                              + encodeURIComponent(data.report_id) + '.xlsx';
-      setHint('Classeur prêt — il inclut la couverture et le détail des sources.');
+      setHint(T('rw.js.export.ok'));
     } catch (err) {
       setHint(err.message, true);
     }
@@ -557,7 +554,7 @@
   btnExplain.addEventListener('click', async function() {
     if (!lastResult || !lastResult.items.length) return;
     btnExplain.disabled = true;
-    setHint('Rédaction des explications…');
+    setHint(T('rw.js.explain.run'));
 
     let token;
     try {
@@ -580,8 +577,7 @@
         });
         renderSections(lastResult);
         const ecrites = (data.explanations || []).filter(Boolean).length;
-        setHint(ecrites + ' explication(s) ajoutée(s). Le tableau, lui, ne '
-                + 'doit rien au modèle.');
+        setHint(T('rw.js.explain.done', { n: ecrites }));
         explainStream.close(); explainStream = null;
 
       } else if (data.type === 'error') {
@@ -607,7 +603,7 @@
     const boxes = Array.from(grid.querySelectorAll('input'));
     const allOn = boxes.every(b => b.checked);
     boxes.forEach(b => { b.checked = !allOn; });
-    btnAll.textContent = allOn ? 'Tout cocher' : 'Tout décocher';
+    btnAll.textContent = allOn ? T('rw.checkall') : T('rw.js.uncheck');
     refreshButton();
   });
 
@@ -636,7 +632,7 @@
       try { data = JSON.parse(evt.data); } catch (e) { return; }
 
       if (data.type === 'start') {
-        setHint('Veille en cours sur ' + data.norms.length + ' référentiel(s)…');
+        setHint(T('rw.js.running', { n: data.norms.length }));
 
       } else if (data.type === 'source_start') {
         const row = rowFor(data.index);
@@ -670,15 +666,14 @@
         btnExplain.disabled = false;
         results.classList.add('visible');
         setHint(data.unreachable.length || data.degraded.length
-          ? 'Veille terminée, mais la couverture est incomplète — lisez '
-            + 'l\'avertissement avant de conclure.'
-          : 'Veille terminée sur les ' + data.lookbackDays + ' derniers jours.',
+          ? T('rw.js.done.partial')
+          : T('rw.js.done', { n: data.lookbackDays }),
           data.unreachable.length > 0 || data.degraded.length > 0);
         es.close(); es = null; refreshButton();
         results.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
       } else if (data.type === 'error') {
-        setHint(data.message || 'Erreur inconnue.', true);
+        setHint(data.message || T('rw.js.unknown'), true);
         progress.classList.remove('visible');
         es.close(); es = null; refreshButton();
 

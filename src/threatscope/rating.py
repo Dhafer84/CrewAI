@@ -22,79 +22,65 @@ Deux étapes enchaînées :
   d'ici est donc *une* matrice, pas *la* matrice.
 """
 
+from i18n import DEFAULT_LANG, t
+
 from dataclasses import dataclass
 
 # --------------------------------------------------------------------------
 # Potentiel d'attaque
 # --------------------------------------------------------------------------
 
-_CALIBRATION = """\
-Le temps et l'équipement portent les écarts les plus larges, délibérément :
-ce sont les deux facteurs qui discriminent réellement une attaque sur un
-véhicule. Une attaque menée avec un dongle radio à 30 € en quelques jours et
-une attaque exigeant un banc de laboratoire et six mois de travail ne se
-ressemblent en rien, et un barème qui les rapproche ne sert à rien.
-
-La fenêtre d'opportunité suit de près : sur un véhicule, pouvoir agir sur une
-voiture en stationnement, en roulage ou immobilisée à l'atelier change tout.
-
-L'expertise et la connaissance de l'item comptent, mais se révèlent plus
-binaires en pratique — on a l'information, ou on ne l'a pas.\
-"""
-
-# Chaque paramètre : niveau → (libellé, points). Les points croissent avec la
-# DIFFICULTÉ de l'attaque : beaucoup de points = attaque peu faisable.
-ELAPSED_TIME = {
-    0: ("Moins d'une journée", 0),
-    1: ("Moins d'une semaine", 2),
-    2: ("Moins d'un mois", 5),
-    3: ("Moins de six mois", 9),
-    4: ("Plus de six mois", 14),
-}
-
-EXPERTISE = {
-    0: ("Profane", 0),
-    1: ("Compétent", 2),
-    2: ("Expert", 5),
-    3: ("Plusieurs experts de domaines différents", 8),
-}
-
-ITEM_KNOWLEDGE = {
-    0: ("Publique", 0),
-    1: ("Restreinte", 2),
-    2: ("Confidentielle", 5),
-    3: ("Strictement confidentielle", 8),
-}
-
-WINDOW = {
-    0: ("Illimitée", 0),
-    1: ("Facile à obtenir", 2),
-    2: ("Modérée", 5),
-    3: ("Difficile à obtenir", 9),
-}
-
-EQUIPMENT = {
-    0: ("Standard", 0),
-    1: ("Spécialisé", 3),
-    2: ("Sur mesure", 7),
-    3: ("Plusieurs équipements sur mesure", 11),
+# ⚠️ **Les points sont le barème ; les libellés sont de la présentation.**
+# Séparer les deux est ce qui permet de traduire sans toucher à la
+# calibration — et de vérifier que la traduction ne l'a pas touchée.
+# Les points croissent avec la DIFFICULTÉ : beaucoup de points = attaque peu
+# faisable.
+_POINTS: dict[str, tuple[int, ...]] = {
+    "time": (0, 2, 5, 9, 14),
+    "expertise": (0, 2, 5, 8),
+    "knowledge": (0, 2, 5, 8),
+    "window": (0, 2, 5, 9),
+    "equipment": (0, 3, 7, 11),
 }
 
 # Ordre d'appel de attack_potential(), et ordre d'affichage dans l'interface.
-PARAMETERS = {
-    "time": ("Temps nécessaire", ELAPSED_TIME),
-    "expertise": ("Expertise requise", EXPERTISE),
-    "knowledge": ("Connaissance de l'item", ITEM_KNOWLEDGE),
-    "window": ("Fenêtre d'opportunité", WINDOW),
-    "equipment": ("Équipement", EQUIPMENT),
-}
+PARAMETER_ORDER = ("time", "expertise", "knowledge", "window", "equipment")
 
-MAX_POTENTIAL = sum(max(p for _, p in levels.values()) for _, levels in PARAMETERS.values())
 
-# Du moins au plus faisable — un attaquant progresse de gauche à droite.
-FEASIBILITY_ORDER = ["Très faible", "Faible", "Moyenne", "Élevée"]
+def parameter_levels(key: str, lang: str = DEFAULT_LANG) -> dict[int, tuple[str, int]]:
+    """Niveaux d'un paramètre : niveau → (libellé, points)."""
+    return {
+        niveau: (t(f"tara.{key}.{niveau}", lang), points)
+        for niveau, points in enumerate(_POINTS[key])
+    }
 
-FEASIBILITY_LABELS = {index: name for index, name in enumerate(FEASIBILITY_ORDER)}
+
+def parameters(lang: str = DEFAULT_LANG) -> dict[str, tuple[str, dict]]:
+    """Les cinq paramètres : clé → (libellé, niveaux)."""
+    return {
+        key: (t(f"tara.param.{key}", lang), parameter_levels(key, lang))
+        for key in PARAMETER_ORDER
+    }
+
+
+def feasibility_order(lang: str = DEFAULT_LANG) -> list[str]:
+    """Du moins au plus faisable — un attaquant progresse de gauche à droite."""
+    return [t(f"tara.feasibility.{n}", lang) for n in range(4)]
+
+
+def impact_order(lang: str = DEFAULT_LANG) -> list[str]:
+    return [t(f"tara.impact.{n}", lang) for n in range(4)]
+
+
+def impact_categories(lang: str = DEFAULT_LANG) -> dict[str, str]:
+    """Les quatre catégories d'impact cotées séparément par l'ingénieur."""
+    return {cle: t(f"tara.category.{cle}", lang)
+            for cle in ("safety", "financial", "operational", "privacy")}
+
+
+MAX_POTENTIAL = sum(max(points) for points in _POINTS.values())
+
+FEASIBILITY_LEVELS = 4
 
 # Seuils de points, bornes hautes incluses. Au-delà du dernier : très faible.
 # Chaque palier représente un saut d'investissement de l'attaquant, ancré sur
@@ -109,17 +95,7 @@ _FEASIBILITY_THRESHOLDS = [
 # Impact et valeur de risque
 # --------------------------------------------------------------------------
 
-IMPACT_ORDER = ["Négligeable", "Modéré", "Majeur", "Sévère"]
-
-IMPACT_LABELS = {index: name for index, name in enumerate(IMPACT_ORDER)}
-
-# Les quatre catégories d'impact cotées séparément par l'ingénieur.
-IMPACT_CATEGORIES = {
-    "safety": "Sécurité des personnes",
-    "financial": "Financier",
-    "operational": "Opérationnel",
-    "privacy": "Vie privée",
-}
+IMPACT_LEVELS = 4
 
 # Matrice impact × faisabilité → valeur de risque, de 1 à 5.
 # Écrite à plat pour rester lisible : _RISK[impact][faisabilité].
@@ -149,11 +125,11 @@ class RiskResult:
 
     @property
     def impact_label(self) -> str:
-        return IMPACT_LABELS[self.impact]
+        return impact_order()[self.impact]
 
     @property
     def feasibility_label(self) -> str:
-        return FEASIBILITY_LABELS[self.feasibility]
+        return feasibility_order()[self.feasibility]
 
     @property
     def needs_treatment(self) -> bool:
@@ -195,11 +171,16 @@ def attack_potential(
     Raises:
         InvalidRating: si une cotation sort de ses bornes.
     """
+    # ⚠️ La cotation s'appuie sur `_POINTS` seul : le barème ne doit dépendre
+    # d'aucun libellé, donc d'aucune langue. Le message d'erreur, lui, nomme
+    # le paramètre dans la langue par défaut — il s'adresse au développeur,
+    # pas au visiteur (l'interface valide avant d'appeler).
     values = (time, expertise, knowledge, window, equipment)
     total = 0
-    for value, (name, levels) in zip(values, PARAMETERS.values()):
-        _check(value, max(levels), name)
-        total += levels[value][1]
+    for value, key in zip(values, PARAMETER_ORDER):
+        points = _POINTS[key]
+        _check(value, len(points) - 1, t(f"tara.param.{key}"))
+        total += points[value]
     return total
 
 
@@ -231,7 +212,7 @@ def overall_impact(safety: int, financial: int, operational: int, privacy: int) 
         (operational, "L'impact opérationnel"),
         (privacy, "L'impact vie privée"),
     ):
-        _check(value, len(IMPACT_ORDER) - 1, name)
+        _check(value, IMPACT_LEVELS - 1, name)
     return max(safety, financial, operational, privacy)
 
 
@@ -248,8 +229,8 @@ def determine_risk(impact: int, feasibility: int) -> int:
     Raises:
         InvalidRating: si une cotation sort de ses bornes.
     """
-    _check(impact, len(IMPACT_ORDER) - 1, "L'impact")
-    _check(feasibility, len(FEASIBILITY_ORDER) - 1, "La faisabilité")
+    _check(impact, IMPACT_LEVELS - 1, "L'impact")
+    _check(feasibility, FEASIBILITY_LEVELS - 1, "La faisabilité")
     return _RISK[impact][feasibility]
 
 
@@ -272,7 +253,7 @@ def rate(
     )
 
 
-def full_scales() -> dict:
+def full_scales(lang: str = DEFAULT_LANG) -> dict:
     """Barème et matrice complets, prêts à sérialiser.
 
     Sert de **source de vérité unique** : la page web les charge une fois et
@@ -283,8 +264,8 @@ def full_scales() -> dict:
     Les clés de `risk` sont de la forme "I{impact}F{faisabilité}".
     """
     risk = {}
-    for impact in range(len(IMPACT_ORDER)):
-        for feasibility in range(len(FEASIBILITY_ORDER)):
+    for impact in range(IMPACT_LEVELS):
+        for feasibility in range(FEASIBILITY_LEVELS):
             risk[f"I{impact}F{feasibility}"] = determine_risk(impact, feasibility)
 
     return {
@@ -296,7 +277,7 @@ def full_scales() -> dict:
                     for level, (label, points) in sorted(levels.items())
                 ],
             }
-            for key, (name, levels) in PARAMETERS.items()
+            for key, (name, levels) in parameters(lang).items()
         },
         "maxPotential": MAX_POTENTIAL,
         # Table complète potentiel → faisabilité, un cran par point. L'interface
@@ -310,10 +291,10 @@ def full_scales() -> dict:
         "feasibilityThresholds": [
             {"upTo": ceiling, "level": level} for ceiling, level in _FEASIBILITY_THRESHOLDS
         ],
-        "feasibilityOrder": FEASIBILITY_ORDER,
-        "impactOrder": IMPACT_ORDER,
-        "impactCategories": IMPACT_CATEGORIES,
+        "feasibilityOrder": feasibility_order(lang),
+        "impactOrder": impact_order(lang),
+        "impactCategories": impact_categories(lang),
         "risk": risk,
         "riskRange": list(RISK_RANGE),
-        "calibration": _CALIBRATION,
+        "calibration": t("tara.calibration", lang),
     }

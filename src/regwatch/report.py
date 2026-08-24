@@ -15,6 +15,8 @@ date, lien. Ce classeur ne doit jamais devenir un moyen détourné de republier
 ce que RegWatch s'interdit d'afficher.
 """
 
+from i18n import DEFAULT_LANG, t
+
 from io import BytesIO
 
 from xlsxsafe import harden
@@ -23,48 +25,30 @@ from .classify import SIGNAL_ORDER
 from .config import LOOKBACK_DAYS
 from .core import WatchResult
 from .norms import NORMS
-from .sources import SOURCES, TIERS
+from .sources import SOURCES, tiers
 
-_DISCLAIMER = (
-    "Démonstration pédagogique. RegWatch ne republie jamais le contenu des "
-    "normes — elles sont payantes et protégées : seuls le titre, la date et le "
-    "lien vers la source sont remontés, et le corps des pages n'est même pas "
-    "téléchargé. Le niveau de signal est déduit du titre seul : il oriente, "
-    "c'est le lien qui fait foi. Cet outil ne remplace ni la lecture des "
-    "normes, ni un service de veille réglementaire."
-)
+def _disclaimer(lang: str = DEFAULT_LANG) -> str:
+    return t("xl.rw.disclaimer", lang)
 
-_LIMITS = [
-    ("La fenêtre est fixe, elle ne suit pas vos visites",
-     f"Ce classeur couvre les {LOOKBACK_DAYS} derniers jours au moment de "
-     "l'export, pas « depuis la dernière fois » : l'outil ne garde aucune "
-     "trace de vos passages"),
-    ("Le niveau de signal est déduit du titre seul",
-     "Faute de corps de page, un article « comment mettre à jour votre SMSI » "
-     "peut ressortir en « Publication ». L'étiquette oriente, le lien est le "
-     "livrable"),
-    ("Toutes les sources ne se valent pas",
-     "Le palier est porté par chaque ligne et détaillé dans l'onglet Sources. "
-     "Un blog spécialisé n'est pas un organisme de normalisation"),
-    ("Une absence de signal n'est pas une preuve",
-     "Vérifiez l'onglet Couverture avant de conclure que rien n'a bougé"),
-    ("La colonne « Pourquoi ça compte » est écrite par un modèle",
-     "À partir du seul intitulé, sans avoir lu le document. Elle n'a joué "
-     "aucun rôle dans la sélection des lignes de ce classeur"),
-    ("Les sources ne couvrent pas tout ce qui existe",
-     "ISO.org et unece.org refusent l'accès aux programmes : certaines normes "
-     "n'ont donc aucune source officielle atteignable"),
-    ("Ce classeur est le seul artefact durable",
-     "Rien n'est conservé sur le serveur après l'export — pensez à l'archiver"),
-]
+
+def _limits(lang: str = DEFAULT_LANG) -> list[tuple[str, str]]:
+    """Ce que l'outil ne fait pas — dit dans la langue du classeur."""
+    return [
+        (t(f"xl.rw.limit.{cle}", lang),
+         t(f"xl.rw.limit.{cle}.detail", lang, n=LOOKBACK_DAYS)
+         if cle == "window" else t(f"xl.rw.limit.{cle}.detail", lang))
+        for cle in ("window", "signal", "tiers", "absence", "ai", "coverage", "artifact")
+    ]
+
 
 # Colonnes laissées vides : c'est au veilleur de qualifier, pas à l'outil de
 # décider. Même parti pris que l'onglet Détections de SentinelScan.
-_FOLLOWUP = ["À lire ?", "Impact pour nous", "Action décidée", "Responsable",
-             "Échéance", "Commentaire"]
+def _followup(lang: str = DEFAULT_LANG) -> list[str]:
+    return [t(f"xl.rw.col.{cle}", lang)
+            for cle in ("read", "impact", "action", "owner", "due", "comment")]
 
 
-def build_excel(result: WatchResult) -> bytes:
+def build_excel(result: WatchResult, lang: str = DEFAULT_LANG) -> bytes:
     """Construit le classeur de veille et le rend sous forme d'octets."""
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
@@ -94,17 +78,18 @@ def build_excel(result: WatchResult) -> bytes:
 
     # --- Synthèse ---------------------------------------------------------
     summary = workbook.active
-    summary.title = "Synthèse"
-    summary.append(["Veille de signaux publics autour des normes"])
+    summary.title = t("xl.rw.sheet.summary", lang)
+    summary.append([t("xl.rw.title", lang)])
     summary["A1"].font = title_font
     summary.append([])
-    summary.append(["Date de la veille (UTC)",
+    summary.append([t("xl.rw.date", lang),
                     result.started_at.strftime("%Y-%m-%d %H:%M")])
-    summary.append(["Fenêtre couverte", f"{result.lookback_days} jours"])
-    summary.append(["Référentiels surveillés", ", ".join(surveillees) or "—"])
-    summary.append(["Sources interrogées",
+    summary.append([t("xl.rw.window", lang),
+                    t("xl.rw.days", lang, n=result.lookback_days)])
+    summary.append([t("xl.rw.norms", lang), ", ".join(surveillees) or "—"])
+    summary.append([t("xl.rw.sources", lang),
                     f"{result.sources_read} / {result.sources_total}"])
-    summary.append(["Signaux retenus", len(result.items)])
+    summary.append([t("xl.rw.kept", lang), len(result.items)])
     summary.append([])
 
     # ⚠️ Ce qui n'a pas pu être vu passe AVANT toute répartition. C'est
@@ -112,48 +97,49 @@ def build_excel(result: WatchResult) -> bytes:
     # tard — même discipline que l'avertissement de couverture de
     # SentinelScan et que les manques en tête de la Synthèse TARA.
     if result.coverage_is_incomplete:
-        summary.append([
-            f"⚠ COUVERTURE INCOMPLÈTE — {len(result.unreachable)} source(s) "
-            f"injoignable(s), {len(result.degraded)} dégradée(s). "
-            "Une absence de signal ne prouve rien."])
+        summary.append([t("xl.rw.coverage.warning", lang,
+                          unreachable=len(result.unreachable),
+                          degraded=len(result.degraded))])
         summary[summary.max_row][0].font = warn_font
         for label in result.unreachable:
-            summary.append(["Injoignable", label])
+            summary.append([t("xl.rw.unreachable", lang), label])
         for label in result.degraded:
-            summary.append(["Structure non reconnue", label])
+            summary.append([t("xl.rw.unrecognised", lang), label])
     else:
-        summary.append(["Toutes les sources interrogées ont répondu."])
+        summary.append([t("xl.rw.all.answered", lang)])
     summary.append([])
 
     if result.undated:
-        summary.append([f"⚠ {len(result.undated)} élément(s) pertinent(s) écarté(s), "
-                        "faute de date exploitable"])
+        summary.append([t("xl.rw.undated.warning", lang, n=len(result.undated))])
         summary[summary.max_row][0].font = warn_font
         for ligne in result.undated:
-            summary.append(["Sans date", ligne])
+            summary.append([t("xl.rw.undated", lang), ligne])
         summary.append([])
 
-    summary.append(["Répartition par niveau de signal"])
+    summary.append([t("xl.rw.by.signal", lang)])
     summary[summary.max_row][0].font = Font(bold=True)
     for signal in SIGNAL_ORDER:
         summary.append([signal, par_signal.get(signal, 0)])
     summary.append([])
 
-    summary.append(["Répartition par référentiel"])
+    summary.append([t("xl.rw.by.norm", lang)])
     summary[summary.max_row][0].font = Font(bold=True)
     for key in result.norms:
         summary.append([NORMS[key].label if key in NORMS else key,
                         par_norme.get(key, 0)])
     summary.append([])
-    summary.append([_DISCLAIMER])
+    summary.append([_disclaimer(lang)])
     summary[summary.max_row][0].alignment = Alignment(wrap_text=True, vertical="top")
     autosize(summary, [34, 74])
 
     # --- Signaux ----------------------------------------------------------
-    signals = workbook.create_sheet("Signaux")
+    signals = workbook.create_sheet(t("xl.rw.sheet.signals", lang))
     write_header(signals, [
-        "Référentiel", "Date", "Niveau de signal", "Intitulé",
-        "Source", "Palier", "Lien", "Pourquoi ça compte (IA)", *_FOLLOWUP,
+        t("xl.rw.col.norm", lang), t("xl.rw.col.date", lang),
+        t("xl.rw.col.signal", lang), t("xl.rw.col.title", lang),
+        t("xl.rw.col.source", lang), t("xl.rw.col.tier", lang),
+        t("xl.rw.col.link", lang), t("xl.rw.col.why", lang),
+        *_followup(lang),
     ])
     for item in result.items:
         signals.append([
@@ -168,71 +154,74 @@ def build_excel(result: WatchResult) -> bytes:
         ])
     signals.freeze_panes = "A2"
     autosize(signals, [22, 12, 22, 62, 30, 14, 52, 52,
-                       *[16] * len(_FOLLOWUP)])
+                       *[16] * len(_followup())])
 
     # --- Couverture -------------------------------------------------------
-    coverage = workbook.create_sheet("Couverture")
-    coverage.append(["Ce que la veille a pu voir, et ce qu'elle n'a pas pu voir"])
+    coverage = workbook.create_sheet(t("xl.rw.sheet.coverage", lang))
+    coverage.append([t("xl.rw.coverage.title", lang)])
     coverage["A1"].font = title_font
     coverage.append([])
-    write_header(coverage, ["Source", "État", "Détail"])
+    write_header(coverage, [t("xl.rw.col.source", lang), t("xl.rw.coverage.state", lang),
+                           t("xl.rw.coverage.detail", lang)])
 
     for source in SOURCES:
         if not set(result.norms).intersection(source.norm_keys):
             continue
         if source.label in result.unreachable:
-            etat, detail = "INJOIGNABLE", "Aucune réponse exploitable"
+            etat = t("xl.rw.state.unreachable", lang)
+            detail = t("xl.rw.state.unreachable.detail", lang)
         elif source.label in result.degraded:
-            etat, detail = ("DÉGRADÉE",
-                            "La page répond mais rien ne s'en extrait — la "
-                            "structure du site a probablement changé")
+            etat = t("xl.rw.state.degraded", lang)
+            detail = t("xl.rw.state.degraded.detail", lang)
         else:
-            etat, detail = "Répondu", "Lue et analysée"
+            etat = t("xl.rw.state.ok", lang)
+            detail = t("xl.rw.state.ok.detail", lang)
         coverage.append([source.label, etat, detail])
 
     coverage.append([])
     if result.errors:
-        coverage.append(["Détail des incidents"])
+        coverage.append([t("xl.rw.incidents", lang)])
         coverage[coverage.max_row][0].font = Font(bold=True)
         for message in result.errors:
             coverage.append([message])
     if result.undated:
         coverage.append([])
-        coverage.append(["Écartés faute de date exploitable"])
+        coverage.append([t("xl.rw.setaside", lang)])
         coverage[coverage.max_row][0].font = Font(bold=True)
         for ligne in result.undated:
             coverage.append([ligne])
     autosize(coverage, [42, 18, 74])
 
     # --- Sources ----------------------------------------------------------
-    catalogue = workbook.create_sheet("Sources")
-    catalogue.append(["D'où viennent ces signaux, et ce que chaque source vaut"])
+    catalogue = workbook.create_sheet(t("xl.rw.sheet.sources", lang))
+    catalogue.append([t("xl.rw.sources.title", lang)])
     catalogue["A1"].font = title_font
     catalogue.append([])
-    write_header(catalogue, ["Source", "Référentiels", "Palier", "Adresse",
-                             "Ce qu'il faut en savoir"])
+    write_header(catalogue, [t("xl.rw.col.source", lang), t("xl.rw.sources.norms", lang),
+                             t("xl.rw.col.tier", lang), t("xl.rw.sources.address", lang),
+                             t("xl.rw.sources.know", lang)])
     for source in SOURCES:
         catalogue.append([
             source.label,
             ", ".join(NORMS[key].label for key in source.norm_keys if key in NORMS),
             source.tier,
             source.url,
-            source.note,
+            source.note(lang),
         ])
     catalogue.append([])
-    catalogue.append(["Paliers de fiabilité"])
+    catalogue.append([t("xl.rw.sources.tiers", lang)])
     catalogue[catalogue.max_row][0].font = Font(bold=True)
-    for key, label in TIERS.items():
+    for key, label in tiers(lang).items():
         catalogue.append([key, label])
     autosize(catalogue, [40, 34, 16, 52, 86])
 
     # --- Limites ----------------------------------------------------------
-    limits = workbook.create_sheet("Limites")
-    limits.append(["Ce que cet outil ne fait pas"])
+    limits = workbook.create_sheet(t("xl.rw.sheet.limits", lang))
+    limits.append([t("xl.rw.limits.title", lang)])
     limits["A1"].font = title_font
     limits.append([])
-    write_header(limits, ["Limite", "Précision"])
-    for limite, precision in _LIMITS:
+    write_header(limits, [t("xl.rw.limits.col", lang), t("xl.rw.limits.detail", lang)])
+    for limite, precision in _limits(lang):
         limits.append([limite, precision])
     autosize(limits, [56, 82])
 

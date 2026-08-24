@@ -18,43 +18,43 @@ Quatre traitements possibles, et chacun laisse une trace écrite différente :
 implémente la démarche, on ne recopie pas son texte.
 """
 
+from i18n import DEFAULT_LANG, t
+
 from .rating import RISK_RANGE, InvalidRating
 
 # Du plus radical au plus permissif.
 TREATMENT_ORDER = ["avoid", "reduce", "share", "retain"]
 
-# `requires` désigne le champ que la décision oblige à remplir :
+# ⚠️ `requires` est un **IDENTIFIANT, pas un libellé** : il pilote la logique
+# (`== "goal"`) et ne se traduit donc jamais. Il désigne le champ que la
+# décision oblige à remplir :
 #   "goal"      → un objectif de cybersécurité, c'est-à-dire une exigence
 #   "rationale" → une justification écrite
-TREATMENTS = {
-    "avoid": {
-        "label": "Éviter le risque",
-        "hint": "Supprimer la source du risque : retirer la fonction, l'interface "
-                "ou le flux concerné.",
-        "requires": "rationale",
-        "prompt": "Ce qui est retiré ou remplacé",
-    },
-    "reduce": {
-        "label": "Réduire le risque",
-        "hint": "Ramener le risque à un niveau acceptable par des mesures de "
-                "cybersécurité. C'est le cas qui produit une exigence.",
-        "requires": "goal",
-        "prompt": "Objectif de cybersécurité",
-    },
-    "share": {
-        "label": "Partager le risque",
-        "hint": "Transférer tout ou partie du risque à un tiers — fournisseur, "
-                "contrat, assurance.",
-        "requires": "rationale",
-        "prompt": "À qui, et sur quelle base",
-    },
-    "retain": {
-        "label": "Accepter le risque",
-        "hint": "Conserver le risque en l'état, en connaissance de cause.",
-        "requires": "rationale",
-        "prompt": "Pourquoi ce risque est acceptable",
-    },
+_REQUIRES = {
+    "avoid": "rationale",
+    "reduce": "goal",
+    "share": "rationale",
+    "retain": "rationale",
 }
+
+
+def requires_field(decision: str) -> str:
+    """Le champ qu'une décision oblige à remplir. Sans langue, par nature."""
+    return _REQUIRES[decision]
+
+
+def treatments(lang: str = DEFAULT_LANG) -> dict[str, dict[str, str]]:
+    """Les quatre décisions de traitement, libellées."""
+    return {
+        key: {
+            "label": t(f"tara.treatment.{key}.label", lang),
+            "hint": t(f"tara.treatment.{key}.hint", lang),
+            "requires": _REQUIRES[key],
+            "prompt": t(f"tara.treatment.{key}.prompt", lang),
+        }
+        for key in TREATMENT_ORDER
+    }
+
 
 # Seuil au-delà duquel une décision explicite est exigée. Un risque de 1 peut
 # être retenu sans autre forme de procès ; tout le reste doit être tranché.
@@ -83,10 +83,10 @@ def check(risk: int, decision: str = "", goal: str = "", rationale: str = "") ->
     if not decision:
         return ["aucune décision de traitement"] if requires_decision(risk) else []
 
-    if decision not in TREATMENTS:
+    if decision not in _REQUIRES:
         return [f"décision de traitement inconnue ({decision})"]
 
-    besoin = TREATMENTS[decision]["requires"]
+    besoin = requires_field(decision)
     fourni = (goal if besoin == "goal" else rationale) or ""
     if not fourni.strip():
         manque = "l'objectif de cybersécurité" if besoin == "goal" else "la justification"
@@ -96,10 +96,10 @@ def check(risk: int, decision: str = "", goal: str = "", rationale: str = "") ->
 
 def produces_goal(decision: str) -> bool:
     """Seule la réduction du risque produit une exigence de cybersécurité."""
-    return TREATMENTS.get((decision or "").strip(), {}).get("requires") == "goal"
+    return _REQUIRES.get((decision or "").strip()) == "goal"
 
 
-def treatment_scales() -> dict:
+def treatment_scales(lang: str = DEFAULT_LANG) -> dict:
     """Options de traitement, prêtes à sérialiser pour l'interface.
 
     Même contrat que le barème et la matrice : la page ne réécrit ni les
@@ -107,6 +107,6 @@ def treatment_scales() -> dict:
     """
     return {
         "order": TREATMENT_ORDER,
-        "options": {key: dict(TREATMENTS[key]) for key in TREATMENT_ORDER},
+        "options": treatments(lang),
         "decisionThreshold": DECISION_THRESHOLD,
     }

@@ -28,6 +28,8 @@ Le transfert est une **proposition**, jamais un report automatique : c'est
 l'ingénieur qui confirme.
 """
 
+from i18n import DEFAULT_LANG, t
+
 from dataclasses import dataclass, fields
 
 # S0 à S3 côté HARA, quatre niveaux d'impact côté TARA. Les deux échelles ont
@@ -35,24 +37,15 @@ from dataclasses import dataclass, fields
 # correspondance est donc directe.
 SEVERITY_LEVELS = 4
 
-_WHY = {
-    "severity": (
-        "La gravité physique des conséquences ne dépend pas de leur cause. "
-        "Un freinage perdu blesse autant, que l'origine soit une panne ou une attaque."
-    ),
-    "exposure": (
-        "L'exposition mesure la probabilité de se trouver dans la situation dangereuse. "
-        "Un attaquant choisit son moment : il frappe quand ça fait mal. La notion s'effondre."
-    ),
-    "controllability": (
-        "La contrôlabilité suppose un conducteur en mesure de réagir. Un attaquant peut "
-        "neutraliser ce recours, voire l'attaquer en premier."
-    ),
-    "replacement": (
-        "Côté sécurité, l'exposition et la contrôlabilité sont remplacées par la "
-        "faisabilité de l'attaque, qui décrit ce que l'attaque coûte."
-    ),
-}
+def _why(lang: str = DEFAULT_LANG) -> dict[str, str]:
+    """Pourquoi S traverse le pont et pourquoi E et C ne le traversent pas.
+
+    La page lit ces phrases et les affiche : elle ne les réécrit nulle part.
+    """
+    return {
+        cle: t(f"bridge.why.{cle}", lang)
+        for cle in ("severity", "exposure", "controllability", "replacement")
+    }
 
 
 class InvalidTransfer(ValueError):
@@ -130,7 +123,7 @@ def propose_damage(
     )
 
 
-def bridge_rule() -> dict:
+def bridge_rule(lang: str = DEFAULT_LANG) -> dict:
     """Règle de transfert, prête à sérialiser pour l'interface.
 
     Sert de **source de vérité unique** : la page n'écrit nulle part que S se
@@ -144,5 +137,5 @@ def bridge_rule() -> dict:
         # Les champs que le pont accepte de transporter. Ce qui n'y figure pas
         # n'a pas de place dans une proposition — voir DamageProposal.
         "carriedFields": [field.name for field in fields(DamageProposal)],
-        "why": _WHY,
+        "why": _why(lang),
     }

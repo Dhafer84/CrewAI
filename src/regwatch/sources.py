@@ -17,6 +17,8 @@ Elles ne sont pas ici. Ajouter une source sans la lire d'abord est le
 meilleur moyen de livrer une veille qui ne remonte rien.
 """
 
+from i18n import DEFAULT_LANG, t
+
 from dataclasses import dataclass
 
 from .config import LOOKBACK_DAYS
@@ -24,12 +26,12 @@ from .norms import NORM_ORDER, NORMS, Norm
 
 # Paliers, du plus au moins probant. L'ordre compte : il sert au tri et à
 # l'affichage.
-TIERS: dict[str, str] = {
-    "officiel": "Source officielle — l'organisme qui produit ou administre le référentiel",
-    "communaute": "Base communautaire — un tiers qui agrège des documents publics",
-    "commentaire": "Commentaire spécialisé — blog ou organisme de conseil, pas un normalisateur",
-}
-TIER_ORDER = tuple(TIERS)
+TIER_ORDER = ("officiel", "communaute", "commentaire")
+
+
+def tiers(lang: str = DEFAULT_LANG) -> dict[str, str]:
+    """Les paliers de fiabilité, du plus au moins probant."""
+    return {cle: t(f"regwatch.tier.{cle}", lang) for cle in TIER_ORDER}
 
 
 @dataclass(frozen=True)
@@ -48,7 +50,14 @@ class Source:
     parser: str      # nom dans scrape.PARSERS ; vide pour un flux
     tier: str
     norm_keys: tuple[str, ...]
-    note: str
+
+    def note(self, lang: str = DEFAULT_LANG) -> str:
+        """Ce qu'il faut savoir de cette source — palier, réserves, pièges.
+
+        ⚠️ Le texte vit dans `src/i18n/`, pas ici : `sources.py` dit **où**
+        l'on cherche, pas comment on le raconte.
+        """
+        return t(f"regwatch.source.{self.key}.note", lang)
 
 
 SOURCES: tuple[Source, ...] = (
@@ -60,9 +69,6 @@ SOURCES: tuple[Source, ...] = (
         parser="",
         tier="officiel",
         norm_keys=("aspice",),
-        note="Association qui administre le schéma de certification des assesseurs "
-             "Automotive SPICE. Publie peu — quelques actualités par an. Le flux "
-             "n'est pas exposé sur le site, il faut demander le format RSS.",
     ),
     Source(
         key="vda_spice",
@@ -72,10 +78,6 @@ SOURCES: tuple[Source, ...] = (
         parser="vda_publications",
         tier="officiel",
         norm_keys=("aspice",),
-        note="Catalogue officiel des publications, pas un fil d'actualité : c'est le "
-             "signal ASPICE le plus fort qui soit — les versions réellement publiées. "
-             "Réserve : dates au mois près, parfois à l'année seule, page en allemand. "
-             "(Le flux RSS du VDA, lui, est abandonné : un billet « Test » de 2024.)",
     ),
     Source(
         key="sres",
@@ -85,10 +87,6 @@ SOURCES: tuple[Source, ...] = (
         parser="",
         tier="commentaire",
         norm_keys=("iso26262", "iso21434"),
-        note="⚠️ Aucune source officielle n'est atteignable pour l'ISO 26262 : "
-             "ISO.org répond par un défi anti-robot et le TC 22/SC 32 n'a pas de "
-             "micro-site. Ce blog spécialisé est donc un palier « commentaire », "
-             "jamais présenté comme officiel. C'est la seule norme dans ce cas.",
     ),
     Source(
         key="globalautoregs",
@@ -98,10 +96,6 @@ SOURCES: tuple[Source, ...] = (
         parser="globalautoregs",
         tier="communaute",
         norm_keys=("iso21434",),
-        note="Base tierce qui agrège les documents publics de la WP.29 — la voie "
-             "praticable puisque unece.org répond par un défi anti-robot. Le "
-             "rattachement à un règlement UN vient du champ « Relevant to » de la "
-             "source elle-même, pas d'une devinette de notre part.",
     ),
     Source(
         key="iso27ksecurity",
@@ -111,9 +105,6 @@ SOURCES: tuple[Source, ...] = (
         parser="",
         tier="commentaire",
         norm_keys=("iso27001",),
-        note="Blog spécialisé tenu par un praticien, remarquablement à jour sur les "
-             "stades de rédaction de la famille ISO27k. Ce n'est pas l'ISO, et le "
-             "ton y est parfois d'opinion — d'où le palier « commentaire ».",
     ),
     Source(
         key="iso_tc176",
@@ -123,10 +114,6 @@ SOURCES: tuple[Source, ...] = (
         parser="iso_committee_news",
         tier="officiel",
         norm_keys=("iso9001",),
-        note="Le comité qui porte l'ISO 9001. ⚠️ committee.iso.org est ouvert alors "
-             "que www.iso.org est fermé : deux sous-domaines, deux politiques. Son "
-             "robots.txt autorise tout le monde avec « use=reference » — RegWatch "
-             "ne recopie rien et lie la source, ce qui est exactement ça.",
     ),
     Source(
         key="iso_tc176sc2",
@@ -136,10 +123,6 @@ SOURCES: tuple[Source, ...] = (
         parser="iso_committee_news",
         tier="officiel",
         norm_keys=("iso9001",),
-        note="Le sous-comité qui mène la révision de l'ISO 9001 — c'est ici que "
-             "passe le signal le plus concret (« ISO/FDIS 9001 approuvé »). Même "
-             "gabarit de page que le TC 176 : un seul parseur couvre les deux, et "
-             "tout comité ISO qu'on voudra ajouter plus tard.",
     ),
 )
 
@@ -169,7 +152,7 @@ def sources_for(norms: list[Norm]) -> list[Source]:
     ]
 
 
-def source_catalog() -> dict:
+def source_catalog(lang: str = DEFAULT_LANG) -> dict:
     """Catalogue complet, prêt à servir en JSON — source de vérité unique.
 
     Même motif que `/hara/matrix` et `/tara/scales` : la page lit ce
@@ -179,7 +162,7 @@ def source_catalog() -> dict:
     """
     return {
         "lookbackDays": LOOKBACK_DAYS,
-        "tiers": [{"key": key, "label": label} for key, label in TIERS.items()],
+        "tiers": [{"key": key, "label": label} for key, label in tiers(lang).items()],
         "norms": [
             {
                 "key": key,
@@ -190,7 +173,7 @@ def source_catalog() -> dict:
                         "label": source.label,
                         "url": source.url,
                         "tier": source.tier,
-                        "note": source.note,
+                        "note": source.note(lang),
                     }
                     for source in SOURCES
                     if key in source.norm_keys

@@ -1,0 +1,573 @@
+{
+  "analysis_limits": {
+    "damages": 6,
+    "threatsPerDamage": 4
+  },
+  "bridge_rule": {
+    "carriedFields": [
+      "malfunction",
+      "situation",
+      "severity",
+      "safety_impact",
+      "asil",
+      "origin"
+    ],
+    "doesNotTransfer": [
+      "exposure",
+      "controllability"
+    ],
+    "severityToImpact": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "transfers": [
+      "severity"
+    ],
+    "why": {
+      "controllability": "La contrôlabilité suppose un conducteur en mesure de réagir. Un attaquant peut neutraliser ce recours, voire l'attaquer en premier.",
+      "exposure": "L'exposition mesure la probabilité de se trouver dans la situation dangereuse. Un attaquant choisit son moment : il frappe quand ça fait mal. La notion s'effondre.",
+      "replacement": "Côté sécurité, l'exposition et la contrôlabilité sont remplacées par la faisabilité de l'attaque, qui décrit ce que l'attaque coûte.",
+      "severity": "La gravité physique des conséquences ne dépend pas de leur cause. Un freinage perdu blesse autant, que l'origine soit une panne ou une attaque."
+    }
+  },
+  "full_matrix": {
+    "decompositions": {
+      "A": [
+        [
+          "A",
+          "QM"
+        ]
+      ],
+      "B": [
+        [
+          "B",
+          "QM"
+        ],
+        [
+          "A",
+          "A"
+        ]
+      ],
+      "C": [
+        [
+          "C",
+          "QM"
+        ],
+        [
+          "B",
+          "A"
+        ]
+      ],
+      "D": [
+        [
+          "D",
+          "QM"
+        ],
+        [
+          "C",
+          "A"
+        ],
+        [
+          "B",
+          "B"
+        ]
+      ],
+      "QM": []
+    },
+    "labels": {
+      "controllability": {
+        "0": "Maîtrisable de façon générale",
+        "1": "Simplement maîtrisable",
+        "2": "Normalement maîtrisable",
+        "3": "Difficilement maîtrisable, voire pas du tout"
+      },
+      "exposure": {
+        "0": "Situation invraisemblable",
+        "1": "Très faible probabilité",
+        "2": "Faible probabilité",
+        "3": "Probabilité moyenne",
+        "4": "Forte probabilité"
+      },
+      "severity": {
+        "0": "Aucune blessure",
+        "1": "Blessures légères à modérées",
+        "2": "Blessures graves, survie probable",
+        "3": "Blessures critiques ou mortelles"
+      }
+    },
+    "order": [
+      "QM",
+      "A",
+      "B",
+      "C",
+      "D"
+    ],
+    "table": {
+      "S0E0C0": "QM",
+      "S0E0C1": "QM",
+      "S0E0C2": "QM",
+      "S0E0C3": "QM",
+      "S0E1C0": "QM",
+      "S0E1C1": "QM",
+      "S0E1C2": "QM",
+      "S0E1C3": "QM",
+      "S0E2C0": "QM",
+      "S0E2C1": "QM",
+      "S0E2C2": "QM",
+      "S0E2C3": "QM",
+      "S0E3C0": "QM",
+      "S0E3C1": "QM",
+      "S0E3C2": "QM",
+      "S0E3C3": "QM",
+      "S0E4C0": "QM",
+      "S0E4C1": "QM",
+      "S0E4C2": "QM",
+      "S0E4C3": "QM",
+      "S1E0C0": "QM",
+      "S1E0C1": "QM",
+      "S1E0C2": "QM",
+      "S1E0C3": "QM",
+      "S1E1C0": "QM",
+      "S1E1C1": "QM",
+      "S1E1C2": "QM",
+      "S1E1C3": "QM",
+      "S1E2C0": "QM",
+      "S1E2C1": "QM",
+      "S1E2C2": "QM",
+      "S1E2C3": "QM",
+      "S1E3C0": "QM",
+      "S1E3C1": "QM",
+      "S1E3C2": "QM",
+      "S1E3C3": "A",
+      "S1E4C0": "QM",
+      "S1E4C1": "QM",
+      "S1E4C2": "A",
+      "S1E4C3": "B",
+      "S2E0C0": "QM",
+      "S2E0C1": "QM",
+      "S2E0C2": "QM",
+      "S2E0C3": "QM",
+      "S2E1C0": "QM",
+      "S2E1C1": "QM",
+      "S2E1C2": "QM",
+      "S2E1C3": "QM",
+      "S2E2C0": "QM",
+      "S2E2C1": "QM",
+      "S2E2C2": "QM",
+      "S2E2C3": "A",
+      "S2E3C0": "QM",
+      "S2E3C1": "QM",
+      "S2E3C2": "A",
+      "S2E3C3": "B",
+      "S2E4C0": "QM",
+      "S2E4C1": "A",
+      "S2E4C2": "B",
+      "S2E4C3": "C",
+      "S3E0C0": "QM",
+      "S3E0C1": "QM",
+      "S3E0C2": "QM",
+      "S3E0C3": "QM",
+      "S3E1C0": "QM",
+      "S3E1C1": "QM",
+      "S3E1C2": "QM",
+      "S3E1C3": "A",
+      "S3E2C0": "QM",
+      "S3E2C1": "QM",
+      "S3E2C2": "A",
+      "S3E2C3": "B",
+      "S3E3C0": "QM",
+      "S3E3C1": "A",
+      "S3E3C2": "B",
+      "S3E3C3": "C",
+      "S3E4C0": "QM",
+      "S3E4C1": "B",
+      "S3E4C2": "C",
+      "S3E4C3": "D"
+    }
+  },
+  "full_scales": {
+    "calibration": "Le temps et l'équipement portent les écarts les plus larges, délibérément :\nce sont les deux facteurs qui discriminent réellement une attaque sur un\nvéhicule. Une attaque menée avec un dongle radio à 30 € en quelques jours et\nune attaque exigeant un banc de laboratoire et six mois de travail ne se\nressemblent en rien, et un barème qui les rapproche ne sert à rien.\n\nLa fenêtre d'opportunité suit de près : sur un véhicule, pouvoir agir sur une\nvoiture en stationnement, en roulage ou immobilisée à l'atelier change tout.\n\nL'expertise et la connaissance de l'item comptent, mais se révèlent plus\nbinaires en pratique — on a l'information, ou on ne l'a pas.",
+    "feasibilityByPotential": [
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "feasibilityOrder": [
+      "Très faible",
+      "Faible",
+      "Moyenne",
+      "Élevée"
+    ],
+    "feasibilityThresholds": [
+      {
+        "level": 3,
+        "upTo": 13
+      },
+      {
+        "level": 2,
+        "upTo": 23
+      },
+      {
+        "level": 1,
+        "upTo": 33
+      }
+    ],
+    "impactCategories": {
+      "financial": "Financier",
+      "operational": "Opérationnel",
+      "privacy": "Vie privée",
+      "safety": "Sécurité des personnes"
+    },
+    "impactOrder": [
+      "Négligeable",
+      "Modéré",
+      "Majeur",
+      "Sévère"
+    ],
+    "maxPotential": 50,
+    "parameters": {
+      "equipment": {
+        "label": "Équipement",
+        "levels": [
+          {
+            "label": "Standard",
+            "points": 0,
+            "value": 0
+          },
+          {
+            "label": "Spécialisé",
+            "points": 3,
+            "value": 1
+          },
+          {
+            "label": "Sur mesure",
+            "points": 7,
+            "value": 2
+          },
+          {
+            "label": "Plusieurs équipements sur mesure",
+            "points": 11,
+            "value": 3
+          }
+        ]
+      },
+      "expertise": {
+        "label": "Expertise requise",
+        "levels": [
+          {
+            "label": "Profane",
+            "points": 0,
+            "value": 0
+          },
+          {
+            "label": "Compétent",
+            "points": 2,
+            "value": 1
+          },
+          {
+            "label": "Expert",
+            "points": 5,
+            "value": 2
+          },
+          {
+            "label": "Plusieurs experts de domaines différents",
+            "points": 8,
+            "value": 3
+          }
+        ]
+      },
+      "knowledge": {
+        "label": "Connaissance de l'item",
+        "levels": [
+          {
+            "label": "Publique",
+            "points": 0,
+            "value": 0
+          },
+          {
+            "label": "Restreinte",
+            "points": 2,
+            "value": 1
+          },
+          {
+            "label": "Confidentielle",
+            "points": 5,
+            "value": 2
+          },
+          {
+            "label": "Strictement confidentielle",
+            "points": 8,
+            "value": 3
+          }
+        ]
+      },
+      "time": {
+        "label": "Temps nécessaire",
+        "levels": [
+          {
+            "label": "Moins d'une journée",
+            "points": 0,
+            "value": 0
+          },
+          {
+            "label": "Moins d'une semaine",
+            "points": 2,
+            "value": 1
+          },
+          {
+            "label": "Moins d'un mois",
+            "points": 5,
+            "value": 2
+          },
+          {
+            "label": "Moins de six mois",
+            "points": 9,
+            "value": 3
+          },
+          {
+            "label": "Plus de six mois",
+            "points": 14,
+            "value": 4
+          }
+        ]
+      },
+      "window": {
+        "label": "Fenêtre d'opportunité",
+        "levels": [
+          {
+            "label": "Illimitée",
+            "points": 0,
+            "value": 0
+          },
+          {
+            "label": "Facile à obtenir",
+            "points": 2,
+            "value": 1
+          },
+          {
+            "label": "Modérée",
+            "points": 5,
+            "value": 2
+          },
+          {
+            "label": "Difficile à obtenir",
+            "points": 9,
+            "value": 3
+          }
+        ]
+      }
+    },
+    "risk": {
+      "I0F0": 1,
+      "I0F1": 1,
+      "I0F2": 1,
+      "I0F3": 1,
+      "I1F0": 1,
+      "I1F1": 2,
+      "I1F2": 2,
+      "I1F3": 3,
+      "I2F0": 1,
+      "I2F1": 2,
+      "I2F2": 3,
+      "I2F3": 4,
+      "I3F0": 2,
+      "I3F1": 3,
+      "I3F2": 4,
+      "I3F3": 5
+    },
+    "riskRange": [
+      1,
+      5
+    ]
+  },
+  "source_catalog": {
+    "lookbackDays": 90,
+    "norms": [
+      {
+        "key": "aspice",
+        "label": "Automotive SPICE",
+        "sources": [
+          {
+            "key": "intacs",
+            "label": "iNTACS — actualités",
+            "note": "Association qui administre le schéma de certification des assesseurs Automotive SPICE. Publie peu — quelques actualités par an. Le flux n'est pas exposé sur le site, il faut demander le format RSS.",
+            "tier": "officiel",
+            "url": "https://www.intacs.info/component/content/category/news?format=feed&type=rss"
+          },
+          {
+            "key": "vda_spice",
+            "label": "VDA QMC — publications Automotive SPICE",
+            "note": "Catalogue officiel des publications, pas un fil d'actualité : c'est le signal ASPICE le plus fort qui soit — les versions réellement publiées. Réserve : dates au mois près, parfois à l'année seule, page en allemand. (Le flux RSS du VDA, lui, est abandonné : un billet « Test » de 2024.)",
+            "tier": "officiel",
+            "url": "https://vda-qmc.de/automotive-spice/automotive-spice-veroeffentlichungen/"
+          }
+        ]
+      },
+      {
+        "key": "iso26262",
+        "label": "ISO 26262",
+        "sources": [
+          {
+            "key": "sres",
+            "label": "SRES — commentaire sûreté et cybersécurité automobile",
+            "note": "⚠️ Aucune source officielle n'est atteignable pour l'ISO 26262 : ISO.org répond par un défi anti-robot et le TC 22/SC 32 n'a pas de micro-site. Ce blog spécialisé est donc un palier « commentaire », jamais présenté comme officiel. C'est la seule norme dans ce cas.",
+            "tier": "commentaire",
+            "url": "https://sres.ai/feed/"
+          }
+        ]
+      },
+      {
+        "key": "iso21434",
+        "label": "ISO/SAE 21434 et UN R155/R156",
+        "sources": [
+          {
+            "key": "sres",
+            "label": "SRES — commentaire sûreté et cybersécurité automobile",
+            "note": "⚠️ Aucune source officielle n'est atteignable pour l'ISO 26262 : ISO.org répond par un défi anti-robot et le TC 22/SC 32 n'a pas de micro-site. Ce blog spécialisé est donc un palier « commentaire », jamais présenté comme officiel. C'est la seule norme dans ce cas.",
+            "tier": "commentaire",
+            "url": "https://sres.ai/feed/"
+          },
+          {
+            "key": "globalautoregs",
+            "label": "GlobalAutoRegs — documents WP.29",
+            "note": "Base tierce qui agrège les documents publics de la WP.29 — la voie praticable puisque unece.org répond par un défi anti-robot. Le rattachement à un règlement UN vient du champ « Relevant to » de la source elle-même, pas d'une devinette de notre part.",
+            "tier": "communaute",
+            "url": "https://globalautoregs.com/documents"
+          }
+        ]
+      },
+      {
+        "key": "iso27001",
+        "label": "ISO/IEC 27001",
+        "sources": [
+          {
+            "key": "iso27ksecurity",
+            "label": "ISO27k Forum — veille sur la famille ISO/IEC 27000",
+            "note": "Blog spécialisé tenu par un praticien, remarquablement à jour sur les stades de rédaction de la famille ISO27k. Ce n'est pas l'ISO, et le ton y est parfois d'opinion — d'où le palier « commentaire ».",
+            "tier": "commentaire",
+            "url": "https://www.iso27001security.com/blog-feed.xml"
+          }
+        ]
+      },
+      {
+        "key": "iso9001",
+        "label": "ISO 9001",
+        "sources": [
+          {
+            "key": "iso_tc176",
+            "label": "ISO/TC 176 — actualités du comité",
+            "note": "Le comité qui porte l'ISO 9001. ⚠️ committee.iso.org est ouvert alors que www.iso.org est fermé : deux sous-domaines, deux politiques. Son robots.txt autorise tout le monde avec « use=reference » — RegWatch ne recopie rien et lie la source, ce qui est exactement ça.",
+            "tier": "officiel",
+            "url": "https://committee.iso.org/sites/tc176/home/news.html"
+          },
+          {
+            "key": "iso_tc176sc2",
+            "label": "ISO/TC 176/SC 2 — actualités du sous-comité",
+            "note": "Le sous-comité qui mène la révision de l'ISO 9001 — c'est ici que passe le signal le plus concret (« ISO/FDIS 9001 approuvé »). Même gabarit de page que le TC 176 : un seul parseur couvre les deux, et tout comité ISO qu'on voudra ajouter plus tard.",
+            "tier": "officiel",
+            "url": "https://committee.iso.org/sites/tc176sc2/home/news.html"
+          }
+        ]
+      }
+    ],
+    "tiers": [
+      {
+        "key": "officiel",
+        "label": "Source officielle — l'organisme qui produit ou administre le référentiel"
+      },
+      {
+        "key": "communaute",
+        "label": "Base communautaire — un tiers qui agrège des documents publics"
+      },
+      {
+        "key": "commentaire",
+        "label": "Commentaire spécialisé — blog ou organisme de conseil, pas un normalisateur"
+      }
+    ]
+  },
+  "treatment_scales": {
+    "decisionThreshold": 1,
+    "options": {
+      "avoid": {
+        "hint": "Supprimer la source du risque : retirer la fonction, l'interface ou le flux concerné.",
+        "label": "Éviter le risque",
+        "prompt": "Ce qui est retiré ou remplacé",
+        "requires": "rationale"
+      },
+      "reduce": {
+        "hint": "Ramener le risque à un niveau acceptable par des mesures de cybersécurité. C'est le cas qui produit une exigence.",
+        "label": "Réduire le risque",
+        "prompt": "Objectif de cybersécurité",
+        "requires": "goal"
+      },
+      "retain": {
+        "hint": "Conserver le risque en l'état, en connaissance de cause.",
+        "label": "Accepter le risque",
+        "prompt": "Pourquoi ce risque est acceptable",
+        "requires": "rationale"
+      },
+      "share": {
+        "hint": "Transférer tout ou partie du risque à un tiers — fournisseur, contrat, assurance.",
+        "label": "Partager le risque",
+        "prompt": "À qui, et sur quelle base",
+        "requires": "rationale"
+      }
+    },
+    "order": [
+      "avoid",
+      "reduce",
+      "share",
+      "retain"
+    ]
+  }
+}

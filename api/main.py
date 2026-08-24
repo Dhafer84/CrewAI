@@ -40,6 +40,11 @@ from pydantic import BaseModel
 _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT / "src"))
 
+# ⚠️ Aliasé en `tr` : les routes SSE prennent le jeton dans un paramètre
+# nommé `t` (`?t=<jeton>`), qui masquerait la fonction de traduction à
+# l'intérieur de ces fonctions. Le nom du paramètre est un contrat avec les
+# pages — c'est donc l'import qui cède.
+from i18n import t as tr  # noqa: E402
 from qualitycrew.config import is_daily_quota, require_llm_key  # noqa: E402
 from qualitycrew.core import run_audit  # noqa: E402
 from sentinelscan.config import require_github_token  # noqa: E402
@@ -98,16 +103,12 @@ _log = logging.getLogger("qualitycrew")
 # Un quota quotidien épuisé n'est pas une panne : le dire franchement vaut mieux
 # qu'un « réessayez » qui ne marchera pas avant demain. Et c'est l'occasion de
 # rappeler que deux outils du site ne dépendent d'aucune IA.
-_QUOTA_MESSAGE = (
-    "Le quota quotidien de l'API gratuite est atteint — la démonstration "
-    "repartira demain. SafetyScope et ThreatScope, eux, ne font appel à aucune "
-    "IA pour coter : ils restent pleinement utilisables."
-)
+
 
 
 def _failure_message(exc: BaseException, defaut: str) -> str:
     """Nommer le quota quand c'est lui, rester sobre sinon."""
-    return _QUOTA_MESSAGE if is_daily_quota(exc) else defaut
+    return tr("err.quota.llm") if is_daily_quota(exc) else defaut
 
 _audit_semaphore = asyncio.Semaphore(1)
 _scan_semaphore = asyncio.Semaphore(1)
@@ -156,6 +157,33 @@ async def tara_page():
 @app.get("/regwatch")
 async def regwatch_page():
     return FileResponse(_SITE_DIR / "regwatch.html")
+
+
+@app.get("/i18n/{lang}.js")
+async def i18n_catalogue(lang: str):
+    """Le catalogue de traduction, servi comme un script.
+
+    ⚠️ Un script et non du JSON, délibérément : les pages l'incluent par un
+    `<script src>` **avant** leur propre script. Un script classique bloque
+    l'analyse du document, donc `window.I18N` est garanti présent quand la
+    page s'exécute — pas de fenêtre pendant laquelle un clic afficherait une
+    clé brute. Un `fetch()` au chargement laisserait cette fenêtre ouverte.
+    """
+    from i18n import catalogue, normalize
+
+    langue = normalize(lang)
+    # Les espaces de noms `xl.` (classeurs) et `md.` (rapport markdown) sont
+    # rendus côté serveur : les envoyer au navigateur doublerait la charge
+    # utile pour rien.
+    charge = {cle: valeur for cle, valeur in catalogue(langue).items()
+              if not cle.startswith(("xl.", "md."))}
+    charge["@lang"] = langue
+    corps = "window.I18N = " + json.dumps(charge, ensure_ascii=False) + ";\n"
+    return Response(
+        content=corps,
+        media_type="application/javascript; charset=utf-8",
+        headers={"Cache-Control": "no-cache"},
+    )
 
 
 @app.get("/regwatch/sources")
@@ -249,7 +277,7 @@ async def tara_report_create(request: Request, payload: TaraReportRequest):
 async def tara_report_download(request: Request, report_id: str):
     return _serve_report(
         request, report_id, "tara",
-        "Rapport expiré ou introuvable. Relancez l'export.",
+        tr("err.report.gone"),
     )
 
 
@@ -292,7 +320,7 @@ async def hara_report_create(request: Request, payload: HaraReportRequest):
 async def hara_report_download(request: Request, report_id: str):
     return _serve_report(
         request, report_id, "hara",
-        "Rapport expiré ou introuvable. Relancez l'export.",
+        tr("err.report.gone"),
     )
 
 
@@ -323,7 +351,7 @@ def _suggest_refusal(client: str) -> str | None:
         _suggest_daily_usage["count"] = 0
 
     if _suggest_daily_usage["count"] >= _MAX_SUGGESTIONS_PER_DAY:
-        return "Quota quotidien de la démonstration atteint. Réessayez demain."
+        return tr("err.quota.daily")
 
     for key, stamp in list(_last_suggest_by_client.items()):
         if now - stamp > _SUGGEST_COOLDOWN_SECONDS:
@@ -332,7 +360,7 @@ def _suggest_refusal(client: str) -> str | None:
     last = _last_suggest_by_client.get(client)
     if last is not None:
         wait = int(_SUGGEST_COOLDOWN_SECONDS - (now - last))
-        return f"Une proposition par minute. Réessayez dans {wait} s."
+        return tr("err.rate.suggest", wait=wait)
 
     return None
 
@@ -349,7 +377,7 @@ async def hara_suggest_prepare(request: Request, payload: HaraSuggestRequest):
     item = payload.item.strip()[:120]
     if len(item) < 3:
         return JSONResponse(
-            {"error": "Décrivez l'item étudié en quelques mots avant de lancer la proposition."},
+            {"error": tr("err.need.item")},
             status_code=400,
         )
 
@@ -375,7 +403,7 @@ async def hara_suggest_stream(request: Request, t: str = ""):
             if payload is None:
                 await queue.put(json.dumps({
                     "type": "error",
-                    "message": "Session expirée. Relancez depuis la page.",
+                    "message": tr("err.session"),
                 }))
                 return
 
@@ -387,7 +415,7 @@ async def hara_suggest_stream(request: Request, t: str = ""):
             if _suggest_semaphore.locked():
                 await queue.put(json.dumps({
                     "type": "error",
-                    "message": "Une proposition est déjà en cours. Réessayez dans un instant.",
+                    "message": tr("err.busy.suggest"),
                 }))
                 return
 
@@ -412,7 +440,7 @@ async def hara_suggest_stream(request: Request, t: str = ""):
             await queue.put(json.dumps({
                 "type": "error",
                 "message": _failure_message(
-                    exc, "La proposition a échoué. Vous pouvez saisir les événements à la main."),
+                    exc, tr("err.fail.hazards")),
             }))
         finally:
             await queue.put(None)
@@ -455,8 +483,7 @@ async def tara_suggest_prepare(request: Request, payload: TaraSuggestRequest):
     }
     if len(contexte["asset"]) < 3 and len(contexte["damage"]) < 3:
         return JSONResponse(
-            {"error": "Décrivez l'actif ou la conséquence redoutée avant de lancer "
-                      "la proposition."},
+            {"error": tr("err.need.context")},
             status_code=400,
         )
 
@@ -482,7 +509,7 @@ async def tara_suggest_stream(request: Request, t: str = ""):
             if payload is None:
                 await queue.put(json.dumps({
                     "type": "error",
-                    "message": "Session expirée. Relancez depuis la page.",
+                    "message": tr("err.session"),
                 }))
                 return
 
@@ -494,7 +521,7 @@ async def tara_suggest_stream(request: Request, t: str = ""):
             if _suggest_semaphore.locked():
                 await queue.put(json.dumps({
                     "type": "error",
-                    "message": "Une proposition est déjà en cours. Réessayez dans un instant.",
+                    "message": tr("err.busy.suggest"),
                 }))
                 return
 
@@ -519,7 +546,7 @@ async def tara_suggest_stream(request: Request, t: str = ""):
             await queue.put(json.dumps({
                 "type": "error",
                 "message": _failure_message(
-                    exc, "La proposition a échoué. Vous pouvez saisir les menaces à la main."),
+                    exc, tr("err.fail.threats")),
             }))
         finally:
             await queue.put(None)
@@ -574,7 +601,8 @@ def _sse_response(
                 except asyncio.TimeoutError:
                     silence += _HEARTBEAT_SECONDS
                     if silence >= timeout:
-                        yield 'data: {"type":"error","message":"Délai dépassé."}\n\n'
+                        yield ('data: {"type":"error","message":"'
+                           + tr("err.timeout") + '"}\n\n')
                         break
                     yield ": battement\n\n"
                     continue
@@ -618,7 +646,7 @@ async def audit_stream(request: Request):
         if _audit_semaphore.locked():
             await queue.put(json.dumps({
                 "type": "error",
-                "message": "Un audit est déjà en cours. Réessayez dans quelques instants.",
+                "message": tr("err.busy.audit"),
             }))
             await queue.put(None)
             return
@@ -636,7 +664,7 @@ async def audit_stream(request: Request):
                 await queue.put(json.dumps({
                     "type": "error",
                     "message": _failure_message(
-                        exc, "L'audit n'a pas abouti. Réessayez dans un instant."),
+                        exc, tr("err.fail.audit")),
                 }))
             finally:
                 await queue.put(None)
@@ -677,10 +705,7 @@ def _rate_limit_message(client: str) -> str | None:
         _daily_usage["count"] = 0
 
     if _daily_usage["count"] >= _MAX_SCANS_PER_DAY:
-        return (
-            "Quota quotidien de la démonstration atteint — l'API GitHub est "
-            "limitée. Réessayez demain."
-        )
+        return tr("err.quota.github")
 
     # Purge des entrées expirées : la table ne grossit pas indéfiniment.
     for key, stamp in list(_last_scan_by_client.items()):
@@ -690,7 +715,7 @@ def _rate_limit_message(client: str) -> str | None:
     last = _last_scan_by_client.get(client)
     if last is not None:
         wait = int(_SCAN_COOLDOWN_SECONDS - (now - last))
-        return f"Un scan toutes les 3 minutes. Réessayez dans {wait} s."
+        return tr("err.rate.scan", wait=wait)
 
     return None
 
@@ -838,7 +863,7 @@ def _serve_report(request: Request, report_id: str, kind: str, missing_message: 
 async def scan_report(request: Request, report_id: str):
     return _serve_report(
         request, report_id, "scan",
-        "Rapport expiré ou introuvable. Relancez un scan.",
+        tr("err.report.gone.scan"),
     )
 
 
@@ -862,7 +887,7 @@ async def scan_stream(request: Request, t: str = ""):
             if payload is None:
                 await queue.put(json.dumps({
                     "type": "error",
-                    "message": "Session de scan expirée. Relancez depuis la page.",
+                    "message": tr("err.session.scan"),
                 }))
                 return
 
@@ -876,7 +901,7 @@ async def scan_stream(request: Request, t: str = ""):
             if _scan_semaphore.locked():
                 await queue.put(json.dumps({
                     "type": "error",
-                    "message": "Un scan est déjà en cours. Réessayez dans un instant.",
+                    "message": tr("err.busy.scan"),
                 }))
                 return
 
@@ -913,7 +938,7 @@ async def scan_stream(request: Request, t: str = ""):
             _log.exception("Scan interrompu")
             await queue.put(json.dumps({
                 "type": "error",
-                "message": "Le scan a échoué. Réessayez dans quelques instants.",
+                "message": tr("err.fail.scan"),
             }))
         finally:
             await queue.put(None)
@@ -953,7 +978,7 @@ def _watch_refusal(client: str) -> str | None:
         _watch_daily_usage["count"] = 0
 
     if _watch_daily_usage["count"] >= _MAX_WATCHES_PER_DAY:
-        return "Quota quotidien de la démonstration atteint. Réessayez demain."
+        return tr("err.quota.daily")
 
     for key, stamp in list(_last_watch_by_client.items()):
         if now - stamp > _WATCH_COOLDOWN_SECONDS:
@@ -962,7 +987,7 @@ def _watch_refusal(client: str) -> str | None:
     last = _last_watch_by_client.get(client)
     if last is not None:
         wait = int(_WATCH_COOLDOWN_SECONDS - (now - last))
-        return f"Une veille par minute. Réessayez dans {wait} s."
+        return tr("err.rate.watch", wait=wait)
 
     return None
 
@@ -1037,7 +1062,7 @@ async def watch_stream(request: Request, norms: str = ""):
             if _watch_semaphore.locked():
                 await queue.put(json.dumps({
                     "type": "error",
-                    "message": "Une veille est déjà en cours. Réessayez dans un instant.",
+                    "message": tr("err.busy.watch"),
                 }))
                 return
 
@@ -1058,7 +1083,7 @@ async def watch_stream(request: Request, norms: str = ""):
             _log.exception("Veille interrompue")
             await queue.put(json.dumps({
                 "type": "error",
-                "message": "La veille a échoué. Réessayez dans quelques instants.",
+                "message": tr("err.fail.watch"),
             }))
         finally:
             await queue.put(None)
@@ -1150,7 +1175,7 @@ async def regwatch_explain_prepare(request: Request, payload: RegwatchExplainReq
     items = [item.model_dump() for item in payload.items]
     if not _rebuild_watch_items(items):
         return JSONResponse(
-            {"error": "Aucun signal exploitable à expliquer. Relancez une veille."},
+            {"error": tr("err.need.signals")},
             status_code=400,
         )
 
@@ -1174,7 +1199,7 @@ async def regwatch_explain_stream(request: Request, t: str = ""):
             if payload is None:
                 await queue.put(json.dumps({
                     "type": "error",
-                    "message": "Session expirée. Relancez depuis la page.",
+                    "message": tr("err.session"),
                 }))
                 return
 
@@ -1186,7 +1211,7 @@ async def regwatch_explain_stream(request: Request, t: str = ""):
             if _suggest_semaphore.locked():
                 await queue.put(json.dumps({
                     "type": "error",
-                    "message": "Une proposition est déjà en cours. Réessayez dans un instant.",
+                    "message": tr("err.busy.suggest"),
                 }))
                 return
 
@@ -1210,7 +1235,7 @@ async def regwatch_explain_stream(request: Request, t: str = ""):
             await queue.put(json.dumps({
                 "type": "error",
                 "message": _failure_message(
-                    exc, "L'explication a échoué. Le tableau reste utilisable tel quel."),
+                    exc, tr("err.fail.explain")),
             }))
         finally:
             await queue.put(None)
@@ -1296,5 +1321,5 @@ async def regwatch_report_create(request: Request, payload: RegwatchReportReques
 async def regwatch_report_download(request: Request, report_id: str):
     return _serve_report(
         request, report_id, "regwatch",
-        "Rapport expiré ou introuvable. Relancez l'export.",
+        tr("err.report.gone"),
     )

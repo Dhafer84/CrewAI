@@ -11,6 +11,8 @@ norme pour toute application réelle.
 
 from dataclasses import dataclass
 
+from i18n import DEFAULT_LANG, t
+
 # Du moins au plus contraignant.
 ASIL_ORDER = ["QM", "A", "B", "C", "D"]
 
@@ -33,28 +35,22 @@ DECOMPOSITIONS: dict[str, list[tuple[str, str]]] = {
     "QM": [],
 }
 
-# Reformulations propres, volontairement courtes.
-SEVERITY_LABELS = {
-    0: "Aucune blessure",
-    1: "Blessures légères à modérées",
-    2: "Blessures graves, survie probable",
-    3: "Blessures critiques ou mortelles",
-}
+# Reformulations propres, volontairement courtes. Le texte vit dans
+# `src/i18n/` : ce module décide de la COTATION, pas de la façon de la dire.
+# Des fonctions et non des constantes, parce qu'un libellé dépend désormais
+# de la langue demandée.
 
-EXPOSURE_LABELS = {
-    0: "Situation invraisemblable",
-    1: "Très faible probabilité",
-    2: "Faible probabilité",
-    3: "Probabilité moyenne",
-    4: "Forte probabilité",
-}
 
-CONTROLLABILITY_LABELS = {
-    0: "Maîtrisable de façon générale",
-    1: "Simplement maîtrisable",
-    2: "Normalement maîtrisable",
-    3: "Difficilement maîtrisable, voire pas du tout",
-}
+def severity_labels(lang: str = DEFAULT_LANG) -> dict[int, str]:
+    return {n: t(f"hara.severity.{n}", lang) for n in range(4)}
+
+
+def exposure_labels(lang: str = DEFAULT_LANG) -> dict[int, str]:
+    return {n: t(f"hara.exposure.{n}", lang) for n in range(5)}
+
+
+def controllability_labels(lang: str = DEFAULT_LANG) -> dict[int, str]:
+    return {n: t(f"hara.controllability.{n}", lang) for n in range(4)}
 
 
 class InvalidRating(ValueError):
@@ -129,7 +125,7 @@ def rate(severity: int, exposure: int, controllability: int) -> AsilResult:
     )
 
 
-def full_matrix() -> dict:
+def full_matrix(lang: str = DEFAULT_LANG) -> dict:
     """Table complète S/E/C → ASIL, plus les libellés et décompositions.
 
     Sert de **source de vérité unique** : la page web la charge une fois et
@@ -152,8 +148,8 @@ def full_matrix() -> dict:
             for asil, pairs in DECOMPOSITIONS.items()
         },
         "labels": {
-            "severity": SEVERITY_LABELS,
-            "exposure": EXPOSURE_LABELS,
-            "controllability": CONTROLLABILITY_LABELS,
+            "severity": severity_labels(lang),
+            "exposure": exposure_labels(lang),
+            "controllability": controllability_labels(lang),
         },
     }

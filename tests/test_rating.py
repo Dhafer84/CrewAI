@@ -17,8 +17,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from threatscope.rating import (  # noqa: E402
-    FEASIBILITY_ORDER,
-    IMPACT_ORDER,
+    feasibility_order,
+    impact_order,
     MAX_POTENTIAL,
     InvalidRating,
     attack_potential,
@@ -67,8 +67,8 @@ def test_feasibility_thresholds():
     for potential, expected in EXPECTED_FEASIBILITY.items():
         got = feasibility_from_potential(potential)
         assert got == expected, (
-            f"{potential} points : attendu {FEASIBILITY_ORDER[expected]}, "
-            f"obtenu {FEASIBILITY_ORDER[got]}"
+            f"{potential} points : attendu {feasibility_order()[expected]}, "
+            f"obtenu {feasibility_order()[got]}"
         )
 
 
@@ -123,14 +123,14 @@ def test_risk_is_monotone():
     Une matrice non monotone serait incohérente : elle récompenserait une
     aggravation.
     """
-    for impact in range(len(IMPACT_ORDER)):
-        for feasibility in range(len(FEASIBILITY_ORDER) - 1):
+    for impact in range(len(impact_order())):
+        for feasibility in range(len(feasibility_order()) - 1):
             assert determine_risk(impact, feasibility) <= determine_risk(
                 impact, feasibility + 1
             ), f"non monotone en faisabilité à l'impact {impact}"
 
-    for feasibility in range(len(FEASIBILITY_ORDER)):
-        for impact in range(len(IMPACT_ORDER) - 1):
+    for feasibility in range(len(feasibility_order())):
+        for impact in range(len(impact_order()) - 1):
             assert determine_risk(impact, feasibility) <= determine_risk(
                 impact + 1, feasibility
             ), f"non monotone en impact à la faisabilité {feasibility}"
@@ -138,7 +138,7 @@ def test_risk_is_monotone():
 
 def test_negligible_impact_never_exceeds_one():
     """Sans dommage significatif, il n'y a pas de risque à traiter."""
-    for feasibility in range(len(FEASIBILITY_ORDER)):
+    for feasibility in range(len(feasibility_order())):
         assert determine_risk(0, feasibility) == 1
 
 
@@ -211,7 +211,7 @@ def test_full_scales_matches_the_functions():
     """Le barème servi à l'interface doit coller au moteur, sinon la page mentirait."""
     scales = full_scales()
 
-    assert len(scales["risk"]) == len(IMPACT_ORDER) * len(FEASIBILITY_ORDER)
+    assert len(scales["risk"]) == len(impact_order()) * len(feasibility_order())
     for impact, by_feasibility in EXPECTED_RISK.items():
         for feasibility, expected in enumerate(by_feasibility):
             assert scales["risk"][f"I{impact}F{feasibility}"] == expected

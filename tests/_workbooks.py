@@ -1,0 +1,155 @@
+"""Jeux d'essai déterministes pour les quatre exports Excel.
+
+Partagés par `test_i18n.py` (instantané de non-régression, puis comparaison
+FR/EN) et disponibles pour toute suite qui aurait besoin d'un classeur
+reproductible. Les valeurs sont figées : aucune date « maintenant », aucun
+identifiant aléatoire, sinon l'instantané changerait à chaque exécution.
+"""
+
+import sys
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
+
+_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_ROOT / "src"))
+
+_QUAND = datetime(2026, 8, 24, 9, 30, tzinfo=timezone.utc)
+
+
+@dataclass
+class _Evenement:
+    malfunction: str
+    situation: str
+    severity: int
+    exposure: int
+    controllability: int
+
+
+@dataclass
+class _Menace:
+    description: str = "Usurpation du calculateur de freinage"
+    path: str = "Injection de trames forgées sur le bus"
+    time: int = 1
+    expertise: int = 2
+    knowledge: int = 1
+    window: int = 1
+    equipment: int = 1
+    decision: str = "reduce"
+    goal: str = "Authentifier les trames de freinage"
+    rationale: str = ""
+
+
+@dataclass
+class _Dommage:
+    asset: str = "Passerelle télématique"
+    description: str = "Freinage commandé à distance"
+    safety: int = 3
+    financial: int = 2
+    operational: int = 2
+    privacy: int = 1
+    threats: list = None
+    origin: str = "Événement redouté 1"
+    origin_severity: int = 3
+    origin_asil: str = "D"
+
+    def __post_init__(self):
+        if self.threats is None:
+            self.threats = [_Menace()]
+
+
+def _figer(analyse):
+    """Fige l'horodatage d'une analyse.
+
+    ⚠️ `created_at` vaut `datetime.now()` par défaut, et la Synthèse
+    l'imprime à la minute près : sans ce gel, l'instantané de
+    non-régression se mettrait à échouer tout seul au prochain changement
+    de minute. Même raison que la couture `today` de `run_watch`.
+    """
+    try:
+        analyse.created_at = _QUAND
+    except (AttributeError, TypeError):
+        object.__setattr__(analyse, "created_at", _QUAND)
+    return analyse
+
+
+def hara_analysis():
+    from safetyscope.analysis import build_analysis
+    return _figer(build_analysis("Freinage électrique", [
+        _Evenement("Absence de freinage", "Descente, trafic dense", 3, 4, 3),
+        _Evenement("Freinage intempestif", "Autoroute, vitesse stabilisée", 2, 3, 2),
+    ]))
+
+
+def tara_analysis():
+    from threatscope.analysis import build_analysis as build_tara
+    return _figer(build_tara("Passerelle télématique", [_Dommage()]))
+
+
+def scan_result():
+    from sentinelscan.scanner import Finding, ScanResult
+    return ScanResult(
+        keywords=["acme-corp"],
+        started_at=_QUAND,
+        finished_at=_QUAND + timedelta(seconds=90),
+        findings=[Finding("CRITIQUE", "Fichier .env exposé", "acme/site",
+                          "acme", "config/.env", "https://github.test/a", "acme-corp")],
+        errors=["Dépôt — quota atteint"],
+        incomplete_queries=["Fichier de configuration"],
+        queries_run=5, queries_total=5,
+    )
+
+
+def watch_result():
+    from regwatch.core import WatchItem, WatchResult
+    return WatchResult(
+        norms=["iso9001"], lookback_days=90,
+        started_at=_QUAND, finished_at=_QUAND + timedelta(seconds=7),
+        items=[WatchItem("iso9001", "ISO 9001", "Publication / amendement",
+                         "ISO 9001 revision update", date(2026, 8, 7),
+                         "iso_tc176sc2", "ISO/TC 176/SC 2", "officiel",
+                         "https://committee.iso.test/x.html", "Parce que.")],
+        unreachable=["ISO/TC 176 — actualités du comité"],
+        undated=["VDA QMC — Guidelines 2nd Edition 2025"],
+        errors=["ISO/TC 176 — injoignable"],
+        sources_read=2, sources_total=2,
+    )
+
+
+def workbooks(lang: str = "fr") -> dict[str, bytes]:
+    """Les quatre classeurs, construits dans la langue demandée."""
+    from regwatch.report import build_excel as regwatch_excel
+    from safetyscope.report import build_excel as hara_excel
+    from sentinelscan.report import build_excel as scan_excel
+    from threatscope.report import build_excel as tara_excel
+
+    def appeler(fonction, donnees):
+        try:
+            return fonction(donnees, lang)
+        except TypeError:
+            # Tant que l'export n'est pas extrait, il ne prend pas la langue.
+            return fonction(donnees)
+
+    return {
+        "hara": appeler(hara_excel, hara_analysis()),
+        "tara": appeler(tara_excel, tara_analysis()),
+        "sentinelscan": appeler(scan_excel, scan_result()),
+        "regwatch": appeler(regwatch_excel, watch_result()),
+    }
+
+
+def cell_values(data: bytes) -> dict[str, list[str]]:
+    """Toutes les chaînes d'un classeur, onglet par onglet."""
+    from io import BytesIO
+
+    import openpyxl
+
+    classeur = openpyxl.load_workbook(BytesIO(data))
+    return {
+        onglet.title: [
+            str(cellule.value)
+            for ligne in onglet.iter_rows() for cellule in ligne
+            if isinstance(cellule.value, str) and cellule.value.strip()
+        ]
+        for onglet in classeur.worksheets
+    }

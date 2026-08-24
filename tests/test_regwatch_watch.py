@@ -284,10 +284,10 @@ def test_every_source_is_declared_coherently():
     """Le catalogue est une donnée : elle doit tenir debout toute seule."""
     from regwatch.norms import NORMS
     from regwatch.scrape import PARSERS
-    from regwatch.sources import TIERS
+    from regwatch.sources import tiers
 
     for source in SOURCES:
-        assert source.tier in TIERS, f"{source.key} : palier {source.tier}"
+        assert source.tier in tiers(), f"{source.key} : palier {source.tier}"
         assert source.url.startswith("https://"), f"{source.key} : {source.url}"
         assert source.note, f"{source.key} n'explique pas ce qu'il vaut"
         assert source.norm_keys, f"{source.key} ne sert aucune norme"

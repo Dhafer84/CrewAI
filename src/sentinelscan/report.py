@@ -5,46 +5,50 @@ pas. Une veille dont on connaît les limites vaut mieux qu'une veille dont on
 croit à tort qu'elle est exhaustive.
 """
 
+from i18n import DEFAULT_LANG, t
+
 from io import BytesIO
 
 from xlsxsafe import harden
 
-from .queries import CRITICALITY_ORDER, CRITICALITY_SLA
+from .queries import CRITICALITY_ORDER
 from .scanner import ScanResult
 
-# Ce que le scan ne voit pas — à assumer explicitement dans tout dossier d'audit.
-KNOWN_LIMITS = [
-    ("GitHub n'indexe que la branche par défaut",
-     "Un secret sur une branche secondaire n'est pas détecté"),
-    ("GitHub exclut certains dépôts inactifs",
-     "Angle mort sur les dépôts anciens"),
-    ("Gists et Pastebin n'ont pas d'API de recherche",
-     "Passage manuel indispensable — c'est statistiquement la 1re source de fuite"),
-    ("Les autres forges ne sont pas interrogées",
-     "GitLab, Gitee, npm, Docker Hub hors périmètre de cette démo"),
-    ("Dépôts supprimés mais forkés",
-     "Le contenu survit à la suppression — nécessite une demande au support"),
-]
-
-COVERAGE = [
-    ("GitHub — code", "Recherche dans le contenu des fichiers", "Automatisé"),
-    ("GitHub — dépôts", "Recherche par nom et description", "Automatisé"),
-    ("Gist / Pastebin", "Aucune API exploitable", "Manuel — non couvert ici"),
-]
+# Ce que le scan ne voit pas — à assumer explicitement dans tout dossier
+# d'audit. Le texte vit dans `src/i18n/`, les clés ci-dessous en fixent
+# l'ordre.
+_LIMIT_KEYS = ("branch", "inactive", "gist", "forges", "forks")
+_COVERAGE_KEYS = (("code", "auto"), ("repos", "auto"), ("gist", "manual"))
 
 
-def _procedure_lines() -> list[str]:
-    return [
-        "1. **Préserver la preuve** — capture horodatée, URL, SHA de commit.",
-        "2. **Qualifier** — faux positif / homonyme / vrai positif.",
-        "3. **Si un secret est exposé : révoquer sous 24 h**, puis analyser les logs.",
-        "4. **Demander le retrait** ensuite seulement — jamais avant la révocation.",
-        "5. **Vérifier la suppression effective** — les forks et le cache survivent.",
-        "6. **Traiter la cause** — hook `gitleaks` en pre-commit, sensibilisation.",
-    ]
+def known_limits(lang: str = DEFAULT_LANG) -> list[tuple[str, str]]:
+    return [(t(f"scan.lim.{cle}", lang), t(f"scan.lim.{cle}.detail", lang))
+            for cle in _LIMIT_KEYS]
 
 
-def coverage_warning(result: ScanResult) -> str | None:
+def coverage_rows(lang: str = DEFAULT_LANG) -> list[tuple[str, str, str]]:
+    return [(t(f"scan.cov.{cle}", lang), t(f"scan.cov.{cle}.how", lang),
+             t(f"scan.cov.{statut}", lang))
+            for cle, statut in _COVERAGE_KEYS]
+
+
+def criticality_label(level: str, lang: str = DEFAULT_LANG) -> str:
+    """⚠️ « CRITIQUE » est un IDENTIFIANT stocké dans `Finding.criticality`
+    et servant de clé de comptage : il ne se traduit pas. Seul son
+    affichage passe par ici.
+    """
+    return t(f"scan.crit.{level}", lang)
+
+
+def criticality_sla(level: str, lang: str = DEFAULT_LANG) -> str:
+    return t(f"scan.sla.{level}", lang)
+
+
+def _procedure_lines(lang: str = DEFAULT_LANG) -> list[str]:
+    return [t(f"scan.proc.{n}", lang) for n in range(1, 7)]
+
+
+def coverage_warning(result: ScanResult, lang: str = DEFAULT_LANG) -> str | None:
     """Avertissement quand GitHub n'a pas mené toutes les requêtes à terme.
 
     C'est le plus important des avertissements : sans lui, un abandon de
@@ -52,108 +56,89 @@ def coverage_warning(result: ScanResult) -> str | None:
     """
     if not result.coverage_is_incomplete:
         return None
-
-    incomplete = len(result.incomplete_queries)
-    return (
-        f"⚠️ **Couverture incomplète.** GitHub n'a pas mené à terme "
-        f"{incomplete} requête(s) sur {result.queries_run} : sa recherche a "
-        "dépassé le délai qu'il s'accorde et il a répondu par un résultat "
-        "partiel. **Sur ces requêtes, l'absence de détection ne prouve rien.** "
-        "Relancez le scan pour obtenir une couverture complète avant de "
-        "conclure quoi que ce soit."
-    )
+    return t("scan.warn.coverage", lang,
+             incomplete=len(result.incomplete_queries), run=result.queries_run)
 
 
-def homonym_warning(result: ScanResult) -> str | None:
+def homonym_warning(result: ScanResult, lang: str = DEFAULT_LANG) -> str | None:
     """Avertissement quand les constats sentent le terme courant."""
     if not result.looks_like_common_term:
         return None
-    return (
-        f"⚠️ **Probable homonymie.** Les {len(result.findings)} détections se "
-        f"répartissent sur {result.distinct_owners} propriétaires distincts — "
-        "la signature d'un terme courant (prénom, mot du langage) plutôt que "
-        "d'un identifiant d'organisation. L'homonymie est le principal piège "
-        "de cette veille. Reprenez avec un terme plus distinctif : nom de "
-        "projet interne, domaine e-mail, référence documentaire."
-    )
+    return t("scan.warn.homonym", lang,
+             found=len(result.findings), owners=result.distinct_owners)
 
 
-def build_markdown(result: ScanResult) -> str:
+def build_markdown(result: ScanResult, lang: str = DEFAULT_LANG) -> str:
     """Rapport de synthèse en markdown, destiné à l'affichage web."""
     counts = result.count_by_criticality()
     lines: list[str] = []
 
-    lines.append("## Synthèse")
+    lines.append(t("md.scan.summary", lang))
     lines.append("")
-    lines.append(f"**Termes recherchés :** {', '.join(result.keywords)}")
+    lines.append(t("md.scan.keywords", lang, terms=", ".join(result.keywords)))
     lines.append("")
-    lines.append(
-        f"**{len(result.findings)} détection(s)** sur {result.queries_run} requête(s) "
-        f"exécutée(s) en {result.duration_seconds:.0f} s."
-    )
+    lines.append(t("md.scan.counts", lang, found=len(result.findings),
+                   run=result.queries_run,
+                   seconds=f"{result.duration_seconds:.0f}"))
     lines.append("")
 
     # La couverture passe avant tout le reste : elle conditionne la lecture
     # de l'ensemble du rapport.
-    coverage = coverage_warning(result)
+    coverage = coverage_warning(result, lang)
     if coverage:
         lines.append(coverage)
         lines.append("")
 
-    warning = homonym_warning(result)
+    warning = homonym_warning(result, lang)
     if warning:
         lines.append(warning)
         lines.append("")
 
-    lines.append("| Criticité | Nombre | Délai de traitement |")
+    lines.append(t("md.scan.table.head", lang))
     lines.append("| --- | --- | --- |")
     for level in CRITICALITY_ORDER:
-        lines.append(f"| {level} | {counts.get(level, 0)} | {CRITICALITY_SLA[level]} |")
+        lines.append(f"| {criticality_label(level, lang)} | {counts.get(level, 0)} "
+                     f"| {criticality_sla(level, lang)} |")
     lines.append("")
 
     if result.findings:
-        lines.append("## Détections")
+        lines.append(t("md.scan.detections", lang))
         lines.append("")
-        lines.append("| Criticité | Détection | Dépôt | Chemin |")
+        lines.append(t("md.scan.det.head", lang))
         lines.append("| --- | --- | --- | --- |")
         for finding in result.findings[:50]:
             link = f"[{finding.repo}]({finding.url})" if finding.url else finding.repo
             lines.append(
-                f"| {finding.criticality} | {finding.detection} | {link} | `{finding.path}` |"
+                f"| {criticality_label(finding.criticality, lang)} "
+                f"| {finding.detection} | {link} | `{finding.path}` |"
             )
         if len(result.findings) > 50:
             lines.append("")
-            lines.append(
-                f"*{len(result.findings) - 50} détection(s) supplémentaire(s) "
-                "dans le rapport Excel.*"
-            )
+            lines.append(t("md.scan.more", lang, n=len(result.findings) - 50))
         lines.append("")
     else:
-        lines.append("## Détections")
+        lines.append(t("md.scan.detections", lang))
         lines.append("")
-        lines.append("Aucune exposition détectée sur ce périmètre.")
+        lines.append(t("md.scan.none", lang))
         lines.append("")
 
-    lines.append("## Procédure de traitement")
+    lines.append(t("md.scan.procedure", lang))
     lines.append("")
-    lines.extend(_procedure_lines())
+    lines.extend(_procedure_lines(lang))
     lines.append("")
 
-    lines.append("## Limites connues")
+    lines.append(t("md.scan.limits", lang))
     lines.append("")
-    lines.append("| Limite | Conséquence |")
+    lines.append(t("md.scan.lim.head", lang))
     lines.append("| --- | --- |")
-    for limit, consequence in KNOWN_LIMITS:
+    for limit, consequence in known_limits(lang):
         lines.append(f"| {limit} | {consequence} |")
     lines.append("")
 
     if result.errors:
-        lines.append("## Erreurs")
+        lines.append(t("md.scan.errors", lang))
         lines.append("")
-        lines.append(
-            "Une plateforme en échec laisse un trou dans la couverture — "
-            "à vérifier avant de conclure."
-        )
+        lines.append(t("md.scan.errors.note", lang))
         lines.append("")
         for error in result.errors:
             lines.append(f"- {error}")
@@ -162,7 +147,7 @@ def build_markdown(result: ScanResult) -> str:
     return "\n".join(lines)
 
 
-def build_excel(result: ScanResult) -> bytes:
+def build_excel(result: ScanResult, lang: str = DEFAULT_LANG) -> bytes:
     """Rapport Excel multi-onglets, livrable téléchargeable."""
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
@@ -187,23 +172,24 @@ def build_excel(result: ScanResult) -> bytes:
 
     # --- Synthèse ---
     summary = workbook.active
-    summary.title = "Synthèse"
-    summary["A1"] = "SentinelScan — rapport de veille"
+    summary.title = t("xl.scan.sheet.summary", lang)
+    summary["A1"] = t("xl.scan.title", lang)
     summary["A1"].font = title_font
     summary.append([])
-    summary.append(["Termes recherchés", ", ".join(result.keywords)])
-    summary.append(["Date du scan (UTC)", result.started_at.strftime("%Y-%m-%d %H:%M")])
-    summary.append(["Durée", f"{result.duration_seconds:.0f} s"])
-    summary.append(["Requêtes exécutées", result.queries_run])
-    summary.append(["Détections", len(result.findings)])
-    summary.append(["Propriétaires distincts", result.distinct_owners])
-    summary.append([
-        "Couverture",
-        "INCOMPLÈTE" if result.coverage_is_incomplete else "Complète",
-    ])
+    summary.append([t("xl.scan.keywords", lang), ", ".join(result.keywords)])
+    summary.append([t("xl.scan.date", lang), result.started_at.strftime("%Y-%m-%d %H:%M")])
+    summary.append([t("xl.scan.duration", lang), f"{result.duration_seconds:.0f} s"])
+    summary.append([t("xl.scan.queries", lang), result.queries_run])
+    summary.append([t("xl.scan.detections", lang), len(result.findings)])
+    summary.append([t("xl.scan.owners", lang), result.distinct_owners])
+    # Clé construite plutôt que choisie dans l'appel : une conditionnelle
+    # à l'intérieur de `t(...)` échappe au scanner de clés des tests.
+    etat = "incomplete" if result.coverage_is_incomplete else "complete"
+    summary.append([t("xl.scan.coverage.state", lang),
+                    t(f"xl.scan.coverage.{etat}", lang)])
     summary.append([])
 
-    for warning in (coverage_warning(result), homonym_warning(result)):
+    for warning in (coverage_warning(result, lang), homonym_warning(result, lang)):
         if not warning:
             continue
         summary.append([warning.replace("⚠️ ", "").replace("**", "")])
@@ -211,29 +197,35 @@ def build_excel(result: ScanResult) -> bytes:
         summary.append([])
 
     counts = result.count_by_criticality()
-    write_header(summary, ["Criticité", "Nombre", "Délai de traitement"])
+    write_header(summary, [t("xl.scan.col.criticality", lang), t("xl.scan.col.count", lang),
+                           t("xl.scan.col.sla", lang)])
     for level in CRITICALITY_ORDER:
-        summary.append([level, counts.get(level, 0), CRITICALITY_SLA[level]])
+        summary.append([criticality_label(level, lang), counts.get(level, 0),
+                        criticality_sla(level, lang)])
     summary.append([])
-    summary.append(["Procédure de traitement"])
+    summary.append([t("xl.scan.procedure", lang)])
     summary[summary.max_row][0].font = Font(bold=True)
-    for line in _procedure_lines():
+    for line in _procedure_lines(lang):
         summary.append([line.replace("**", "")])
     autosize(summary, [28, 60, 24])
 
     # --- Détections ---
     # Colonnes automatiques puis colonnes à remplir par l'analyste.
-    detections = workbook.create_sheet("Détections")
+    detections = workbook.create_sheet(t("xl.scan.sheet.detections", lang))
     write_header(detections, [
-        "ID", "Criticité", "Détection", "Terme", "Dépôt", "Propriétaire",
-        "Chemin", "URL",
-        "Statut", "Vrai positif ?", "Secret exposé ?", "Action menée",
-        "Responsable", "Date traitement", "Commentaire",
+        "ID", t("xl.scan.col.criticality", lang), t("xl.scan.col.detection", lang),
+        t("xl.scan.col.term", lang), t("xl.scan.col.repo", lang),
+        t("xl.scan.col.owner", lang), t("xl.scan.col.path", lang),
+        t("xl.scan.col.url", lang),
+        t("xl.scan.col.status", lang), t("xl.scan.col.truepos", lang),
+        t("xl.scan.col.secret", lang), t("xl.scan.col.action", lang),
+        t("xl.scan.col.owner2", lang), t("xl.scan.col.date", lang),
+        t("xl.scan.col.comment", lang),
     ])
     for number, finding in enumerate(result.findings, start=1):
         detections.append([
             f"LEAK-{number:04d}",
-            finding.criticality,
+            criticality_label(finding.criticality, lang),
             finding.detection,
             finding.keyword,
             finding.repo,
@@ -246,34 +238,35 @@ def build_excel(result: ScanResult) -> bytes:
     autosize(detections, [12, 12, 26, 14, 34, 20, 40, 50, 18, 16, 16, 26, 18, 16, 30])
 
     # --- Couverture ---
-    coverage = workbook.create_sheet("Couverture")
-    write_header(coverage, ["Source", "Méthode d'interrogation", "Statut"])
-    for row in COVERAGE:
+    coverage = workbook.create_sheet(t("xl.scan.sheet.coverage", lang))
+    write_header(coverage, [t("xl.scan.col.source", lang), t("xl.scan.col.method", lang),
+                            t("xl.scan.col.status", lang)])
+    for row in coverage_rows(lang):
         coverage.append(list(row))
 
     if result.incomplete_queries:
         coverage.append([])
-        coverage.append(["Requêtes abandonnées par GitHub (résultat partiel)"])
+        coverage.append([t("xl.scan.abandoned", lang)])
         coverage[coverage.max_row][0].font = Font(bold=True, color="B45309")
         for detection in result.incomplete_queries:
-            coverage.append([detection, "Résultat incomplet — ne rien conclure"])
+            coverage.append([detection, t("xl.scan.incomplete", lang)])
     autosize(coverage, [40, 46, 28])
 
     # --- Limites ---
-    limits = workbook.create_sheet("Limites")
-    write_header(limits, ["Limite", "Conséquence"])
-    for row in KNOWN_LIMITS:
+    limits = workbook.create_sheet(t("xl.scan.sheet.limits", lang))
+    write_header(limits, [t("xl.scan.col.limit", lang), t("xl.scan.col.consequence", lang)])
+    for row in known_limits(lang):
         limits.append(list(row))
     autosize(limits, [52, 62])
 
     # --- Erreurs ---
-    errors = workbook.create_sheet("Erreurs")
-    write_header(errors, ["Erreur rencontrée"])
+    errors = workbook.create_sheet(t("xl.scan.sheet.errors", lang))
+    write_header(errors, [t("xl.scan.col.error", lang)])
     if result.errors:
         for error in result.errors:
             errors.append([error])
     else:
-        errors.append(["Aucune erreur — couverture complète sur le périmètre interrogé."])
+        errors.append([t("xl.scan.noerror", lang)])
     autosize(errors, [100])
 
     # ⚠️ Nom de dépôt, propriétaire et chemin viennent de GitHub, donc de

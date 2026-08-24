@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QualityCrew — Audit ASPICE / ISO 26262</title>
+  <title data-i18n="qc.title">QualityCrew — Audit ASPICE / ISO 26262</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -12,25 +12,25 @@
   <nav>
     <a class="nav-back" href="/">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-      Tous les outils
+      <span data-i18n="nav.back">Tous les outils</span>
     </a>
     <a class="nav-link" href="https://github.com/Dhafer84/CrewAI" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-      GitHub
+      <span data-i18n="nav.github">GitHub</span>
     </a>
   </nav>
 
   <section class="hero">
     <div class="badge">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-      Démo live — ASPICE / ISO 26262
+      <span data-i18n="qc.badge">Démo live — ASPICE / ISO 26262</span>
     </div>
-    <h1>Audit de conformité<br>par <em>agents IA</em></h1>
-    <p class="subtitle">4 agents CrewAI analysent un dossier documentaire en temps réel — qualité des exigences, couverture de test, risques sûreté — et produisent un rapport structuré en quelques secondes.</p>
+    <h1 data-i18n="qc.h1">Audit de conformité<br>par <em>agents IA</em></h1>
+    <p class="subtitle" data-i18n="qc.subtitle">4 agents CrewAI analysent un dossier documentaire en temps réel — qualité des exigences, couverture de test, risques sûreté — et produisent un rapport structuré en quelques secondes.</p>
     <div class="hero-actions">
       <button class="btn btn-primary" id="btn-launch">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        Lancer l'audit
+        <span data-i18n="qc.cta">Lancer l'audit</span>
       </button>
       <span class="status-msg" id="status-msg"></span>
     </div>
@@ -39,19 +39,19 @@
   <div class="stats">
     <div class="stat">
       <div class="stat-val green">12/12</div>
-      <div class="stat-label">Défauts détectés sur le jeu de démonstration</div>
+      <div class="stat-label" data-i18n="qc.stat.defects">Défauts détectés sur le jeu de démonstration</div>
     </div>
     <div class="stat">
       <div class="stat-val" id="stat-duree">—</div>
-      <div class="stat-label" id="stat-duree-label">Durée du dernier audit</div>
+      <div class="stat-label" id="stat-duree-label" data-i18n="qc.stat.duration">Durée du dernier audit</div>
     </div>
     <div class="stat">
       <div class="stat-val amber">15</div>
-      <div class="stat-label">Points de contrôle vérifiés (CHK-01 à CHK-15)</div>
+      <div class="stat-label" data-i18n="qc.stat.checks">Points de contrôle vérifiés (CHK-01 à CHK-15)</div>
     </div>
   </div>
 
-  <div class="section-label">Agents</div>
+  <div class="section-label" data-i18n="qc.section.agents">Agents</div>
   <div class="agents" id="agents-container">
 
     <!-- Agent 0 — Analyste (vert) -->
@@ -72,12 +72,12 @@
         </svg>
       </div>
       <div class="agent-info">
-        <div class="agent-name">Analyste d'exigences</div>
-        <div class="agent-desc">Qualité CHK-01 à CHK-06 — identifiants, critères, ambiguïtés, périmètre, traçabilité</div>
+        <div class="agent-name" data-i18n="qc.agent.1">Analyste d'exigences</div>
+        <div class="agent-desc" data-i18n="qc.agent.1.desc">Qualité CHK-01 à CHK-06 — identifiants, critères, ambiguïtés, périmètre, traçabilité</div>
       </div>
       <div class="agent-status status-wait" id="status-0">
         <span class="dot dot-wait" id="dot-0"></span>
-        <span id="status-text-0">En attente</span>
+        <span id="status-text-0"><span data-i18n="qc.status.waiting">En attente</span></span>
         <span class="agent-time" id="time-0"></span>
       </div>
     </div>
@@ -101,12 +101,12 @@
         </svg>
       </div>
       <div class="agent-info">
-        <div class="agent-name">Vérificateur de conformité</div>
-        <div class="agent-desc">Checklist ASPICE SWE.1/SWE.2 + ISO 26262 Part 6 — 15 points CHK-01 à CHK-15</div>
+        <div class="agent-name" data-i18n="qc.agent.2">Vérificateur de conformité</div>
+        <div class="agent-desc" data-i18n="qc.agent.2.desc">Checklist ASPICE SWE.1/SWE.2 + ISO 26262 Part 6 — 15 points CHK-01 à CHK-15</div>
       </div>
       <div class="agent-status status-wait" id="status-1">
         <span class="dot dot-wait" id="dot-1"></span>
-        <span id="status-text-1">En attente</span>
+        <span id="status-text-1"><span data-i18n="qc.status.waiting">En attente</span></span>
         <span class="agent-time" id="time-1"></span>
       </div>
     </div>
@@ -130,12 +130,12 @@
         </svg>
       </div>
       <div class="agent-info">
-        <div class="agent-name">Détecteur de risques</div>
-        <div class="agent-desc">Trous de couverture, incohérences ISO 26262, fonctions sûreté non testées</div>
+        <div class="agent-name" data-i18n="qc.agent.3">Détecteur de risques</div>
+        <div class="agent-desc" data-i18n="qc.agent.3.desc">Trous de couverture, incohérences ISO 26262, fonctions sûreté non testées</div>
       </div>
       <div class="agent-status status-wait" id="status-2">
         <span class="dot dot-wait" id="dot-2"></span>
-        <span id="status-text-2">En attente</span>
+        <span id="status-text-2"><span data-i18n="qc.status.waiting">En attente</span></span>
         <span class="agent-time" id="time-2"></span>
       </div>
     </div>
@@ -159,12 +159,12 @@
         </svg>
       </div>
       <div class="agent-info">
-        <div class="agent-name">Rédacteur de synthèse</div>
-        <div class="agent-desc">Rapport final — tableau de sévérité, recommandations priorisées</div>
+        <div class="agent-name" data-i18n="qc.agent.4">Rédacteur de synthèse</div>
+        <div class="agent-desc" data-i18n="qc.agent.4.desc">Rapport final — tableau de sévérité, recommandations priorisées</div>
       </div>
       <div class="agent-status status-wait" id="status-3">
         <span class="dot dot-wait" id="dot-3"></span>
-        <span id="status-text-3">En attente</span>
+        <span id="status-text-3"><span data-i18n="qc.status.waiting">En attente</span></span>
         <span class="agent-time" id="time-3"></span>
       </div>
     </div>
@@ -173,11 +173,11 @@
   </div>
 
   <div class="report-section" id="report-section">
-    <div class="section-label">Rapport généré</div>
+    <div class="section-label" data-i18n="qc.section.report">Rapport généré</div>
     <div class="report-box">
       <div class="report-header">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        <span class="report-title">Rapport d'audit — BTM SRS &amp; Test Plan</span>
+        <span class="report-title" data-i18n="qc.report.title">Rapport d'audit — BTM SRS &amp; Test Plan</span>
         <span class="report-date" id="report-date"></span>
       </div>
       <div class="report-body" id="report-content"></div>
@@ -186,13 +186,15 @@
 
   <footer>
     <div class="footer-inner">
-      <span class="footer-text">QualityCrew — projet démo · documents 100% fictifs</span>
-      <a class="nav-link footer-text" href="https://github.com/Dhafer84/CrewAI" target="_blank" rel="noopener">Code source</a>
+      <span class="footer-text" data-i18n="footer.qualitycrew">QualityCrew — projet démo · documents 100% fictifs</span>
+      <a class="nav-link footer-text" href="https://github.com/Dhafer84/CrewAI" target="_blank" rel="noopener" data-i18n="nav.source">Code source</a>
     </div>
   </footer>
 
 </div>
 
+<script src="/i18n/fr.js"></script>
+<script src="/static/i18n.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script>
 (function() {
@@ -230,7 +232,7 @@
   function demarrerChrono() {
     chrono.total = chrono.agent = Date.now();
     const el = document.getElementById('stat-duree');
-    document.getElementById('stat-duree-label').textContent = 'Durée — audit en cours';
+    document.getElementById('stat-duree-label').textContent = T('qc.js.running');
     clearInterval(chrono.horloge);
     chrono.horloge = setInterval(function() {
       el.textContent = formatDuree(Date.now() - chrono.total);
@@ -307,7 +309,7 @@
     const content = document.getElementById('report-content');
     const dateEl = document.getElementById('report-date');
     content.innerHTML = marked.parse(markdown);
-    dateEl.textContent = '· ' + new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    dateEl.textContent = '· ' + new Date().toLocaleDateString(T('qc.js.locale'), { day: 'numeric', month: 'long', year: 'numeric' });
     section.classList.add('visible');
     section.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -323,7 +325,7 @@
     if (es) { es.close(); es = null; }
     resetUI();
     btn.disabled = true;
-    setStatus('Connexion au moteur…');
+    setStatus(T('qc.js.connecting'));
 
     es = new EventSource('/audit/stream');
 
@@ -334,7 +336,7 @@
       if (data.type === 'start') {
         demarrerChrono();
         setAgentStatus(0, 'running');
-        setStatus('Agent 1/4 en cours…');
+        setStatus(T('qc.js.agent', { n: 1 }));
       } else if (data.type === 'task_done') {
         const idx = data.index;
         marquerAgent(idx);
@@ -342,16 +344,16 @@
         showOutput(idx, data.output || '');
         if (idx < 3) {
           setAgentStatus(idx + 1, 'running');
-          setStatus('Agent ' + (idx + 2) + '/4 en cours…');
+          setStatus(T('qc.js.agent', { n: idx + 2 }));
         }
       } else if (data.type === 'done') {
-        arreterChrono('Durée du dernier audit');
+        arreterChrono(T('qc.stat.duration'));
         clearStatus();
         btn.disabled = false;
         showReport(data.report || '');
         es.close(); es = null;
       } else if (data.type === 'error') {
-        arreterChrono('Durée avant interruption');
+        arreterChrono(T('qc.js.interrupted'));
         // Laisser un agent sur « En cours… » alors que tout est arrêté donne
         // l'impression qu'il travaille encore. On le remet en attente.
         for (let i = 0; i < 4; i++) {
@@ -359,7 +361,7 @@
             setAgentStatus(i, 'wait');
           }
         }
-        setStatus(data.message || 'Erreur inconnue.', true);
+        setStatus(data.message || T('qc.js.unknown'), true);
         btn.disabled = false;
         es.close(); es = null;
       } else if (data.type === 'close') {
@@ -368,7 +370,7 @@
     };
 
     es.onerror = function() {
-      setStatus('Connexion interrompue. Vérifiez que le serveur tourne.', true);
+      setStatus(T('qc.js.lost'), true);
       btn.disabled = false;
       if (es) { es.close(); es = null; }
     };
