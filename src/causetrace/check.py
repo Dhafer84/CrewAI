@@ -136,6 +136,14 @@ class Gap:
     # Quelle des deux causes du D4 est visée : « occurrence » ou « escape ».
     # Vide partout ailleurs — un constat de D3 ne vise rien de particulier.
     slot: str = ""
+    # Le champ visé, quand le constat en vise un. Sert à nommer le coupable
+    # dans le message d'un verrou.
+    field: str = ""
+    # ⚠️ Pour un VERROU : les constats de la discipline amont, afin que le
+    # message dise ce qui manque au lieu de laisser deviner. Vide quand
+    # l'amont est lui-même verrouillé — le vrai blocage est alors plus haut,
+    # et c'est la carte de l'amont qui l'explique.
+    missing: tuple[str, ...] = ()
 
     @property
     def is_lock(self) -> bool:
@@ -146,7 +154,7 @@ def _missing(dossier: Dossier, key: str) -> list[Gap]:
     """Les champs exigés qu'une discipline n'a pas renseignés."""
     bloc = dossier.discipline(key)
     return [
-        Gap(discipline=key, code=code)
+        Gap(discipline=key, code=code, field=attribut)
         for attribut, code in _REQUIRED.get(key, [])
         if not getattr(bloc, attribut, "")
     ]
@@ -221,10 +229,17 @@ def check(dossier: Dossier) -> list[Gap]:
         # ⚠️ `_gaps_of` et non `_missing` : une cause énoncée mais mal étayée
         # ne déverrouille pas les actions permanentes. C'est tout l'objet de
         # la chaîne de pourquoi — sans quoi elle ne serait qu'un ornement.
-        if amont and (amont in verrouillees or _gaps_of(dossier, amont)):
-            # Trop tôt : on le dit une fois, et on se tait sur le reste.
+        amont_cascade = amont in verrouillees if amont else False
+        amont_gaps = _gaps_of(dossier, amont) if amont else []
+        if amont and (amont_cascade or amont_gaps):
+            # Trop tôt : on le dit une fois, et on se tait sur le reste — mais
+            # on NOMME ce qui bloque, sinon l'ingénieur doit deviner quelle
+            # case d'une autre discipline le retient.
             verrouillees.add(cle)
-            constats.append(Gap(discipline=cle, code=f"{cle}.locked", blocking=True))
+            constats.append(Gap(
+                discipline=cle, code=f"{cle}.locked", blocking=True,
+                missing=() if amont_cascade else tuple(g.code for g in amont_gaps),
+            ))
             continue
 
         constats.extend(_gaps_of(dossier, cle))
@@ -291,9 +306,40 @@ def status(dossier: Dossier) -> dict[str, str]:
     return etats
 
 
+# Constat → (discipline, champ), pour nommer un champ plutôt qu'un constat
+# dans le message d'un verrou. Construit depuis `_REQUIRED`, jamais recopié.
+_FIELD_OF_CODE = {
+    code: (discipline, champ)
+    for discipline, regles in _REQUIRED.items()
+    for champ, code in regles
+}
+
+
 def gap_label(gap: Gap, lang: str = DEFAULT_LANG) -> str:
-    """Le constat, dit dans une langue. Le moteur, lui, n'en connaît aucune."""
-    return t(f"ct.gap.{gap.code}", lang)
+    """Le constat, dit dans une langue. Le moteur, lui, n'en connaît aucune.
+
+    ⚠️ Un verrou nomme ce qui le cause. « Trop tôt : le problème n'est pas
+    encore décrit » obligeait à remonter à la carte amont pour trouver quelle
+    case retenait la discipline — une devinette que l'outil imposait sans
+    raison.
+    """
+    texte = t(f"ct.gap.{gap.code}", lang)
+    if not gap.missing:
+        return texte
+
+    champs, autres = [], []
+    for code in gap.missing:
+        cible = _FIELD_OF_CODE.get(code)
+        if cible:
+            champs.append(t(f"ct.f.{cible[0]}.{cible[1]}", lang))
+        else:
+            autres.append(t(f"ct.gap.{code}", lang))
+
+    # « il manque » ne convient qu'à des champs vides ; un constat de chaîne
+    # n'est pas un manque, c'est quelque chose à corriger.
+    if autres:
+        return texte + t("ct.lock.blocking", lang, items=", ".join(champs + autres))
+    return texte + t("ct.lock.missing", lang, items=", ".join(champs))
 
 
 def slot_label(slot: str, lang: str = DEFAULT_LANG) -> str:

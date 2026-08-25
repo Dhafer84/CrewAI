@@ -1119,4 +1119,6 @@ CATALOGUE: dict[str, str] = {
         "says what it is.",
     "home.status.live": "Online",
     "home.ct.tag.why": "8D · 5 Whys",
+    "ct.lock.missing": " — missing: {items}",
+    "ct.lock.blocking": " — to settle first: {items}",
 }

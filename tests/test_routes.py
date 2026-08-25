@@ -1671,6 +1671,23 @@ def test_every_card_badge_is_translated():
     assert anglais.count(">Online</span>") == 6
 
 
+def test_the_page_names_what_blocks_a_locked_discipline():
+    """⚠️ La règle vit des deux côtés — le moteur pour l'export, la page pour
+    l'écran. Une suite Python ne peut pas exécuter le JavaScript, mais elle
+    peut refuser que le détail disparaisse de l'un des deux.
+    """
+    compact = " ".join(_EIGHTD.read_text(encoding="utf-8").split())
+    assert "function lockDetail(missing)" in compact
+    assert "missing: locked[up] ? [] : amont" in compact, (
+        "la cascade doit rester générique, comme dans le moteur")
+    assert "lockDetail(gap.missing)" in compact, "le détail n'est plus affiché"
+
+    with client() as c:
+        contrat = c.get("/8d/rules").json()
+    for cle in ("ct.lock.missing", "ct.lock.blocking"):
+        assert cle not in contrat, "ces clés passent par le catalogue, pas le contrat"
+
+
 def main() -> int:
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failures = 0

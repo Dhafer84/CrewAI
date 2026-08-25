@@ -413,7 +413,7 @@
     var out = [];
     (RULES.required[d] || []).forEach(function (f) {
       if (!dossier[d][f] || !String(dossier[d][f]).length) {
-        out.push({ d: d, code: RULES.gapOf[d][f], slot: '' });
+        out.push({ d: d, code: RULES.gapOf[d][f], slot: '', field: f });
       }
     });
     if (d === 'd4') {
@@ -422,7 +422,7 @@
           // Une cause non énoncée ne voit pas sa chaîne examinée.
           if (!dossier.d4[pair[0]]) { return; }
           analyseChain(pair[1]).forEach(function (c) {
-            out.push({ d: 'd4', code: 'd4.' + c, slot: pair[0] });
+            out.push({ d: 'd4', code: 'd4.' + c, slot: pair[0], field: '' });
           });
         });
     }
@@ -434,9 +434,13 @@
     RULES.order.forEach(function (d) {
       if (d === 'd8') { return; }
       var up = RULES.dependsOn[d];
-      if (up && (locked[up] || gapsOf(up, dossier).length)) {
+      var amont = up ? gapsOf(up, dossier) : [];
+      if (up && (locked[up] || amont.length)) {
         locked[d] = true;
-        gaps.push({ d: d, code: d + '.locked', slot: '', lock: true });
+        // ⚠️ Le verrou NOMME ce qui le cause — sauf en cascade, où le vrai
+        // blocage est plus haut et où c'est la carte amont qui l'explique.
+        gaps.push({ d: d, code: d + '.locked', slot: '', lock: true,
+                    missing: locked[up] ? [] : amont });
         return;
       }
       gaps = gaps.concat(gapsOf(d, dossier));
@@ -467,10 +471,25 @@
 
   // ---------------------------------------------------------------- rendu
 
+  // ⚠️ Miroir de `check.gap_label` : « il manque » ne convient qu'à des
+  // champs vides ; un constat de chaîne n'est pas un manque, c'est quelque
+  // chose à corriger.
+  function lockDetail(missing) {
+    if (!missing || !missing.length) { return ''; }
+    var champs = [], autres = [];
+    missing.forEach(function (g) {
+      if (g.field) { champs.push(T('ct.f.' + g.d + '.' + g.field)); }
+      else { autres.push(RULES.gaps[g.code] || g.code); }
+    });
+    return autres.length
+      ? T('ct.lock.blocking', { items: champs.concat(autres).join(', ') })
+      : T('ct.lock.missing', { items: champs.join(', ') });
+  }
+
   function gapLine(gap, withDiscipline) {
     var li = document.createElement('li');
     if (gap.lock) { li.className = 'is-lock'; }
-    var texte = RULES.gaps[gap.code] || gap.code;
+    var texte = (RULES.gaps[gap.code] || gap.code) + lockDetail(gap.missing);
     if (withDiscipline) { texte = RULES.labels[gap.d] + ' — ' + texte; }
     li.textContent = texte;
     if (gap.slot) {

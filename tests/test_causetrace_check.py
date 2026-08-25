@@ -558,6 +558,67 @@ def test_the_served_fields_match_the_display_order():
     assert {cle: tuple(v) for cle, v in servis.items()} == FIELD_ORDER
 
 
+# --------------------------------------------------------------------------
+# Un verrou nomme ce qui le cause
+# --------------------------------------------------------------------------
+
+def test_a_lock_names_the_field_that_blocks_it():
+    """⚠️ Sans ça, l'ingénieur doit deviner quelle case d'une AUTRE discipline
+    retient celle qu'il a sous les yeux.
+
+    Signalé à l'usage le 25/08/2026 : « le D4 reste grisé, pourquoi ? ». La
+    règle est bonne — on ne cherche pas la cause d'un problème qu'on n'a pas
+    su décrire — c'est le message qui laissait deviner.
+    """
+    dossier = _dossier(d2={"is_not": ""})
+    verrou = [g for g in check(dossier) if g.code == "d4.locked"][0]
+    texte = gap_label(verrou)
+    assert texte.startswith("Trop tôt")
+    assert "Ce qui n'est PAS touché" in texte, "le champ coupable n'est pas nommé"
+    assert verrou.missing == ("d2.no_is_not",)
+
+
+def test_a_lock_lists_every_field_that_blocks_it():
+    dossier = _dossier(d2={"is_not": "", "since": ""})
+    texte = gap_label([g for g in check(dossier) if g.code == "d4.locked"][0])
+    assert "Depuis quand" in texte and "Ce qui n'est PAS touché" in texte
+
+
+def test_a_cascading_lock_stays_generic():
+    """⚠️ Quand l'amont est LUI-MÊME verrouillé, le vrai blocage est plus haut.
+
+    Nommer les champs vides du D4 sur le verrou du D5 enverrait l'ingénieur
+    vers une carte qui, elle aussi, est grisée. La carte amont explique déjà
+    ce qui la retient.
+    """
+    verrous = {g.code: g for g in check(_dossier(d2={"is_not": ""})) if g.is_lock}
+    assert verrous["d4.locked"].missing, "le premier verrou doit nommer sa cause"
+    for cascade in ("d5.locked", "d6.locked"):
+        assert verrous[cascade].missing == (), f"{cascade} ne doit rien nommer"
+        assert "—" not in gap_label(verrous[cascade])
+
+
+def test_a_chain_finding_is_never_called_a_missing_field():
+    """« il manque : la chaîne s'arrête sur une personne » n'aurait aucun sens."""
+    boiteuse = [
+        {"statement": "Le connecteur perd le contact", "nature": "technical"},
+        {"statement": "Le couple est trop faible", "nature": "technical"},
+        {"statement": "L'opérateur s'est trompé", "nature": "person"},
+    ]
+    dossier = _dossier(d4={"occurrence_chain": boiteuse})
+    texte = gap_label([g for g in check(dossier) if g.code == "d5.locked"][0])
+    assert "à régler d'abord" in texte
+    assert "il manque" not in texte
+
+
+def test_the_lock_detail_is_translated():
+    dossier = _dossier(d2={"is_not": ""})
+    verrou = [g for g in check(dossier) if g.code == "d4.locked"][0]
+    anglais = gap_label(verrou, "en")
+    assert "What is NOT affected" in anglais
+    assert anglais != gap_label(verrou, "fr")
+
+
 def main() -> int:
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failures = 0

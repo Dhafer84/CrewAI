@@ -1167,4 +1167,6 @@ CATALOGUE: dict[str, str] = {
         "qualifiée</strong> : c'est l'ingénieur qui dit ce qu'elle est.",
     "home.status.live": "En ligne",
     "home.ct.tag.why": "8D · 5 Pourquoi",
+    "ct.lock.missing": " — il manque : {items}",
+    "ct.lock.blocking": " — à régler d'abord : {items}",
 }
