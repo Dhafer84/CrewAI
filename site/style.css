@@ -274,6 +274,24 @@ h1 em{color:var(--green);font-style:normal}
 .stance strong{color:var(--text)}
 .stance-pair{padding-top:16px;border-top:0.5px solid var(--border-sub)}
 
+/* ─── PLAFONDS DU JOUR ───
+   L'état IA est REACTIF : il ne bascule qu'après un refus de quota constaté
+   du fournisseur. Aucune prédiction — les en-têtes HTTP ne donnent que la
+   limite par minute, jamais celle du jour. */
+.caps-group{margin-bottom:16px}
+.caps-group:last-child{margin-bottom:0}
+.caps-head{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin-bottom:4px}
+.caps-title{font-size:13.5px;font-weight:600;color:var(--text)}
+.caps-state{font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:2px 8px;border-radius:4px;background:var(--green-bg);border:0.5px solid var(--green-border);color:var(--green)}
+.caps-state.is-down{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
+.caps-note{font-size:12.5px;line-height:1.7;color:var(--text-muted);margin-bottom:9px}
+.caps-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 10px;padding:8px 0;border-top:0.5px solid var(--border-sub)}
+.caps-label{font-size:13px;color:var(--text)}
+.caps-count{font-size:12.5px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+.caps-why{flex-basis:100%;font-size:12px;line-height:1.65;color:var(--text-muted)}
+.caps-outage{margin-bottom:14px;padding:10px 12px;border-radius:var(--radius);background:var(--amber-bg);border:0.5px solid var(--amber);color:var(--amber);font-size:12.5px;line-height:1.6}
+.caps-resets{margin-top:12px;font-size:12px;color:var(--text-muted)}
+
 /* ─── TRAITEMENT DU RISQUE ET OBJECTIFS DE CYBERSÉCURITÉ ───
    Le bout de la chaîne : une TARA produit des exigences, pas un chiffre. */
 .treatment{margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border-sub)}

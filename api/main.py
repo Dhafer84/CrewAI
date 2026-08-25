@@ -25,7 +25,7 @@ import os
 import secrets
 import sys
 import time
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -112,9 +112,52 @@ _log = logging.getLogger("qualitycrew")
 
 
 
+# État réactif des fonctions IA. Volontairement NON persisté : un redémarrage du
+# service l'efface, et la tentative suivante le repose. Sur un site de
+# démonstration une panne de quota se re-détecte en une requête — un stockage
+# sur disque coûterait plus qu'il ne rapporte.
+_llm_outage: dict = {"day": None, "since": None}
+
+
+def _daily_count(usage: dict) -> int:
+    """Compteur du jour, remis à zéro si la journée a tourné (UTC).
+
+    La bascule est paresseuse. Elle vivait jusqu'ici dans les fonctions de
+    refus, donc elle ne se déclenchait que si quelqu'un lançait un traitement :
+    `/ai/status` afficherait le décompte d'hier tant que personne n'a rien
+    lancé aujourd'hui. Un seul endroit décide désormais de la bascule.
+    """
+    today = datetime.now(timezone.utc).date()
+    if usage["day"] != today:
+        usage["day"] = today
+        usage["count"] = 0
+    return usage["count"]
+
+
+def _note_llm_outage() -> None:
+    """Mémoriser que le fournisseur d'IA a refusé pour quota quotidien."""
+    now = datetime.now(timezone.utc)
+    _llm_outage["day"] = now.date()
+    _llm_outage["since"] = now.isoformat(timespec="seconds")
+
+
+def _llm_available() -> bool:
+    """Vrai tant qu'aucun refus de quota n'a été constaté aujourd'hui."""
+    return _llm_outage["day"] != datetime.now(timezone.utc).date()
+
+
 def _failure_message(exc: BaseException, defaut: str) -> str:
-    """Nommer le quota quand c'est lui, rester sobre sinon."""
-    return tr("err.quota.llm") if is_daily_quota(exc) else defaut
+    """Nommer le quota quand c'est lui, rester sobre sinon.
+
+    Effet de bord assumé : c'est le **seul** endroit du fichier qui décide
+    « ceci est un quota quotidien ». Y mémoriser la panne évite de recopier
+    cette décision dans les quatre flux SSE — un contrôle recopié quatre fois
+    finit toujours par diverger (même motif que `xlsxsafe`).
+    """
+    if is_daily_quota(exc):
+        _note_llm_outage()
+        return tr("err.quota.llm")
+    return defaut
 
 _audit_semaphore = asyncio.Semaphore(1)
 _scan_semaphore = asyncio.Semaphore(1)
@@ -287,6 +330,68 @@ async def regwatch_sources(lang: str = DEFAULT_LANG):
     return source_catalog(lang)
 
 
+@app.get("/ai/status")
+async def ai_status(lang: str = DEFAULT_LANG):
+    """Plafonds du jour et disponibilité des fonctions IA.
+
+    Même contrat que `/hara/matrix`, `/tara/scales` et `/regwatch/sources` :
+    source de vérité unique. La page lit et affiche — elle ne réécrit ni les
+    libellés ni les nombres, qui viennent des constantes `_MAX_*`.
+
+    ⚠️ **Les trois plafonds ne sont PAS trois plafonds d'IA.** Un seul l'est ;
+    les deux autres protègent un jeton GitHub partagé entre visiteurs et la
+    courtoisie envers sept sites tiers. Les confondre contredirait le
+    « Parti pris » de la page de garde, qui affirme que quatre outils sur cinq
+    rendent leur résultat sans appeler la moindre IA.
+
+    ⚠️ L'audit n'a **aucun** plafond quotidien alors qu'il est le plus gros
+    consommateur. Le dire vaut mieux que le taire : `uncapped` existe pour ça.
+    """
+    def plafond(cle: str, usage: dict, limite: int) -> dict:
+        utilise = _daily_count(usage)
+        return {
+            "key": cle,
+            "used": utilise,
+            "limit": limite,
+            "remaining": max(0, limite - utilise),
+            "label": tr(f"status.cap.{cle}", lang),
+            "note": tr(f"status.cap.{cle}.note", lang),
+        }
+
+    disponible = _llm_available()
+    demain = datetime.now(timezone.utc).date() + timedelta(days=1)
+    return {
+        "available": disponible,
+        "since": None if disponible else _llm_outage["since"],
+        "resetsAt": datetime.combine(
+            demain, datetime.min.time(), timezone.utc).isoformat(),
+        "notice": "" if disponible else tr("status.outage", lang),
+        "groups": [
+            {
+                "key": "ai",
+                "label": tr("status.group.ai", lang),
+                "note": tr("status.group.ai.note", lang),
+                "caps": [plafond("suggestions", _suggest_daily_usage,
+                                 _MAX_SUGGESTIONS_PER_DAY)],
+            },
+            {
+                "key": "service",
+                "label": tr("status.group.service", lang),
+                "note": tr("status.group.service.note", lang),
+                "caps": [
+                    plafond("scans", _daily_usage, _MAX_SCANS_PER_DAY),
+                    plafond("watches", _watch_daily_usage, _MAX_WATCHES_PER_DAY),
+                ],
+            },
+        ],
+        "uncapped": [{
+            "key": "audit",
+            "label": tr("status.uncapped.audit", lang),
+            "note": tr("status.uncapped.audit.note", lang),
+        }],
+    }
+
+
 @app.get("/tara/scales")
 async def tara_scales(lang: str = DEFAULT_LANG):
     """Barème de potentiel d'attaque + matrice de risque — source de vérité unique.
@@ -437,12 +542,7 @@ class HaraSuggestRequest(BaseModel):
 def _suggest_refusal(client: str) -> str | None:
     now = time.time()
 
-    today = datetime.now(timezone.utc).date()
-    if _suggest_daily_usage["day"] != today:
-        _suggest_daily_usage["day"] = today
-        _suggest_daily_usage["count"] = 0
-
-    if _suggest_daily_usage["count"] >= _MAX_SUGGESTIONS_PER_DAY:
+    if _daily_count(_suggest_daily_usage) >= _MAX_SUGGESTIONS_PER_DAY:
         return tr("err.quota.daily")
 
     for key, stamp in list(_last_suggest_by_client.items()):
@@ -796,12 +896,7 @@ def _rate_limit_message(client: str) -> str | None:
     """Retourne le motif de refus, ou None si le scan peut démarrer."""
     now = time.time()
 
-    today = datetime.now(timezone.utc).date()
-    if _daily_usage["day"] != today:
-        _daily_usage["day"] = today
-        _daily_usage["count"] = 0
-
-    if _daily_usage["count"] >= _MAX_SCANS_PER_DAY:
+    if _daily_count(_daily_usage) >= _MAX_SCANS_PER_DAY:
         return tr("err.quota.github")
 
     # Purge des entrées expirées : la table ne grossit pas indéfiniment.
@@ -1072,12 +1167,7 @@ _watch_daily_usage = {"day": None, "count": 0}
 def _watch_refusal(client: str) -> str | None:
     now = time.time()
 
-    today = datetime.now(timezone.utc).date()
-    if _watch_daily_usage["day"] != today:
-        _watch_daily_usage["day"] = today
-        _watch_daily_usage["count"] = 0
-
-    if _watch_daily_usage["count"] >= _MAX_WATCHES_PER_DAY:
+    if _daily_count(_watch_daily_usage) >= _MAX_WATCHES_PER_DAY:
         return tr("err.quota.daily")
 
     for key, stamp in list(_last_watch_by_client.items()):

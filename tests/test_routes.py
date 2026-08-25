@@ -27,6 +27,7 @@ besoin.
 import json
 import re
 import sys
+from datetime import date
 from io import BytesIO
 from pathlib import Path
 
@@ -969,6 +970,187 @@ def test_a_watch_refuses_an_unknown_norm():
     except InvalidSelection:
         return
     raise AssertionError("une norme inconnue aurait dû être refusée")
+
+
+# ---------------------------------------------------------------------------
+# Plafonds du jour et disponibilité des fonctions IA (25/08/2026)
+#
+# ⚠️ L'état IA est RÉACTIF : il ne bascule qu'après un refus de quota constaté.
+# Rien n'est prédit — les en-têtes HTTP du fournisseur ne donnent que la limite
+# par minute, jamais celle du jour. Un chiffre prédictif serait inventé.
+
+_AI_JS = _ROOT / "site" / "aistatus.js"
+
+
+def _acces(source: str, variable: str) -> set:
+    """Les clés lues sur un objet de la charge utile, dans le JavaScript."""
+    return set(re.findall(rf"\b{variable}\.([A-Za-z][A-Za-z0-9_]*)", source))
+
+
+def test_the_ai_status_contract_matches_what_the_page_reads():
+    """Le contrat, dans les DEUX sens.
+
+    C'est ce motif qui avait attrapé la clé `norms` manquante de RegWatch :
+    une clé servie que personne ne lit est aussi anormale qu'une clé lue que
+    personne ne sert. Les 33 tests de moteurs resteraient verts dans les deux
+    cas, et la page tomberait chez le visiteur.
+    """
+    js = _AI_JS.read_text(encoding="utf-8")
+    with client() as c:
+        charge = c.get("/ai/status").json()
+
+    servi = set(charge)
+    lu = _acces(js, "d")
+    assert lu <= servi, f"lues mais jamais servies : {sorted(lu - servi)}"
+    # `since` est servi pour le diagnostic, la page ne l'affiche pas.
+    assert servi - lu <= {"since"}, f"servies mais jamais lues : {sorted(servi - lu - {'since'})}"
+
+    groupe = charge["groups"][0]
+    lu_g = _acces(js, "g")
+    assert lu_g <= set(groupe), f"groupe : {sorted(lu_g - set(groupe))}"
+    assert set(groupe) - lu_g == set(), f"groupe servi mais non lu : {sorted(set(groupe) - lu_g)}"
+
+    plafond = groupe["caps"][0]
+    lu_c = _acces(js, "c")
+    assert lu_c <= set(plafond), f"plafond : {sorted(lu_c - set(plafond))}"
+    inutilises = set(plafond) - lu_c
+    # `used` et `key` servent au diagnostic, la page affiche `remaining`/`limit`.
+    assert inutilises <= {"used", "key"}, f"plafond servi mais non lu : {sorted(inutilises)}"
+
+
+def test_the_ai_caps_match_the_declared_maximums():
+    """Les nombres servis sont les constantes, jamais des copies retapées.
+
+    ⚠️ Comparer la valeur servie à la constante ne prouve RIEN : tant que les
+    deux valent 100, recopier `100` dans la route passe le test. Découvert par
+    mutation. On change donc la constante et on vérifie que la route suit.
+    """
+    import api.main as m
+
+    memoire = (m._MAX_SUGGESTIONS_PER_DAY, m._MAX_SCANS_PER_DAY,
+               m._MAX_WATCHES_PER_DAY)
+    try:
+        m._MAX_SUGGESTIONS_PER_DAY = 7
+        m._MAX_SCANS_PER_DAY = 5
+        m._MAX_WATCHES_PER_DAY = 3
+        with client() as c:
+            charge = c.get("/ai/status").json()
+        limites = {p["key"]: p["limit"]
+                   for g in charge["groups"] for p in g["caps"]}
+        assert limites == {"suggestions": 7, "scans": 5, "watches": 3}, (
+            f"la route ne lit pas les constantes : {limites}")
+        restes = {p["key"]: p["remaining"]
+                  for g in charge["groups"] for p in g["caps"]}
+        assert restes == limites, f"le reste à courir ne suit pas : {restes}"
+    finally:
+        (m._MAX_SUGGESTIONS_PER_DAY, m._MAX_SCANS_PER_DAY,
+         m._MAX_WATCHES_PER_DAY) = memoire
+
+
+def test_only_one_of_the_caps_is_an_ai_cap():
+    """⚠️ Le point le plus facile à casser en « simplifiant ».
+
+    Ranger les trois plafonds ensemble contredirait le « Parti pris » de la
+    page de garde : SentinelScan et la veille RegWatch n'appellent aucune IA.
+    Leurs plafonds protègent un jeton GitHub partagé et la courtoisie envers
+    des sites tiers — pas une enveloppe de jetons LLM.
+    """
+    with client() as c:
+        charge = c.get("/ai/status").json()
+    groupes = {g["key"]: [p["key"] for p in g["caps"]] for g in charge["groups"]}
+    assert groupes.get("ai") == ["suggestions"], groupes
+    assert sorted(groupes.get("service", [])) == ["scans", "watches"], groupes
+
+
+def test_a_daily_quota_failure_flips_the_ai_status():
+    """Aucun réseau : on passe une exception synthétique au seul endroit qui
+    décide « ceci est un quota quotidien »."""
+    import api.main as m
+
+    memoire = dict(m._llm_outage)
+    try:
+        m._llm_outage.update({"day": None, "since": None})
+        with client() as c:
+            assert c.get("/ai/status").json()["available"] is True
+
+        # Comme en vrai : le marqueur arrive par une cause chaînée.
+        try:
+            try:
+                raise ValueError("Rate limit reached: tokens per day (TPD)")
+            except ValueError as cause:
+                raise RuntimeError("litellm") from cause
+        except RuntimeError as exc:
+            m._failure_message(exc, "défaut")
+
+        with client() as c:
+            charge = c.get("/ai/status").json()
+        assert charge["available"] is False, "le refus de quota n'a pas basculé l'état"
+        assert charge["notice"], "une indisponibilité sans explication ne sert à rien"
+        assert charge["since"], "l'heure du refus doit être connue"
+    finally:
+        m._llm_outage.update(memoire)
+
+
+def test_an_ordinary_failure_does_not_flip_the_ai_status():
+    """Contre-épreuve indispensable : sans elle, un code qui bascule à chaque
+    erreur passerait le test précédent."""
+    import api.main as m
+
+    memoire = dict(m._llm_outage)
+    try:
+        m._llm_outage.update({"day": None, "since": None})
+        m._failure_message(RuntimeError("connection reset by peer"), "défaut")
+        with client() as c:
+            assert c.get("/ai/status").json()["available"] is True, (
+                "une panne réseau ordinaire ne doit pas annoncer un quota épuisé")
+    finally:
+        m._llm_outage.update(memoire)
+
+
+def test_the_ai_status_is_free_of_french_in_english():
+    """Le trou par lequel les six failles du 24/08 étaient passées : le
+    détecteur de français n'inspecte que le HTML rendu, jamais les charges
+    utiles injectées ensuite par JavaScript."""
+    with client() as c:
+        charge = c.get("/ai/status?lang=en").json()
+    textes = [charge.get("notice", "")]
+    for g in charge["groups"]:
+        textes += [g["label"], g["note"]]
+        for p in g["caps"]:
+            textes += [p["label"], p["note"]]
+    for u in charge["uncapped"]:
+        textes += [u["label"], u["note"]]
+    for texte in textes:
+        assert not _MOTS_FR.search(texte or ""), f"français en anglais : {texte!r}"
+
+
+def test_sentinelscan_carries_no_ai_outage_banner():
+    """SentinelScan n'appelle AUCUNE IA : un bandeau « IA indisponible » y
+    serait faux, et démentirait la page de garde."""
+    with client() as c:
+        page = c.get("/sentinelscan").text
+    assert "ai-outage" not in page, "SentinelScan n'utilise pas d'IA"
+    for chemin in ("/qualitycrew", "/hara", "/tara", "/regwatch"):
+        with client() as c:
+            assert 'id="ai-outage"' in c.get(chemin).text, f"{chemin} sans bandeau"
+
+
+def test_the_daily_counters_roll_over_with_the_day():
+    """La bascule était paresseuse et vivait dans les fonctions de refus :
+    sans passage par `_daily_count`, `/ai/status` afficherait le décompte
+    d'hier tant que personne n'a rien lancé aujourd'hui."""
+    import api.main as m
+
+    memoire = dict(m._suggest_daily_usage)
+    try:
+        m._suggest_daily_usage.update({"day": date(2020, 1, 1), "count": 99})
+        with client() as c:
+            charge = c.get("/ai/status").json()
+        plafond = charge["groups"][0]["caps"][0]
+        assert plafond["used"] == 0, "le compteur d'hier n'a pas été remis à zéro"
+        assert plafond["remaining"] == m._MAX_SUGGESTIONS_PER_DAY
+    finally:
+        m._suggest_daily_usage.update(memoire)
 
 
 def main() -> int:

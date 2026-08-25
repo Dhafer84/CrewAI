@@ -105,7 +105,9 @@ def watch_result():
     return WatchResult(
         norms=["iso9001"], lookback_days=90,
         started_at=_QUAND, finished_at=_QUAND + timedelta(seconds=7),
-        items=[WatchItem("iso9001", "ISO 9001", "Publication / amendement",
+        # ⚠️ Le signal est un IDENTIFIANT depuis le 25/08/2026, plus un libellé
+        # français : le libellé se rend à l'affichage via `signal_label()`.
+        items=[WatchItem("iso9001", "ISO 9001", "publication",
                          "ISO 9001 revision update", date(2026, 8, 7),
                          "iso_tc176sc2", "ISO/TC 176/SC 2", "officiel",
                          "https://committee.iso.test/x.html", "Parce que.")],

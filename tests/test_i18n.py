@@ -46,8 +46,8 @@ SITE = _ROOT / "site"
 # un attribut traduisible — `content` d'une <meta>, `placeholder` d'un champ.
 _KEY_IN_HTML = re.compile(r'data-i18n(?:-\w+)?="([^"]+)"')
 # `tr` est l'alias de `t` dans api/main.py — voir le commentaire là-bas.
-_KEY_IN_PYTHON = re.compile(r'\b(?:t|tr)\(\s*["\']([a-z][\w.]*)["\']')
-_KEY_IN_JS = re.compile(r'\bT\(\s*["\']([a-z][\w.]*)["\']')
+_KEY_IN_PYTHON = re.compile(r'\b(?:t|tr)\(\s*["\']([a-z](?:[\w.]*\w)?)["\']')
+_KEY_IN_JS = re.compile(r'\bT\(\s*["\']([a-z](?:[\w.]*\w)?)["\']')
 
 # ⚠️ Les familles indexées se construisent : `t(f"hara.severity.{n}")`. Le
 # scanner en retient le PRÉFIXE littéral et considère comme employée toute
@@ -60,6 +60,14 @@ _KEY_IN_JS = re.compile(r'\bT\(\s*["\']([a-z][\w.]*)["\']')
 # fait rendre la clé elle-même par `t()`, et le contrat cesse aussitôt de
 # correspondre à l'instantané.
 _KEY_FAMILY = re.compile(r'\b(?:t|tr|T)\(\s*f["\']([a-z][\w.]*?)\{')
+# Une famille se construit aussi par CONCATÉNATION côté JavaScript —
+# `T('scan.crit.' + level)`. Sans ce motif, le scanner déclarait le préfixe
+# inconnu ET les quatre criticités mortes, alors que c'est le mécanisme normal.
+_KEY_FAMILY_JS = re.compile(r'\bT\(\s*["\']([a-z][\w.]*\.)["\']\s*\+')
+# ⚠️ Une clé ne voyage pas toujours jusqu'à `t()` : depuis le 24/08/2026 les
+# erreurs réseau de RegWatch PORTENT une clé, et `core` la compose plus tard
+# dans la langue voulue. Les ignorer les faisait passer pour mortes.
+_KEY_IN_ERROR = re.compile(r'\b(?:FeedError|FetchError)\(\s*["\']([a-z][\w.]+)["\']')
 
 
 def _fixture(fr: dict, en: dict):
@@ -226,14 +234,20 @@ def _keys_used() -> set[str]:
         for motif in motifs:
             utilisees.update(motif.findall(texte))
         familles.update(_KEY_FAMILY.findall(texte))
+        familles.update(_KEY_FAMILY_JS.findall(texte))
 
     for chemin in SITE.glob("*.html"):
         relever(chemin.read_text(encoding="utf-8"), (_KEY_IN_HTML, _KEY_IN_JS))
+    # ⚠️ Les scripts partagés du site portent des clés eux aussi. Ne balayer
+    # que le HTML faisait passer pour mortes toutes celles de `aistatus.js`.
+    for chemin in SITE.glob("*.js"):
+        relever(chemin.read_text(encoding="utf-8"), (_KEY_IN_JS,))
     for dossier in ("src", "api", "scripts"):
         for chemin in (_ROOT / dossier).rglob("*.py"):
             if "i18n" in chemin.parts:
                 continue
-            relever(chemin.read_text(encoding="utf-8"), (_KEY_IN_PYTHON,))
+            relever(chemin.read_text(encoding="utf-8"),
+                    (_KEY_IN_PYTHON, _KEY_IN_ERROR))
 
     # Toute clé du catalogue qui découle d'un préfixe construit est employée.
     for cle in keys():

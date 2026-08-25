@@ -847,4 +847,43 @@ CATALOGUE: dict[str, str] = {
     "regwatch.err.degraded":
         "{source} — la page répond mais aucun élément n'en est extrait : le parseur ne reconnaît plus sa structure.",
     "regwatch.err.line": "{source} — {message}",
+
+    # --- Plafonds du jour et disponibilité des fonctions IA (25/08/2026) ---
+    # ⚠️ Un seul de ces plafonds est un plafond d'IA. Les deux autres protègent
+    # un jeton GitHub partagé et la courtoisie envers des sites tiers. Les
+    # présenter ensemble sous « quota IA » contredirait le « Parti pris ».
+    "status.title": "Plafonds du jour",
+    "status.group.ai": "Fonctions IA",
+    "status.group.ai.note":
+        "Ces fonctions sont facultatives : chaque outil rend son résultat sans elles.",
+    "status.group.service": "Plafonds de service",
+    "status.group.service.note":
+        "Sans rapport avec l'IA — ils protègent des ressources partagées entre visiteurs.",
+    "status.cap.suggestions": "Propositions par IA",
+    "status.cap.suggestions.note":
+        "Compteur commun à SafetyScope, ThreatScope et RegWatch : un compteur par outil "
+        "donnerait trois fois plus d'appels sur une seule enveloppe.",
+    "status.cap.scans": "Scans SentinelScan",
+    "status.cap.scans.note":
+        "Tous les visiteurs partagent un même jeton GitHub — le plafond évite qu'une "
+        "personne le monopolise. Cet outil n'appelle aucune IA.",
+    "status.cap.watches": "Veilles RegWatch",
+    "status.cap.watches.note":
+        "Le site interroge sept sources tierces depuis une seule adresse : le plafond "
+        "est une courtoisie envers elles. La veille elle-même n'appelle aucune IA.",
+    "status.uncapped.audit": "Audit QualityCrew",
+    "status.uncapped.audit.note":
+        "Aucun plafond quotidien, alors que c'est le plus gros consommateur d'IA du site. "
+        "Le dire vaut mieux que le taire.",
+    "status.outage":
+        "Les fonctions IA sont indisponibles pour aujourd'hui : le quota quotidien du "
+        "fournisseur est épuisé. Tout le reste du site fonctionne normalement.",
+    "status.js.available": "disponibles",
+    "status.js.unavailable": "indisponibles aujourd'hui",
+    "status.js.remaining.one": "{n} restante sur {limit}",
+    "status.js.remaining.other": "{n} restantes sur {limit}",
+    "status.js.resets": "Remise à zéro le {quand}.",
+    "status.js.locale": "fr-FR",
+    "status.js.uncapped": "non plafonné",
+    "status.js.failed": "Plafonds indisponibles pour le moment.",
 }

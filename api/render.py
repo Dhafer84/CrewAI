@@ -130,7 +130,8 @@ def render(html: str, lang: str, path: str, base_url: str,
                                 f'href="/{lang}{chemin}"')
 
     if asset_version:
-        for actif in ("/static/style.css", "/static/i18n.js"):
+        for actif in ("/static/style.css", "/static/i18n.js",
+                      "/static/aistatus.js"):
             html = html.replace(f'"{actif}"', f'"{actif}?v={asset_version}"')
 
     # Le sélecteur pointe vers la MÊME page dans l'autre langue.
