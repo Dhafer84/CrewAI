@@ -1,4 +1,4 @@
-"""Jeux d'essai déterministes pour les quatre exports Excel.
+"""Jeux d'essai déterministes pour les cinq exports Excel.
 
 Partagés par `test_i18n.py` (instantané de non-régression, puis comparaison
 FR/EN) et disponibles pour toute suite qui aurait besoin d'un classeur
@@ -120,6 +120,7 @@ def watch_result():
 
 def workbooks(lang: str = "fr") -> dict[str, bytes]:
     """Les quatre classeurs, construits dans la langue demandée."""
+    from causetrace.report import build_excel as causetrace_excel
     from regwatch.report import build_excel as regwatch_excel
     from safetyscope.report import build_excel as hara_excel
     from sentinelscan.report import build_excel as scan_excel
@@ -137,7 +138,40 @@ def workbooks(lang: str = "fr") -> dict[str, bytes]:
         "tara": appeler(tara_excel, tara_analysis()),
         "sentinelscan": appeler(scan_excel, scan_result()),
         "regwatch": appeler(regwatch_excel, watch_result()),
+        "causetrace": causetrace_excel(causetrace_dossier(), lang, _QUAND),
     }
+
+
+def causetrace_dossier():
+    """Un 8D figé — délibérément incomplet, comme un vrai brouillon.
+
+    ⚠️ Aucune date « maintenant » : `build_excel` reçoit `_QUAND`. Le piège
+    s'est déjà refermé sur l'export HARA, dont la Synthèse imprimait
+    `datetime.now()` à la minute près — l'instantané aurait échoué tout seul
+    au changement de minute suivant.
+    """
+    from causetrace.model import build_dossier
+
+    return build_dossier({
+        "reference": "8D-2026-014",
+        "title": "Perte intermittente du signal de vitesse roue",
+        "d1": {"owner": "A. Mercier", "members": ["Atelier montage"]},
+        "d2": {"what": "Le capteur avant gauche perd son signal",
+               "where": "Fin de ligne", "since": "2026-05-12",
+               "how_many": "7 pièces sur 1 240", "is_not": "Roue avant droite indemne"},
+        "d3": {"action": "Tri à 100 % des lots en stock", "due_date": "2026-06-30"},
+        "d4": {"occurrence": "Serrage du connecteur hors tolérance",
+               "escape": "",
+               "occurrence_chain": [
+                   {"statement": "Le connecteur perd le contact", "nature": "technical"},
+                   {"statement": "Le couple appliqué est sous la spécification",
+                    "nature": "technical"},
+                   {"statement": "La visseuse n'est pas asservie au couple",
+                    "nature": "process"},
+               ]},
+        "d7": {"lessons": "Sensibilisation de l'équipe"},
+        "d8": {"claimed_closed": True, "closed_on": "2026-06-20"},
+    })
 
 
 def cell_values(data: bytes) -> dict[str, list[str]]:

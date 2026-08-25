@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" data-i18n-content="ct.meta" content="Résolution de réclamation 8D avec analyse causale : l'outil refuse d'appeler « résolu » un dossier qui ne l'est pas, et dit où il pèche.">
+  <title data-i18n="ct.title">CauseTrace — Résolution de réclamation 8D</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+
+  <nav>
+    <a class="nav-back" href="/">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      <span data-i18n="nav.back">Tous les outils</span>
+    </a>
+    <a class="nav-link" href="https://github.com/Dhafer84/CrewAI" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      <span data-i18n="nav.github">GitHub</span>
+    </a>
+    <a class="nav-link nav-lang" href="/en/8d" hreflang="en" title="English version">EN</a>
+  </nav>
+
+  <section class="hero">
+    <div class="badge badge-blue">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2v20M2 12h20"/></svg>
+      <span data-i18n="ct.badge">Verdict immédiat — aucun temps d'attente</span>
+    </div>
+    <h1 data-i18n="ct.h1">Cause<em>Trace</em></h1>
+    <p class="subtitle" data-i18n="ct.subtitle">Résolution de réclamation client selon la démarche 8D. L'outil ne remplit pas huit cases : il <strong>refuse d'appeler « résolu » un dossier qui ne l'est pas</strong>, et dit précisément où il pèche. Le verdict est déterministe, sans intelligence artificielle.</p>
+    <div id="ai-outage"></div>
+  </section>
+
+  <div class="disclaimer">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+    <span data-i18n="ct.note"><strong>Démonstration pédagogique.</strong> Le 8D, l'Ishikawa et les 5 Pourquoi relèvent du domaine public : cet outil peut les nommer et les implémenter sans restriction. Il ne remplace ni votre système qualité, ni les exigences de votre client. Vos saisies restent dans votre navigateur ; elles ne sont transmises qu'au moment de l'export, pour construire le classeur.</span>
+  </div>
+
+  <div class="draft-banner" id="draft-banner" hidden>
+    <span id="draft-text"></span>
+    <button class="bridge-clear" id="draft-clear"><span data-i18n="ct.reset">Repartir d'un dossier vierge</span></button>
+  </div>
+
+  <div class="section-label" data-i18n="ct.section.case">Dossier</div>
+  <div class="scan-form">
+    <input type="text" id="case-ref" class="kw-input" maxlength="120" style="max-width:190px"
+           data-i18n-placeholder="ct.ph.reference" placeholder="ex : 8D-2026-014" autocomplete="off">
+    <input type="text" id="case-title" class="kw-input" maxlength="120"
+           data-i18n-placeholder="ct.ph.title" placeholder="ex : Perte intermittente du signal de vitesse roue" autocomplete="off">
+  </div>
+  <div class="events-actions">
+    <button class="btn btn-ghost" id="btn-example">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+      <span data-i18n="ct.load">Charger un exemple</span>
+    </button>
+    <span class="form-hint" id="example-hint" data-i18n="ct.load.hint">Un 8D réaliste tel qu'on en reçoit — et que l'outil refuse de tenir pour clos.</span>
+  </div>
+
+  <div class="section-label" data-i18n="ct.section.verdict">Verdict</div>
+  <div class="warn-box" id="verdict" style="margin-bottom:44px">
+    <div class="verdict-head">
+      <span class="treatment-state" id="verdict-state"></span>
+      <span class="verdict-count" id="verdict-count"></span>
+      <button class="btn-download" id="btn-export" type="button" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        <span data-i18n="ct.export">Exporter en Excel</span>
+      </button>
+    </div>
+    <ul class="warn-list" id="verdict-list"></ul>
+    <div class="form-hint" id="export-hint" style="margin:12px 0 0"></div>
+  </div>
+
+  <div class="section-label" data-i18n="ct.section.disciplines">Les huit disciplines</div>
+  <div id="disciplines"></div>
+
+  <footer>
+    <div class="footer-inner">
+      <span class="footer-text" data-i18n="footer.8d">CauseTrace · démonstration pédagogique · vos saisies ne sont transmises qu'à l'export</span>
+      <a class="nav-link" href="/" data-i18n="footer.tools">Tous les outils</a>
+    </div>
+  </footer>
+</div>
+
+<script src="/i18n/fr.js"></script>
+<script src="/static/i18n.js"></script>
+<script src="/static/aistatus.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ⚠️ RULES vient du serveur et n'est JAMAIS réécrit ici : champs exigés,
+  // dépendances entre disciplines, natures pouvant conclure une chaîne,
+  // texte de chaque constat. Même motif que /hara/matrix et /tara/scales.
+  var RULES = null;
+
+  // ⚠️ L'ORDRE et la NATURE des champs viennent tous deux du contrat
+  // (`RULES.fields`, `RULES.kinds`) — une seule source pour la page, pour
+  // l'export et pour la relecture par IA.
+
+  // Disciplines dont la carte est construite à la main : D4 porte ses deux
+  // chaînes, D8 une case à cocher.
+  var CUSTOM = ['d4', 'd8'];
+
+  function plainFields(d) {
+    return CUSTOM.indexOf(d) >= 0 ? [] : (RULES.fields[d] || []);
+  }
+
+  var DRAFT_KEY = 'causetrace.draft';
+  // Nombre de constats affichés, pour le confronter à celui du serveur.
+  var dernierCompte = 0;
+  var saveTimer = null;
+
+  function el(id) { return document.getElementById(id); }
+  function val(id) { var n = el(id); return n ? n.value.trim() : ''; }
+
+  // ------------------------------------------------------------------ vue
+
+  function fieldNode(d, name, type) {
+    var wrap = document.createElement('div');
+    wrap.className = 'rating';
+    var label = document.createElement('span');
+    label.className = 'rating-label';
+    label.textContent = T('ct.f.' + d + '.' + name);
+    var input = document.createElement('input');
+    input.type = type === 'date' ? 'date' : 'text';
+    input.className = 'kw-input event-input';
+    input.id = 'f-' + d + '-' + name;
+    input.maxLength = type === 'long' ? 500 : 120;
+    input.autocomplete = 'off';
+    var ph = T('ct.ph.' + d + '.' + name);
+    if (ph !== 'ct.ph.' + d + '.' + name) { input.placeholder = ph; }
+    wrap.appendChild(label);
+    wrap.appendChild(input);
+    return wrap;
+  }
+
+  function whyRow(slot, index) {
+    var row = document.createElement('div');
+    row.className = 'why-row';
+
+    var num = document.createElement('span');
+    num.className = 'why-n';
+    num.textContent = index + 1;
+
+    var text = document.createElement('input');
+    text.type = 'text';
+    text.className = 'kw-input why-text';
+    text.maxLength = 300;
+    text.autocomplete = 'off';
+    text.placeholder = T('ct.ph.why');
+
+    var pick = document.createElement('select');
+    pick.className = 'rating-select why-nature';
+    pick.appendChild(new Option(T('ct.js.nature.none'), ''));
+    RULES.chain.natures.forEach(function (n) {
+      pick.appendChild(new Option(RULES.chain.natureLabels[n], n));
+    });
+
+    var del = document.createElement('button');
+    del.className = 'event-del';
+    del.type = 'button';
+    del.title = T('ct.js.del');
+    del.setAttribute('aria-label', T('ct.js.del'));
+    del.textContent = '×';
+    del.addEventListener('click', function () {
+      row.parentNode.removeChild(row);
+      renumber(slot);
+      refresh();
+    });
+
+    row.appendChild(num);
+    row.appendChild(text);
+    row.appendChild(pick);
+    row.appendChild(del);
+    return row;
+  }
+
+  function renumber(slot) {
+    var rows = el('chain-' + slot).querySelectorAll('.why-row');
+    Array.prototype.forEach.call(rows, function (r, i) {
+      r.querySelector('.why-n').textContent = i + 1;
+    });
+    el('addwhy-' + slot).disabled = rows.length >= RULES.chain.maxSteps;
+  }
+
+  function addWhy(slot, statement, nature) {
+    var host = el('chain-' + slot);
+    if (host.querySelectorAll('.why-row').length >= RULES.chain.maxSteps) { return; }
+    var row = whyRow(slot, host.querySelectorAll('.why-row').length);
+    host.appendChild(row);
+    if (statement) { row.querySelector('.why-text').value = statement; }
+    if (nature) { row.querySelector('.why-nature').value = nature; }
+    renumber(slot);
+  }
+
+  function slotNode(slot) {
+    var box = document.createElement('div');
+    box.style.marginBottom = '18px';
+
+    var label = document.createElement('span');
+    label.className = 'rating-label';
+    label.textContent = T('ct.f.d4.' + slot);
+    var cause = document.createElement('input');
+    cause.type = 'text';
+    cause.className = 'kw-input event-input';
+    cause.id = 'f-d4-' + slot;
+    cause.maxLength = 500;
+    cause.autocomplete = 'off';
+    cause.placeholder = T('ct.ph.d4.' + slot);
+
+    var chain = document.createElement('div');
+    chain.className = 'threats';
+    var head = document.createElement('div');
+    head.className = 'threats-label';
+    head.textContent = T('ct.js.chain', { slot: RULES.slots[slot] });
+    var rows = document.createElement('div');
+    rows.id = 'chain-' + slot;
+    var add = document.createElement('button');
+    add.className = 'btn btn-ghost btn-sm';
+    add.type = 'button';
+    add.id = 'addwhy-' + slot;
+    add.textContent = T('ct.js.addwhy');
+    add.addEventListener('click', function () { addWhy(slot); refresh(); });
+
+    chain.appendChild(head);
+    chain.appendChild(rows);
+    chain.appendChild(add);
+
+    box.appendChild(label);
+    box.appendChild(cause);
+    box.appendChild(chain);
+    return box;
+  }
+
+  function closureNode() {
+    var box = document.createElement('div');
+    box.className = 'd-grid';
+
+    var left = document.createElement('label');
+    left.className = 'warn-accept';
+    var tick = document.createElement('input');
+    tick.type = 'checkbox';
+    tick.id = 'f-d8-claimed';
+    var say = document.createElement('span');
+    say.textContent = T('ct.f.d8.claimed_closed');
+    left.appendChild(tick);
+    left.appendChild(say);
+
+    var right = document.createElement('div');
+    right.className = 'rating';
+    var lab = document.createElement('span');
+    lab.className = 'rating-label';
+    lab.textContent = T('ct.f.d8.closed_on');
+    var when = document.createElement('input');
+    when.type = 'date';
+    when.className = 'kw-input event-input';
+    when.id = 'f-d8-closed_on';
+    right.appendChild(lab);
+    right.appendChild(when);
+
+    box.appendChild(left);
+    box.appendChild(right);
+    return box;
+  }
+
+  function buildCards() {
+    var host = el('disciplines');
+    host.textContent = '';
+    RULES.order.forEach(function (d) {
+      var card = document.createElement('div');
+      card.className = 'event-card d-card';
+      card.id = 'card-' + d;
+
+      var head = document.createElement('div');
+      head.className = 'event-head';
+      var name = document.createElement('span');
+      name.className = 'event-num';
+      name.textContent = RULES.labels[d];
+      var state = document.createElement('span');
+      state.className = 'treatment-state';
+      state.id = 'state-' + d;
+      head.appendChild(name);
+      head.appendChild(state);
+      card.appendChild(head);
+
+      if (d === 'd4') {
+        card.appendChild(slotNode('occurrence'));
+        card.appendChild(slotNode('escape'));
+      } else if (d === 'd8') {
+        card.appendChild(closureNode());
+      } else {
+        var grid = document.createElement('div');
+        grid.className = 'd-grid';
+        plainFields(d).forEach(function (f) {
+          grid.appendChild(fieldNode(d, f, RULES.kinds[f] || 'text'));
+        });
+        card.appendChild(grid);
+      }
+
+      var gaps = document.createElement('ul');
+      gaps.className = 'd-gaps';
+      gaps.id = 'gaps-' + d;
+      card.appendChild(gaps);
+
+      var actions = document.createElement('div');
+      actions.className = 'damage-actions';
+      var relire = document.createElement('button');
+      relire.className = 'btn btn-ghost btn-sm btn-suggest';
+      relire.type = 'button';
+      relire.id = 'review-' + d;
+      relire.textContent = T('ct.review');
+      relire.addEventListener('click', function () { review(d); });
+      var aide = document.createElement('span');
+      aide.className = 'form-hint';
+      aide.style.margin = '0';
+      aide.id = 'reviewhint-' + d;
+      actions.appendChild(relire);
+
+      // ⚠️ Proposition de CONTENU — distincte de la relecture, qui porte sur
+      // ce qui est déjà écrit. Un bouton par discipline concernée, jamais un
+      // bouton global : hors contexte, un balayage 5M ne produit que des
+      // généralités.
+      var PROPOSE = { d2: 'questions', d4: 'causes' };
+      if (PROPOSE[d]) {
+        var proposer = document.createElement('button');
+        proposer.className = 'btn btn-ghost btn-sm btn-suggest';
+        proposer.type = 'button';
+        proposer.id = 'propose-' + d;
+        // ⚠️ Deux appels distincts, jamais `T(cond ? 'a' : 'b')` : le
+        // scanner de clés de test_i18n.py ne voit que la chaîne qui suit
+        // immédiatement `T(`, et déclarerait la seconde morte. Vécu deux
+        // fois — à l'étape 4 avec « xl.ct.no », puis ici.
+        proposer.textContent = d === 'd4' ? T('ct.ishikawa') : T('ct.questions');
+        proposer.addEventListener('click', function () { propose(d, PROPOSE[d]); });
+        actions.appendChild(proposer);
+      }
+
+      actions.appendChild(aide);
+      card.appendChild(actions);
+
+      var propositions = document.createElement('div');
+      propositions.id = 'proposals-' + d;
+      card.appendChild(propositions);
+      host.appendChild(card);
+    });
+
+    host.addEventListener('input', refresh);
+    host.addEventListener('change', refresh);
+  }
+
+  // -------------------------------------------------------------- collecte
+
+  function chainOf(slot) {
+    var rows = el('chain-' + slot).querySelectorAll('.why-row');
+    return Array.prototype.map.call(rows, function (r) {
+      return {
+        statement: r.querySelector('.why-text').value.trim(),
+        nature: r.querySelector('.why-nature').value
+      };
+    }).filter(function (s) { return s.statement; });
+  }
+
+  // ⚠️ Capture TOUT, y compris l'incomplet : c'est précisément ce qu'on est
+  // en train de saisir. Aucun filtrage ici — la leçon de `snapshot()` sur
+  // /tara, où réutiliser une fonction qui filtre aurait vidé le brouillon.
+  function collect() {
+    var dossier = { reference: val('case-ref'), title: val('case-title') };
+    RULES.order.forEach(function (d) {
+      dossier[d] = {};
+      plainFields(d).forEach(function (f) { dossier[d][f] = val('f-' + d + '-' + f); });
+    });
+    dossier.d1.members = dossier.d1.members
+      ? dossier.d1.members.split(',').map(function (m) { return m.trim(); }).filter(Boolean)
+      : [];
+    dossier.d4 = {
+      occurrence: val('f-d4-occurrence'),
+      escape: val('f-d4-escape'),
+      occurrence_chain: chainOf('occurrence'),
+      escape_chain: chainOf('escape')
+    };
+    dossier.d8 = {
+      claimed_closed: el('f-d8-claimed').checked,
+      closed_on: val('f-d8-closed_on')
+    };
+    return dossier;
+  }
+
+  // ------------------------------------------------------------- évaluation
+  // ⚠️ Miroir de `causetrace.check` — MÊME ORDRE, mêmes règles, mais lues
+  // dans le contrat et non réécrites. C'est un indicateur de COMMODITÉ : le
+  // verdict qui fera foi est recalculé côté serveur avant tout export.
+
+  function normalise(s) {
+    return s.replace(/\s+/g, ' ').trim().toLowerCase().replace(/^[.,;:!?\-—…]+|[.,;:!?\-—…]+$/g, '');
+  }
+
+  function analyseChain(steps) {
+    if (!steps.length) { return ['chain_missing']; }
+    var out = [];
+    if (steps.length < RULES.chain.minSteps) { out.push('chain_too_short'); }
+    if (steps.some(function (s) { return !s.nature; })) { out.push('chain_step_without_nature'); }
+    var seen = steps.map(function (s) { return normalise(s.statement); });
+    if (new Set(seen).size < seen.length) { out.push('chain_repeats_itself'); }
+    var last = steps[steps.length - 1].nature;
+    if (last && RULES.chain.terminal.indexOf(last) < 0) {
+      out.push(last === 'person' ? 'chain_ends_on_person' : 'chain_ends_on_symptom');
+    }
+    return out;
+  }
+
+  function gapsOf(d, dossier) {
+    var out = [];
+    (RULES.required[d] || []).forEach(function (f) {
+      if (!dossier[d][f] || !String(dossier[d][f]).length) {
+        out.push({ d: d, code: RULES.gapOf[d][f], slot: '' });
+      }
+    });
+    if (d === 'd4') {
+      [['occurrence', dossier.d4.occurrence_chain], ['escape', dossier.d4.escape_chain]]
+        .forEach(function (pair) {
+          // Une cause non énoncée ne voit pas sa chaîne examinée.
+          if (!dossier.d4[pair[0]]) { return; }
+          analyseChain(pair[1]).forEach(function (c) {
+            out.push({ d: 'd4', code: 'd4.' + c, slot: pair[0] });
+          });
+        });
+    }
+    return out;
+  }
+
+  function evaluate(dossier) {
+    var gaps = [], locked = {};
+    RULES.order.forEach(function (d) {
+      if (d === 'd8') { return; }
+      var up = RULES.dependsOn[d];
+      if (up && (locked[up] || gapsOf(up, dossier).length)) {
+        locked[d] = true;
+        gaps.push({ d: d, code: d + '.locked', slot: '', lock: true });
+        return;
+      }
+      gaps = gaps.concat(gapsOf(d, dossier));
+    });
+
+    var upstream = gaps.length > 0;
+    if (upstream) {
+      if (dossier.d8.claimed_closed) {
+        gaps.push({ d: 'd8', code: 'd8.premature_closure', slot: '' });
+      }
+    } else if (!dossier.d8.claimed_closed) {
+      gaps.push({ d: 'd8', code: 'd8.not_closed', slot: '' });
+    } else if (!dossier.d8.closed_on) {
+      gaps.push({ d: 'd8', code: 'd8.no_closure_date', slot: '' });
+    }
+    return gaps;
+  }
+
+  function isBlank(dossier) {
+    var vierge = true;
+    JSON.stringify(dossier, function (cle, valeur) {
+      if (typeof valeur === 'string' && valeur.trim()) { vierge = false; }
+      if (valeur === true) { vierge = false; }
+      return valeur;
+    });
+    return vierge;
+  }
+
+  // ---------------------------------------------------------------- rendu
+
+  function gapLine(gap, withDiscipline) {
+    var li = document.createElement('li');
+    if (gap.lock) { li.className = 'is-lock'; }
+    var texte = RULES.gaps[gap.code] || gap.code;
+    if (withDiscipline) { texte = RULES.labels[gap.d] + ' — ' + texte; }
+    li.textContent = texte;
+    if (gap.slot) {
+      var src = document.createElement('span');
+      src.className = 'gap-src';
+      src.textContent = ' (' + RULES.slots[gap.slot] + ')';
+      li.appendChild(src);
+    }
+    return li;
+  }
+
+  function refresh() {
+    var dossier = collect();
+    var gaps = evaluate(dossier);
+    var vierge = isBlank(dossier);
+
+    RULES.order.forEach(function (d) {
+      var siens = gaps.filter(function (g) { return g.d === d; });
+      var liste = el('gaps-' + d);
+      liste.textContent = '';
+      siens.forEach(function (g) { liste.appendChild(gapLine(g, false)); });
+
+      var verrouillee = siens.some(function (g) { return g.lock; });
+      var etat = verrouillee ? 'locked' : (siens.length ? 'incomplete' : 'complete');
+      var badge = el('state-' + d);
+      badge.textContent = T('ct.js.state.' + etat);
+      badge.className = 'treatment-state ' + (etat === 'complete' ? 'is-ok'
+                        : etat === 'locked' ? 'is-locked' : 'is-todo');
+      el('card-' + d).className = 'event-card d-card' + (verrouillee ? ' is-locked' : '');
+    });
+
+    var boite = el('verdict');
+    var etat = el('verdict-state');
+    var liste = el('verdict-list');
+    liste.textContent = '';
+
+    if (vierge) {
+      boite.className = 'warn-box is-note';
+      etat.className = 'treatment-state is-locked';
+      etat.textContent = T('ct.js.verdict.blank');
+      el('verdict-count').textContent = T('ct.js.verdict.hint');
+    } else if (!gaps.length) {
+      boite.className = 'warn-box is-ok';
+      etat.className = 'treatment-state is-ok';
+      etat.textContent = T('ct.js.verdict.closable');
+      el('verdict-count').textContent = T('ct.js.verdict.ok');
+    } else {
+      boite.className = 'warn-box';
+      etat.className = 'treatment-state is-todo';
+      etat.textContent = T('ct.js.verdict.open');
+      el('verdict-count').textContent = T('ct.js.verdict.count', { n: gaps.length });
+      gaps.forEach(function (g) { liste.appendChild(gapLine(g, true)); });
+    }
+
+    RULES.order.forEach(function (d) {
+      var bouton = el('review-' + d);
+      if (bouton) { bouton.disabled = !reviewable(d, dossier); }
+      // La proposition part du D2 : sans problème décrit, rien à explorer.
+      var proposer = el('propose-' + d);
+      if (proposer) {
+        proposer.disabled = !(RULES.fields.d2 || []).some(function (f) {
+          return String(dossier.d2[f] || '').trim();
+        });
+      }
+    });
+    el('btn-export').disabled = vierge;
+    dernierCompte = gaps.length;
+    scheduleSave(dossier, vierge);
+  }
+
+  // ------------------------------------------------------------ brouillon
+  // `sessionStorage` et non `localStorage` : le brouillon meurt à la
+  // fermeture de l'onglet. Sur un poste partagé, rien ne traîne.
+
+  function scheduleSave(dossier, vierge) {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () {
+      try {
+        if (vierge) { sessionStorage.removeItem(DRAFT_KEY); }
+        else { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(dossier)); }
+      } catch (err) { /* stockage indisponible : on continue sans */ }
+    }, 500);
+  }
+
+  function fill(dossier) {
+    el('case-ref').value = dossier.reference || '';
+    el('case-title').value = dossier.title || '';
+    RULES.order.forEach(function (d) {
+      plainFields(d).forEach(function (f) {
+        var v = (dossier[d] || {})[f];
+        if (Array.isArray(v)) { v = v.join(', '); }
+        el('f-' + d + '-' + f).value = v || '';
+      });
+    });
+    ['occurrence', 'escape'].forEach(function (slot) {
+      el('f-d4-' + slot).value = (dossier.d4 || {})[slot] || '';
+      el('chain-' + slot).textContent = '';
+      ((dossier.d4 || {})[slot + '_chain'] || []).forEach(function (s) {
+        addWhy(slot, s.statement, s.nature);
+      });
+      renumber(slot);
+    });
+    el('f-d8-claimed').checked = !!(dossier.d8 || {}).claimed_closed;
+    el('f-d8-closed_on').value = (dossier.d8 || {}).closed_on || '';
+    refresh();
+  }
+
+  function restore() {
+    var snap = null;
+    try { snap = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || 'null'); } catch (e) { return false; }
+    if (!snap) { return false; }
+    fill(snap);
+    el('draft-banner').hidden = false;
+    el('draft-text').textContent = T('ct.js.draft');
+    return true;
+  }
+
+  el('draft-clear').addEventListener('click', function () {
+    try { sessionStorage.removeItem(DRAFT_KEY); } catch (err) { /* rien à faire */ }
+    location.reload();
+  });
+
+  // ------------------------------------------------------- relecture par IA
+  // ⚠️ L'IA PROPOSE, elle n'applique rien. Chaque reformulation s'affiche à
+  // côté de l'original avec un bouton ; et ce qu'elle n'a pas pu écrire
+  // devient une QUESTION, jamais une valeur inventée.
+
+  function reviewable(d, dossier) {
+    var utiles = (RULES.fields[d] || []).filter(function (f) {
+      return RULES.reviewableKinds.indexOf(RULES.kinds[f]) >= 0
+        && String(dossier[d][f] || '').trim();
+    });
+    if (d === 'd4') {
+      return utiles.length > 0
+        || dossier.d4.occurrence_chain.length > 0
+        || dossier.d4.escape_chain.length > 0;
+    }
+    return utiles.length > 0;
+  }
+
+  function applyTo(champ, texte) {
+    var chaine = champ.match(/^(occurrence|escape)_chain\.(\d+)$/);
+    if (chaine) {
+      var rows = el('chain-' + chaine[1]).querySelectorAll('.why-row');
+      var row = rows[parseInt(chaine[2], 10) - 1];
+      if (row) { row.querySelector('.why-text').value = texte; }
+    } else {
+      var champId = null;
+      RULES.order.forEach(function (d) {
+        if (el('f-' + d + '-' + champ)) { champId = 'f-' + d + '-' + champ; }
+      });
+      if (champId) { el(champId).value = texte; }
+    }
+    refresh();
+  }
+
+  function labelOf(d, champ) {
+    var chaine = champ.match(/^(occurrence|escape)_chain\.(\d+)$/);
+    if (chaine) {
+      return T('ct.review.why', { slot: RULES.slots[chaine[1]], rank: chaine[2] });
+    }
+    return T('ct.f.' + d + '.' + champ);
+  }
+
+  function renderReview(d, data) {
+    var hote = el('proposals-' + d);
+    hote.textContent = '';
+
+    (data.fields || []).forEach(function (item) {
+      var boite = document.createElement('div');
+      boite.className = 'impact-proposal';
+
+      var titre = document.createElement('span');
+      titre.className = 'summary-label';
+      titre.textContent = labelOf(d, item.field);
+
+      var texte = document.createElement('span');
+      texte.className = 'goal-text';
+      texte.textContent = item.rewritten;
+
+      var bouton = document.createElement('button');
+      bouton.className = 'btn-apply';
+      bouton.type = 'button';
+      bouton.textContent = T('ct.js.review.apply');
+      bouton.addEventListener('click', function () {
+        applyTo(item.field, item.rewritten);
+        boite.className = 'impact-proposal is-applied';
+        bouton.textContent = T('ct.js.review.applied');
+        bouton.disabled = true;
+      });
+
+      boite.appendChild(titre);
+      boite.appendChild(texte);
+      boite.appendChild(bouton);
+      hote.appendChild(boite);
+    });
+
+    if ((data.demands || []).length) {
+      var box = document.createElement('div');
+      box.className = 'warn-box is-note';
+      box.style.marginTop = '12px';
+      var tete = document.createElement('div');
+      tete.className = 'warn-head';
+      tete.textContent = T('ct.js.review.demands');
+      var liste = document.createElement('ul');
+      liste.className = 'warn-list';
+      data.demands.forEach(function (q) {
+        var li = document.createElement('li');
+        li.textContent = q;
+        liste.appendChild(li);
+      });
+      box.appendChild(tete);
+      box.appendChild(liste);
+      hote.appendChild(box);
+    }
+
+    var aide = el('reviewhint-' + d);
+    aide.className = 'form-hint';
+    aide.style.margin = '0';
+    aide.textContent = (data.fields || []).length || (data.demands || []).length
+      ? '' : T('ct.js.review.none');
+  }
+
+  function review(d) {
+    var bouton = el('review-' + d);
+    var aide = el('reviewhint-' + d);
+    bouton.disabled = true;
+    aide.className = 'form-hint';
+    aide.style.margin = '0';
+    aide.textContent = T('ct.js.review.running');
+
+    fetch('/8d/review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lang: window.LANG, discipline: d, dossier: collect() })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok) { throw new Error(res.j.error || T('ct.js.review.ko')); }
+        var flux = new EventSource('/8d/review/stream?t='
+          + encodeURIComponent(res.j.token));
+        flux.onmessage = function (evenement) {
+          var data = JSON.parse(evenement.data);
+          if (data.type === 'done') {
+            renderReview(d, data);
+            flux.close();
+            bouton.disabled = false;
+          } else if (data.type === 'error') {
+            aide.textContent = data.message;
+            aide.className = 'form-hint error';
+            flux.close();
+            bouton.disabled = false;
+          }
+        };
+        flux.onerror = function () {
+          flux.close();
+          aide.textContent = T('ct.js.review.ko');
+          aide.className = 'form-hint error';
+          bouton.disabled = false;
+        };
+      })
+      .catch(function (err) {
+        aide.textContent = err.message || T('ct.js.review.ko');
+        aide.className = 'form-hint error';
+        bouton.disabled = false;
+      });
+  }
+
+  // ----------------------------------------------- proposition de contenu
+
+  function renderProposals(d, data) {
+    var hote = el('proposals-' + d);
+    hote.textContent = '';
+
+    var items = data.items || [];
+    if (!items.length) {
+      el('reviewhint-' + d).textContent = T('ct.js.propose.none');
+      return;
+    }
+
+    var causes = data.kind === 'causes';
+    var box = document.createElement('div');
+    box.className = 'warn-box is-note';
+    box.style.marginTop = '12px';
+
+    var tete = document.createElement('div');
+    tete.className = 'warn-head';
+    tete.textContent = causes ? T('ct.js.propose.title') : T('ct.js.questions.title');
+    box.appendChild(tete);
+
+    var groupeCourant = null, liste = null;
+    items.forEach(function (item) {
+      if (item.group !== groupeCourant) {
+        groupeCourant = item.group;
+        var titre = document.createElement('div');
+        titre.className = 'summary-label';
+        titre.style.marginTop = '10px';
+        titre.textContent = T((causes ? 'ct.5m.' : 'ct.axis.') + item.group);
+        box.appendChild(titre);
+        liste = document.createElement('div');
+        box.appendChild(liste);
+      }
+
+      var ligne = document.createElement('div');
+      ligne.className = 'why-row';
+      var texte = document.createElement('span');
+      texte.className = 'goal-text';
+      texte.style.flex = '1';
+      texte.textContent = item.text;
+      ligne.appendChild(texte);
+
+      // ⚠️ Une QUESTION ne s'applique jamais dans un champ : elle se creuse.
+      // C'est exactement le défaut corrigé à l'étape 5.
+      if (causes) {
+        var bouton = document.createElement('button');
+        bouton.className = 'btn-apply';
+        bouton.type = 'button';
+        bouton.textContent = T('ct.js.propose.use');
+        bouton.addEventListener('click', function () {
+          // ⚠️ Ajoutée SANS NATURE : le moteur réclamera aussitôt de la
+          // qualifier. L'outil dit « à toi de dire ce que c'est ».
+          addWhy('occurrence', item.text, '');
+          refresh();
+          bouton.textContent = T('ct.js.propose.used');
+          bouton.disabled = true;
+        });
+        ligne.appendChild(bouton);
+      }
+      liste.appendChild(ligne);
+    });
+
+    if (!causes) {
+      var note = document.createElement('div');
+      note.className = 'bridge-note';
+      note.textContent = T('ct.js.questions.note');
+      box.appendChild(note);
+    }
+    hote.appendChild(box);
+    el('reviewhint-' + d).textContent = '';
+  }
+
+  function propose(d, kind) {
+    var bouton = el('propose-' + d);
+    var aide = el('reviewhint-' + d);
+    bouton.disabled = true;
+    aide.className = 'form-hint';
+    aide.style.margin = '0';
+    aide.textContent = T('ct.js.propose.running');
+
+    fetch('/8d/propose', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lang: window.LANG, kind: kind, dossier: collect() })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok) { throw new Error(res.j.error || T('ct.js.propose.ko')); }
+        var flux = new EventSource('/8d/propose/stream?t='
+          + encodeURIComponent(res.j.token));
+        flux.onmessage = function (evenement) {
+          var data = JSON.parse(evenement.data);
+          if (data.type === 'done') {
+            renderProposals(d, data);
+            flux.close();
+            bouton.disabled = false;
+          } else if (data.type === 'error') {
+            aide.textContent = data.message;
+            aide.className = 'form-hint error';
+            flux.close();
+            bouton.disabled = false;
+          }
+        };
+        flux.onerror = function () {
+          flux.close();
+          aide.textContent = T('ct.js.propose.ko');
+          aide.className = 'form-hint error';
+          bouton.disabled = false;
+        };
+      })
+      .catch(function (err) {
+        aide.textContent = err.message || T('ct.js.propose.ko');
+        aide.className = 'form-hint error';
+        bouton.disabled = false;
+      });
+  }
+
+  el('btn-export').addEventListener('click', function () {
+    var bouton = el('btn-export');
+    var aide = el('export-hint');
+    bouton.disabled = true;
+    aide.className = 'form-hint';
+    aide.textContent = T('ct.js.export.prep');
+
+    fetch('/8d/report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lang: window.LANG, dossier: collect() })
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) { throw new Error(res.d.error || T('ct.js.export.ko')); }
+        // ⚠️ Le serveur a recompté. Si son verdict diffère de l'écran, c'est
+        // LUI qui fait foi — et la page doit le dire plutôt que le taire.
+        aide.textContent = res.d.gaps === dernierCompte
+          ? T('ct.js.export.ok')
+          : T('ct.js.export.diverged', { n: res.d.gaps });
+        window.location.href = '/8d/report/'
+          + encodeURIComponent(res.d.report_id) + '.xlsx';
+      })
+      .catch(function (err) {
+        aide.textContent = err.message || T('ct.js.export.ko');
+        aide.className = 'form-hint error';
+      })
+      .then(function () { refresh(); });
+  });
+
+  el('btn-example').addEventListener('click', function () {
+    fetch('/8d/example?lang=' + window.LANG)
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        fill(d);
+        el('draft-banner').hidden = true;
+      })
+      .catch(function () {
+        el('example-hint').textContent = T('ct.js.example.failed');
+        el('example-hint').className = 'form-hint error';
+      });
+  });
+
+  fetch('/8d/rules?lang=' + window.LANG)
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      RULES = data;
+      buildCards();
+      ['case-ref', 'case-title'].forEach(function (id) {
+        el(id).addEventListener('input', refresh);
+      });
+      if (!restore()) { refresh(); }
+    });
+}());
+</script>
+</body>
+</html>

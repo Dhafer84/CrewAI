@@ -47,6 +47,7 @@ PAGES = {
     "/hara": "/hara/matrix",
     "/tara": "/tara/scales",
     "/regwatch": "/regwatch/sources",
+    "/8d": "/8d/rules",
 }
 
 # Contrat de /tara/scales : chaque chemin est réellement lu par site/tara.html.
@@ -151,7 +152,7 @@ def test_the_catalogue_links_to_every_tool():
         accueil = c.get("/").text
     for path, nom in (("/qualitycrew", "QualityCrew"), ("/sentinelscan", "SentinelScan"),
                       ("/hara", "SafetyScope"), ("/tara", "ThreatScope"),
-                      ("/regwatch", "RegWatch")):
+                      ("/regwatch", "RegWatch"), ("/8d", "CauseTrace")):
         assert f'href="{path}"' in accueil, f"la carte vers {path} manque"
         assert nom in accueil, f"le nom « {nom} » manque"
 
@@ -161,22 +162,30 @@ def test_the_catalogue_links_to_every_tool():
 
     # ⚠️ Le décompte du bloc « Parti pris » se périme à chaque outil ajouté,
     # et il a déjà été faux deux fois. Le critère est : « l'outil rend-il son
-    # résultat sans appeler un LLM ? » — vrai pour SentinelScan (aucune IA),
-    # SafetyScope, ThreatScope et RegWatch (IA facultative, qui ne décide de
-    # rien). Seul QualityCrew en dépend : ses quatre agents ÉCRIVENT l'audit.
+    # résultat sans appeler un LLM ? » — vrai pour SentinelScan (aucune IA du
+    # tout), SafetyScope, ThreatScope, RegWatch et CauseTrace (IA facultative,
+    # qui ne cote et ne décide jamais). Seul QualityCrew en dépend : ses
+    # quatre agents ÉCRIVENT l'audit.
+    #
+    # Recompté dans le CODE le 25/08/2026, pas de mémoire : `require_llm_key()`
+    # apparaît 6 fois dans api/main.py, et `from crewai import` dans 5 moteurs
+    # sur 6.
     #
     # Le verrou : si le nombre de cartes change, ce test tombe et oblige à
-    # recompter la phrase au lieu de l'incrémenter à l'aveugle.
+    # recompter la phrase au lieu de l'incrémenter à l'aveugle. Il a fait
+    # exactement son office à l'ajout de CauseTrace.
     # On compte `tool-name` et non `tool-card` : ce dernier apparaît aussi
     # dans le commentaire HTML qui explique comment ajouter un outil.
-    assert accueil.count('class="tool-name"') == 5, \
+    assert accueil.count('class="tool-name"') == 6, \
         "le nombre d'outils a changé — recompter le bloc « Parti pris »"
-    assert "Quatre de ces cinq outils" in accueil, \
+    assert "Cinq de ces six outils" in accueil, \
         "le décompte du bloc « Parti pris » ne correspond plus à la réalité"
     assert "QualityCrew</strong>" in accueil, \
         "le seul outil qui dépend vraiment de l'IA doit être nommé"
     assert "ne republie jamais le contenu" in accueil, \
         "le parti pris propre à RegWatch doit se lire dès la page de garde"
+    assert "l'IA ne complète pas : elle réclame" in accueil, \
+        "le parti pris propre à CauseTrace doit se lire dès la page de garde"
 
 
 def test_stylesheet_is_reachable_at_the_path_pages_use():
@@ -574,15 +583,21 @@ def test_a_regwatch_report_is_not_served_by_another_tool_route():
 # Bilinguisme — français à la racine, anglais sous /en/
 # --------------------------------------------------------------------------
 
-PAGES_FR = ["/", "/qualitycrew", "/sentinelscan", "/hara", "/tara", "/regwatch"]
+PAGES_FR = ["/", "/qualitycrew", "/sentinelscan", "/hara", "/tara", "/regwatch", "/8d"]
 PAGES_EN = ["/en", "/en/qualitycrew", "/en/sentinelscan", "/en/hara",
-            "/en/tara", "/en/regwatch"]
+            "/en/tara", "/en/regwatch", "/en/8d"]
 
 # Mots-outils qui n'existent pas en anglais. Leur présence dans une page
 # `/en/` signale un texte oublié à l'extraction.
+#
+# ⚠️ Ce détecteur attrape des PHRASES, pas des libellés courts : « En ligne »
+# ne contient aucun mot-outil et a survécu sur les six cartes de la page de
+# garde jusqu'au 25/08/2026. « ligne » est donc ajouté, et
+# `test_every_card_badge_is_translated` couvre le cas par construction — un
+# détecteur lexical ne rattrapera jamais tous les libellés de deux mots.
 _MOTS_FR = re.compile(
     r"\b(le|la|les|des|une|aux|pour|dans|avec|sur|est|sont|ne|pas|qui|que|"
-    r"cette|leur|vous|nous)\b", re.I)
+    r"cette|leur|vous|nous|ligne)\b", re.I)
 
 
 def _texte_visible(html: str) -> str:
@@ -1208,6 +1223,452 @@ def test_touching_an_asset_changes_the_version():
                 f"modifier {nom} ne change pas l'empreinte des actifs")
         finally:
             os.utime(fichier, (avant, avant))
+
+
+# --------------------------------------------------------------------------
+# CauseTrace — la page /8d et son contrat
+# --------------------------------------------------------------------------
+
+# Chaque entrée est réellement lue par site/8d.html. Renommer une de ces clés
+# casserait la page sans casser aucun test de moteur.
+EIGHTD_CONTRACT = [
+    "order", "labels", "required", "gapOf", "dependsOn", "slots", "gaps",
+    "chain.minSteps", "chain.maxSteps", "chain.natures",
+    "chain.natureLabels", "chain.terminal",
+]
+
+_EIGHTD = _ROOT / "site" / "8d.html"
+
+
+def test_the_eightd_contracts_are_served():
+    with client() as c:
+        contrat = c.get("/8d/rules")
+        assert contrat.status_code == 200
+        for chemin in EIGHTD_CONTRACT:
+            dig(contrat.json(), chemin)
+
+        exemple = c.get("/8d/example")
+        assert exemple.status_code == 200
+        assert exemple.json()["d8"]["claimed_closed"] is True
+
+
+def test_the_eightd_page_reads_every_key_the_server_sends():
+    """Contrat tenu des deux côtés : servi ⇒ lu, et lu ⇒ servi."""
+    page = _EIGHTD.read_text(encoding="utf-8")
+    for chemin in EIGHTD_CONTRACT:
+        lecture = "RULES." + chemin
+        assert lecture in page, f"« {lecture} » servi mais jamais lu par la page"
+
+    with client() as c:
+        contrat = c.get("/8d/rules").json()
+    for cle in contrat:
+        assert "RULES." + cle in page, f"« {cle} » lu nulle part — clé qui pourrit"
+
+
+def test_the_eightd_page_rewrites_no_rule():
+    """⚠️ La page ne réécrit ni les seuils, ni les natures qui concluent.
+
+    C'est le même piège que `feasibilityByPotential` sur /tara : recoder une
+    règle côté client la fait diverger du moteur au premier changement. Ici
+    la divergence serait pire — l'écran dirait « clos », l'export dirait non.
+    """
+    page = _EIGHTD.read_text(encoding="utf-8")
+    script = page.split("<script>")[-1]
+
+    assert "RULES.chain.minSteps" in script, "la profondeur minimale doit être lue"
+    assert "RULES.chain.terminal" in script, "les natures terminales doivent être lues"
+    assert "RULES.dependsOn" in script, "les verrous doivent être lus"
+
+    # Aucune liste de natures terminales recopiée en dur.
+    for recopie in ("'process', 'system'", '"process", "system"',
+                    "['process','system']", "minSteps = 3", "< 3"):
+        assert recopie not in script, f"règle recopiée dans la page : {recopie}"
+
+    # Les seuls identifiants de nature admis en dur sont ceux qui portent un
+    # message distinct — le reste vient du contrat.
+    assert script.count("'person'") <= 2, "trop de natures écrites en dur"
+
+    # ⚠️ Une cause non énoncée ne voit pas sa chaîne examinée. La règle vit
+    # des deux côtés ; une suite Python ne peut pas exécuter le JavaScript,
+    # mais elle peut refuser que le garde-fou disparaisse. Même parade que
+    # pour les deux implémentations du pluriel.
+    compact = " ".join(script.split())
+    assert "if (!dossier.d4[pair[0]]) { return; }" in compact, (
+        "le garde-fou « cause non énoncée » a disparu de la page")
+
+
+def test_every_displayable_field_has_a_label():
+    """⚠️ Un champ sans libellé afficherait sa CLÉ au visiteur.
+
+    La page n'écrit plus la liste des champs : elle itère `RULES.fields`, donc
+    elle ne peut plus en oublier un — c'est `FIELD_ORDER` qui décide, pour
+    l'écran comme pour le classeur. Reste le risque symétrique : un champ
+    servi dont personne n'a écrit le libellé.
+    """
+    from causetrace.check import rules as ct_rules
+    from i18n import catalogue
+
+    page = _EIGHTD.read_text(encoding="utf-8")
+    assert "RULES.fields[d]" in page, "la page doit itérer l'ordre servi"
+
+    for langue in ("fr", "en"):
+        connues = catalogue(langue)
+        for discipline, champs in ct_rules()["fields"].items():
+            for champ in champs:
+                cle = f"ct.f.{discipline}.{champ}"
+                assert cle in connues, f"{cle} absent du catalogue {langue}"
+
+    # Et chaque champ exigé sait quel constat il déclenche, lui aussi libellé.
+    contrat = ct_rules()
+    for discipline, champs in contrat["required"].items():
+        for champ in champs:
+            assert contrat["gapOf"][discipline][champ] in contrat["gaps"]
+
+def test_the_eightd_page_never_injects_data_as_html():
+    """Les intitulés saisis ne passent jamais par innerHTML."""
+    page = _EIGHTD.read_text(encoding="utf-8")
+    fautes = [ligne.strip() for ligne in page.splitlines() if "innerHTML" in ligne]
+    assert not fautes, "innerHTML dans la page : " + " | ".join(fautes)
+
+
+def test_the_served_example_is_the_flawed_one():
+    """⚠️ Vérifié via la ROUTE, pas seulement via le moteur.
+
+    Un exemple irréprochable servi par mégarde viderait la démonstration de
+    son sens sans casser aucun test de moteur.
+    """
+    from causetrace.check import check, is_closable
+    from causetrace.model import build_dossier
+
+    # ⚠️ On compare l'ENSEMBLE des constats, pas leur nombre. Une première
+    # version comptait « 8 » : remplir la cause de non-détection en retire un
+    # et en ajoute un autre, et la mutation passait inaperçue.
+    attendu = [
+        ("d3.no_due_date", ""),
+        ("d3.no_effectiveness_check", ""),
+        ("d4.no_escape_cause", ""),
+        ("d4.chain_ends_on_person", "occurrence"),
+        ("d5.locked", ""),
+        ("d6.locked", ""),
+        ("d7.no_systemic_update", ""),
+        ("d8.premature_closure", ""),
+    ]
+    with client() as c:
+        for lang in ("fr", "en"):
+            charge = c.get(f"/8d/example?lang={lang}").json()
+            dossier = build_dossier(charge)
+            assert [(g.code, g.slot) for g in check(dossier)] == attendu, (
+                f"{lang} : l'exemple servi n'est plus celui qui enseigne")
+            assert is_closable(dossier) is False
+
+
+def test_the_eightd_contract_follows_the_requested_language():
+    with client() as c:
+        fr = c.get("/8d/rules?lang=fr").json()
+        en = c.get("/8d/rules?lang=en").json()
+    assert fr["labels"]["d4"] != en["labels"]["d4"]
+    assert en["chain"]["natureLabels"]["person"] == "A person and their action"
+    # ⚠️ Traduire change les mots, jamais les règles.
+    assert fr["dependsOn"] == en["dependsOn"]
+    assert fr["chain"]["terminal"] == en["chain"]["terminal"]
+
+
+def test_every_served_page_is_a_translatable_path():
+    """⚠️ Une page absente de `PAGE_PATHS` devient un cul-de-sac en anglais.
+
+    Ses liens internes ne sont plus préfixés, et surtout aucune autre page ne
+    peut pointer vers sa version anglaise. Le défaut est invisible tant que
+    personne ne lie la page — c'est-à-dire jusqu'au jour où on l'ajoute au
+    catalogue, où il est trop tard pour y penser.
+    """
+    from api.main import _PAGES
+    from api.render import PAGE_PATHS
+
+    manquantes = sorted(set(_PAGES) - set(PAGE_PATHS))
+    assert not manquantes, f"pages non traduisibles : {manquantes}"
+
+
+def test_no_route_is_declared_twice():
+    """⚠️ Une route redéclarée est du code mort — jusqu'au jour où elle ne l'est plus.
+
+    `/tara` et `/regwatch` l'ont été jusqu'au 25/08/2026 : la seconde
+    déclaration servait le HTML **brut**, sans passer par `render()`. Masquée
+    par la première, elle n'a jamais nui — mais réordonner le fichier aurait
+    suffi à servir ces deux pages non traduites, sans la moindre erreur.
+    """
+    from collections import Counter
+
+    from api.main import app
+
+    paires = [(r.path, methode) for r in app.routes
+              if hasattr(r, "path") and getattr(r, "methods", None)
+              for methode in r.methods]
+    doublons = sorted(cle for cle, n in Counter(paires).items() if n > 1)
+    assert not doublons, f"routes déclarées deux fois : {doublons}"
+
+
+def test_the_eightd_report_roundtrip_says_what_is_missing():
+    """Le classeur part chez le client : il doit dire qu'il est un brouillon."""
+    from io import BytesIO
+
+    import openpyxl
+
+    from causetrace.example import mediocre_example
+
+    with client("10.9.0.1") as c:
+        resp = c.post("/8d/report", json={"lang": "fr", "dossier": mediocre_example()})
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        # ⚠️ Recalculé côté serveur — l'indicateur de la page ne fait pas foi.
+        assert data["gaps"] == 8 and data["closable"] is False
+
+        fichier = c.get(f"/8d/report/{data['report_id']}.xlsx")
+        assert fichier.status_code == 200
+        assert "attachment" in fichier.headers["content-disposition"]
+
+    classeur = openpyxl.load_workbook(BytesIO(fichier.content))
+    assert classeur["8D"]["A2"].value.startswith("BROUILLON")
+
+
+def test_an_eightd_report_belongs_to_the_visitor_who_asked_for_it():
+    from causetrace.example import mediocre_example
+
+    with client("10.9.0.2") as c:
+        rid = c.post("/8d/report",
+                     json={"lang": "fr", "dossier": mediocre_example()}).json()["report_id"]
+    with client("10.9.0.3") as autre:
+        assert autre.get(f"/8d/report/{rid}.xlsx").status_code == 404
+
+
+def test_the_eightd_report_refuses_a_payload_it_cannot_read():
+    with client("10.9.0.4") as c:
+        assert c.post("/8d/report",
+                      json={"lang": "fr", "dossier": "pas un objet"}).status_code == 422
+        # Un dossier vide, en revanche, s'exporte : c'est un brouillon.
+        assert c.post("/8d/report", json={"lang": "fr", "dossier": {}}).status_code == 200
+
+
+def test_the_eightd_report_carries_no_live_formula():
+    """⚠️ Vérifié via la ROUTE : navigateur → openpyxl → fichier téléchargé.
+
+    C'est la seule chaîne complète. Le test moteur couvre `harden()` ; celui-ci
+    couvre le fait que la route l'emprunte réellement.
+    """
+    from io import BytesIO
+
+    import openpyxl
+
+    from causetrace.example import mediocre_example
+
+    charge = mediocre_example()
+    charge["title"] = '=HYPERLINK("http://exfil.test","Cliquez ici")'
+    with client("10.9.0.5") as c:
+        rid = c.post("/8d/report",
+                     json={"lang": "fr", "dossier": charge}).json()["report_id"]
+        contenu = c.get(f"/8d/report/{rid}.xlsx").content
+
+    classeur = openpyxl.load_workbook(BytesIO(contenu))
+    piegees = [cellule for onglet in classeur.worksheets
+               for ligne in onglet.iter_rows() for cellule in ligne
+               if isinstance(cellule.value, str) and cellule.value.startswith("=")]
+    assert piegees, "la cellule piégeuse n'a pas été retrouvée — le test ne prouve rien"
+    for cellule in piegees:
+        assert cellule.data_type == "s", f"{cellule.coordinate} est une formule vivante"
+
+
+# --------------------------------------------------------------------------
+# CauseTrace — relecture par IA
+#
+# ⚠️ AUCUN test n'ouvre `/8d/review/stream` avec un jeton VALIDE : cela
+# lancerait un vrai appel au modèle et piocherait dans le quota partagé. Le
+# piège est le même que celui documenté pour `/scan/stream`. L'usage unique
+# du jeton se teste sur `_issue_token` / `_consume_token`.
+# --------------------------------------------------------------------------
+
+def test_the_review_refuses_a_discipline_with_nothing_written():
+    """L'IA relit ce qui est écrit ; elle ne rédige pas le 8D à votre place."""
+    from causetrace.example import mediocre_example
+
+    with client("10.6.0.1") as c:
+        resp = c.post("/8d/review", json={"lang": "fr", "discipline": "d8",
+                                          "dossier": mediocre_example()})
+        assert resp.status_code == 400
+        assert "ne le rédige pas à votre place" in resp.json()["error"]
+
+
+def test_the_review_answers_with_a_token_never_with_the_case():
+    """⚠️ Un dossier de réclamation n'a rien à faire dans une URL.
+
+    Motif plus fort encore que les mots-clés de SentinelScan : ce texte est
+    souvent collé depuis un mail client. Ni journal nginx, ni historique de
+    navigateur, ni en-tête `Referer`.
+    """
+    from causetrace.example import mediocre_example
+
+    with client("10.6.0.2") as c:
+        resp = c.post("/8d/review", json={"lang": "fr", "discipline": "d2",
+                                          "dossier": mediocre_example()})
+        assert resp.status_code == 200
+        assert list(resp.json()) == ["token"]
+        assert "capteur" not in resp.text.lower(), "le dossier ressort dans la réponse"
+
+
+def test_an_unknown_discipline_is_refused_before_any_call():
+    from causetrace.example import mediocre_example
+
+    with client("10.6.0.3") as c:
+        resp = c.post("/8d/review", json={"lang": "fr", "discipline": "d9",
+                                          "dossier": mediocre_example()})
+        assert resp.status_code == 400
+
+
+def test_the_review_cadence_is_its_own_but_the_daily_cap_is_shared():
+    """⚠️ La cadence protège du martèlement, le cap protège l'enveloppe.
+
+    Ce ne sont pas les mêmes rôles : la cadence est propre à CauseTrace
+    (20 s, la relecture s'enchaîne discipline par discipline), le plafond du
+    jour est celui de SafetyScope, ThreatScope et RegWatch. Un quatrième
+    compteur doublerait les appels sur une seule enveloppe Groq.
+    """
+    import api.main as main
+
+    assert main._REVIEW_COOLDOWN_SECONDS < main._SUGGEST_COOLDOWN_SECONDS
+    assert main._last_review_by_client is not main._last_suggest_by_client
+
+    # Le compteur du jour est bien le même objet pour les deux familles.
+    jour_avant = dict(main._suggest_daily_usage)
+    try:
+        from datetime import datetime, timezone
+        main._suggest_daily_usage["day"] = datetime.now(timezone.utc).date()
+        main._suggest_daily_usage["count"] = main._MAX_SUGGESTIONS_PER_DAY
+        assert main._suggest_refusal("qui-que-ce-soit")
+        assert main._suggest_refusal("qui-que-ce-soit",
+                                     main._REVIEW_COOLDOWN_SECONDS,
+                                     main._last_review_by_client)
+    finally:
+        main._suggest_daily_usage.clear()
+        main._suggest_daily_usage.update(jour_avant)
+
+
+def test_a_review_token_is_single_use():
+    """⚠️ Testé sur le magasin, jamais en ouvrant le flux — cela appellerait le LLM."""
+    from api.main import _consume_token, _issue_token
+
+    jeton = _issue_token("un-client", "ctreview", {"discipline": "d2"})
+    assert _consume_token(jeton, "un-client", "ctreview") == {"discipline": "d2"}
+    assert _consume_token(jeton, "un-client", "ctreview") is None
+    # Et une route ne sert que ce qu'elle est censée produire.
+    autre = _issue_token("un-client", "ctreview", {"discipline": "d2"})
+    assert _consume_token(autre, "un-client", "suggest") is None
+
+
+def test_the_proposal_refuses_what_it_cannot_produce():
+    """⚠️ Comme pour la relecture, aucun test n'ouvre le flux avec un jeton
+    valide : cela lancerait un vrai appel au modèle."""
+    from causetrace.example import mediocre_example
+
+    with client("10.7.1.1") as c:
+        assert c.post("/8d/propose", json={"lang": "fr", "kind": "brainstorm",
+                                           "dossier": mediocre_example()}
+                      ).status_code == 400
+
+    with client("10.7.1.2") as c:
+        resp = c.post("/8d/propose", json={"lang": "fr", "kind": "causes",
+                                           "dossier": {}})
+        assert resp.status_code == 400
+        assert "Décrivez d'abord le problème" in resp.json()["error"]
+
+
+def test_the_proposal_answers_with_a_token_never_with_the_case():
+    from causetrace.example import mediocre_example
+
+    for kind in ("causes", "questions"):
+        with client(f"10.7.2.{len(kind)}") as c:
+            resp = c.post("/8d/propose", json={"lang": "fr", "kind": kind,
+                                               "dossier": mediocre_example()})
+            assert resp.status_code == 200, kind
+            assert list(resp.json()) == ["token"]
+            assert "capteur" not in resp.text.lower()
+
+
+def test_the_proposal_shares_the_review_limiter():
+    """Une proposition et une relecture puisent dans la même enveloppe.
+
+    ⚠️ Elles partagent AUSSI la table de cadence : ce sont deux appels au même
+    modèle depuis la même page, les séparer donnerait deux fois plus d'appels
+    pour un seul visiteur.
+    """
+    import hashlib
+
+    import api.main as main
+    from causetrace.example import mediocre_example
+
+    # ⚠️ Le limiteur indexe un SHA-256 tronqué de l'IP, jamais l'IP en clair :
+    # les adresses ne sont jamais stockées telles quelles. Semer la mauvaise
+    # clé faisait passer ce test pour un faux négatif.
+    cle = hashlib.sha256(b"10.7.3.1").hexdigest()[:16]
+
+    vus = dict(main._last_review_by_client)
+    try:
+        main._last_review_by_client[cle] = main.time.time()
+        with client("10.7.3.1") as c:
+            for chemin, charge in (
+                ("/8d/review", {"discipline": "d2"}),
+                ("/8d/propose", {"kind": "causes"}),
+            ):
+                charge.update({"lang": "fr", "dossier": mediocre_example()})
+                assert c.post(chemin, json=charge).status_code == 429, chemin
+    finally:
+        main._last_review_by_client.clear()
+        main._last_review_by_client.update(vus)
+
+
+def test_the_page_adds_a_lead_without_qualifying_it():
+    """⚠️ Une piste reprise entre NON QUALIFIÉE — le moteur réclame aussitôt.
+
+    La règle vit dans la page ; une suite Python ne peut pas exécuter le
+    JavaScript, mais elle peut refuser que le garde-fou disparaisse. Même
+    parade que pour le « cause non énoncée » de l'étape 3.
+
+    Si la nature était pré-remplie, l'outil coterait à la place de
+    l'ingénieur — exactement ce qu'aucun agent de ce catalogue ne fait.
+    """
+    compact = " ".join(_EIGHTD.read_text(encoding="utf-8").split())
+    assert "addWhy('occurrence', item.text, '');" in compact, (
+        "la piste n'est plus ajoutée sans nature")
+
+
+def test_a_discriminating_question_is_never_applicable():
+    """⚠️ Une question recopiée dans un champ partirait chez le client.
+
+    C'est le défaut corrigé à l'étape 5, ici évité par construction : le
+    bouton n'existe que pour les pistes de cause.
+    """
+    compact = " ".join(_EIGHTD.read_text(encoding="utf-8").split())
+    assert "if (causes) { var bouton = document.createElement('button');" in compact, (
+        "le bouton d'application n'est plus réservé aux pistes de cause")
+
+
+def test_every_card_badge_is_translated():
+    """⚠️ Défaut préexistant trouvé le 25/08/2026 : « En ligne » sur /en.
+
+    Les six cartes portaient leur état en français sur la page anglaise.
+    `test_no_french_survives_in_an_english_page` ne l'a jamais vu : il
+    cherche des mots-outils, et un libellé de deux mots n'en contient aucun.
+
+    Ce test-ci ne dépend d'aucun lexique — il exige que chaque badge soit
+    annoté, ce qu'aucune traduction oubliée ne peut contourner.
+    """
+    source = (_ROOT / "site" / "index.html").read_text(encoding="utf-8")
+    badges = re.findall(r'<span class="tool-status[^"]*">(.*?)</span></span>', source)
+    assert len(badges) == 6, f"{len(badges)} badges trouvés — la page a changé de forme"
+    for badge in badges:
+        assert "data-i18n=" in badge, f"badge non annoté : {badge}"
+
+    with client() as c:
+        anglais = c.get("/en").text
+    assert "En ligne" not in anglais, "un badge français survit sur la page anglaise"
+    assert anglais.count(">Online</span>") == 6
 
 
 def main() -> int:

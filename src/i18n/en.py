@@ -460,7 +460,7 @@ CATALOGUE: dict[str, str] = {
     "home.qc.desc":
         "Compliance audit by AI agents. Four agents analyse a documentation set in real time — requirements quality, test coverage, safety risks — and produce a structured report.",
     "home.stance.noai":
-        "<strong>Four of these five tools produce their result with no artificial intelligence at all.</strong> Determining an ASIL or a risk value are decision tables: the answer is exact and instantaneous. Attaching a watch signal to a standard is a written rule, reproducible and tested offline. Looking for an exposure on public repositories is an API and criticality criteria. Dropping a language model in would add nothing but latency and uncertainty.",
+        "<strong>Five of these six tools produce their result with no artificial intelligence at all.</strong> Determining an ASIL or a risk value are decision tables: the answer is exact and instantaneous. Refusing to close an 8D whose escape root cause is missing is a set of ordered rules. Attaching a watch signal to a standard is a written rule, reproducible and tested offline. Looking for an exposure on public repositories is an API and criticality criteria. Dropping a language model in would add nothing but latency and uncertainty.",
     "home.rw.tag.public": "Public sources",
     "home.h1": "Quality &amp; <em>Safety</em> tools",
     "home.rw.tag.watch": "Standards watch",
@@ -840,4 +840,283 @@ CATALOGUE: dict[str, str] = {
     "status.js.locale": "en-GB",
     "status.js.uncapped": "no daily cap",
     "status.js.failed": "Caps unavailable right now.",
+    # --- CauseTrace — 8D disciplines and completeness findings ---
+    "ct.discipline.d1": "D1 — Team",
+    "ct.discipline.d2": "D2 — Problem description",
+    "ct.discipline.d3": "D3 — Interim containment actions",
+    "ct.discipline.d4": "D4 — Root causes",
+    "ct.discipline.d5": "D5 — Permanent corrective actions",
+    "ct.discipline.d6": "D6 — Implementation and validation",
+    "ct.discipline.d7": "D7 — Prevention",
+    "ct.discipline.d8": "D8 — Closure",
+    "ct.gap.d1.no_owner": "No champion is named",
+    "ct.gap.d2.no_what": "The part and the defect are not described",
+    "ct.gap.d2.no_where": "Where it was detected is not stated",
+    "ct.gap.d2.no_since": "When it first appeared is not stated",
+    "ct.gap.d2.no_extent": "The extent is not quantified",
+    "ct.gap.d2.no_is_not": "What is NOT affected is not stated",
+    "ct.gap.d3.no_action": "No interim containment action is described",
+    "ct.gap.d3.no_due_date": "The containment action has no end date",
+    "ct.gap.d3.no_effectiveness_check":
+        "The containment action's effectiveness is not verified",
+    "ct.gap.d4.locked": "Too early: the problem is not described yet",
+    "ct.gap.d4.no_occurrence_cause": "The occurrence root cause is missing",
+    "ct.gap.d4.no_escape_cause": "The escape root cause is missing",
+    "ct.gap.d5.locked": "Too early: the root causes are not established",
+    "ct.gap.d5.no_action_on_occurrence":
+        "No permanent action on the occurrence root cause",
+    "ct.gap.d5.no_action_on_escape":
+        "No permanent action on the escape root cause",
+    "ct.gap.d6.locked": "Too early: the permanent actions are not settled",
+    "ct.gap.d6.no_date": "The implementation date is missing",
+    "ct.gap.d6.no_evidence": "The actions' effectiveness is not evidenced",
+    "ct.gap.d7.no_systemic_update": "No reference document has been updated",
+    "ct.gap.d8.premature_closure": "The case is declared closed while incomplete",
+    "ct.gap.d8.not_closed": "The case is complete but not declared closed",
+    "ct.gap.d8.no_closure_date": "The closure date is missing",
+    # --- CauseTrace — why-chains (step 2) ---
+    "ct.nature.technical": "Observed technical state",
+    "ct.nature.process": "Rule, process or work instruction",
+    "ct.nature.system": "Management or design system",
+    "ct.nature.person": "A person and their action",
+    "ct.slot.occurrence": "occurrence root cause",
+    "ct.slot.escape": "escape root cause",
+    "ct.gap.d4.chain_missing": "No why-chain supports this cause",
+    "ct.gap.d4.chain_too_short": "The chain stops too early to establish a root cause",
+    "ct.gap.d4.chain_truncated":
+        "The chain exceeds the cap: the last whys were dropped",
+    "ct.gap.d4.chain_step_without_nature": "One why is not qualified",
+    "ct.gap.d4.chain_repeats_itself": "The chain repeats itself: one why adds nothing new",
+    "ct.gap.d4.chain_ends_on_person":
+        "The chain stops at a person — that is a symptom, not a cause",
+    "ct.gap.d4.chain_ends_on_symptom":
+        "The chain stops at a technical state — nothing there can be prevented",
+    # --- CauseTrace — the deliberately mediocre example 8D (step 3) ---
+    "ct.example.title": "Intermittent loss of the wheel speed signal",
+    "ct.example.member.1": "Assembly shop",
+    "ct.example.member.2": "Supplier quality",
+    "ct.example.what": "The front left wheel speed sensor loses its signal",
+    "ct.example.where": "Reported by the customer",
+    "ct.example.since": "Since the end of May",
+    "ct.example.how_many": "Several parts",
+    "ct.example.is_not": "No other defect reported",
+    "ct.example.containment": "Sorting of the parts in stock",
+    "ct.example.occurrence": "Insufficient tightening of the connector",
+    "ct.example.why.1": "The connector loses contact",
+    "ct.example.why.2": "The applied torque was insufficient",
+    "ct.example.why.3": "The operator did not follow the tightening instruction",
+    "ct.example.lessons": "Team awareness session on connector tightening",
+    # --- CauseTrace — /8d page (step 3) ---
+    "ct.title": "CauseTrace — 8D complaint resolution",
+    "ct.meta":
+        "8D complaint resolution with causal analysis: the tool refuses to call a case "
+        "\u00ab resolved \u00bb when it is not, and says exactly where it falls short.",
+    "ct.badge": "Immediate verdict — no waiting",
+    "ct.h1": "Cause<em>Trace</em>",
+    "ct.subtitle":
+        "Customer complaint resolution following the 8D method. This tool does not fill "
+        "in eight boxes: it <strong>refuses to call a case resolved when it is not</strong>, "
+        "and says exactly where it falls short. The verdict is deterministic, with no "
+        "artificial intelligence.",
+    "ct.note":
+        "<strong>Educational demonstration.</strong> The 8D, Ishikawa and 5 Whys are in the "
+        "public domain: this tool may name and implement them without restriction. It "
+        "replaces neither your quality system nor your customer's requirements. What you "
+        "type stays in your browser; it is sent only when you export, to build the workbook.",
+    "ct.reset": "Start from a blank case",
+    "ct.section.case": "Case",
+    "ct.section.verdict": "Verdict",
+    "ct.section.disciplines": "The eight disciplines",
+    "ct.load": "Load an example",
+    "ct.load.hint":
+        "A realistic 8D of the kind you actually receive — and that the tool refuses to "
+        "treat as closed.",
+    "ct.ph.reference": "e.g. 8D-2026-014",
+    "ct.ph.title": "e.g. Intermittent loss of the wheel speed signal",
+    "ct.ph.why": "Why?",
+    "footer.8d": "CauseTrace · educational demonstration · your entries are sent only on export",
+    "ct.f.d1.owner": "8D champion",
+    "ct.f.d1.members": "Team members",
+    "ct.f.d2.what": "What — the part and the defect",
+    "ct.f.d2.where": "Where — place of detection",
+    "ct.f.d2.since": "Since when",
+    "ct.f.d2.how_many": "How many — the extent",
+    "ct.f.d2.is_not": "What is NOT affected",
+    "ct.f.d3.action": "Interim containment action",
+    "ct.f.d3.due_date": "End date",
+    "ct.f.d3.effectiveness_check": "Effectiveness verification",
+    "ct.f.d4.occurrence": "Occurrence root cause",
+    "ct.f.d4.escape": "Escape root cause",
+    "ct.f.d5.on_occurrence": "Action on the occurrence root cause",
+    "ct.f.d5.on_escape": "Action on the escape root cause",
+    "ct.f.d6.implemented_on": "Implementation date",
+    "ct.f.d6.evidence": "Evidence of effectiveness",
+    "ct.f.d7.systemic_update": "Reference document updated",
+    "ct.f.d7.lessons": "Lessons learned (optional)",
+    "ct.f.d8.claimed_closed": "Declare the case closed",
+    "ct.f.d8.closed_on": "Closure date",
+    "ct.ph.d2.what": "e.g. the front left sensor loses its signal above 80 km/h",
+    "ct.ph.d2.how_many": "e.g. 7 parts out of 1,240 inspected",
+    "ct.ph.d2.is_not": "e.g. no occurrence on the front right wheel nor on the April batch",
+    "ct.ph.d3.effectiveness_check": "e.g. no defect escaping the sort over 3 consecutive batches",
+    "ct.ph.d4.occurrence": "Why did the defect arise?",
+    "ct.ph.d4.escape": "Why did the controls in place let it through?",
+    "ct.ph.d6.evidence": "e.g. 0 defects over 4,300 parts produced after implementation",
+    "ct.ph.d7.systemic_update": "e.g. process FMEA and control plan updated",
+    "ct.js.chain": "Why-chain — {slot}",
+    "ct.js.addwhy": "Add a why",
+    "ct.js.nature.none": "— nature of this why —",
+    "ct.js.del": "Remove",
+    "ct.js.state.complete": "complete",
+    "ct.js.state.incomplete": "to complete",
+    "ct.js.state.locked": "too early",
+    "ct.js.verdict.blank": "blank case",
+    "ct.js.verdict.hint": "Start typing, or load the example.",
+    "ct.js.verdict.closable": "may be closed",
+    "ct.js.verdict.ok": "All eight disciplines are complete.",
+    "ct.js.verdict.open": "not resolved",
+    "ct.js.verdict.count.one": "{n} point blocks closure.",
+    "ct.js.verdict.count.other": "{n} points block closure.",
+    "ct.js.draft": "Draft restored from this tab.",
+    "ct.js.example.failed": "The example could not be loaded.",
+    # --- CauseTrace — Excel export (step 4) ---
+    "xl.ct.title": "8D report",
+    "xl.ct.sheet.form": "8D",
+    "xl.ct.sheet.gaps": "What is missing",
+    "xl.ct.sheet.chains": "Why-chains",
+    "xl.ct.sheet.rules": "Rules applied",
+    "xl.ct.sheet.limits": "Limits",
+    "xl.ct.state.closed": "CASE CLOSED on {date} — all eight disciplines are complete.",
+    "xl.ct.state.draft.one":
+        "DRAFT — {n} discipline still to complete. This case is not resolved.",
+    "xl.ct.state.draft.other":
+        "DRAFT — {n} disciplines still to complete. This case is not resolved.",
+    "xl.ct.reference": "Reference",
+    "xl.ct.case": "Case title",
+    "xl.ct.edited": "Issued on",
+    "xl.ct.seechains": "The reasoning is set out in the \u00ab Why-chains \u00bb sheet.",
+    "xl.ct.col.discipline": "Discipline",
+    "xl.ct.col.slot": "Cause concerned",
+    "xl.ct.col.gap": "What is missing",
+    "xl.ct.col.owner": "Owner",
+    "xl.ct.col.due": "Due date",
+    "xl.ct.col.done": "Completed on",
+    "xl.ct.col.n": "No.",
+    "xl.ct.col.statement": "Why",
+    "xl.ct.col.nature": "Nature",
+    "xl.ct.col.concludes": "May conclude",
+    "xl.ct.nogaps": "Nothing to report: all eight disciplines are complete.",
+    "xl.ct.chains.title": "The reasoning leading to each root cause",
+    "xl.ct.chain.for": "Chain — {slot}",
+    "xl.ct.chain.none": "No chain entered.",
+    "xl.ct.rules.title": "The rules this report applies",
+    "xl.ct.rules.terminal": "Natures that may conclude a chain",
+    "xl.ct.rule.causes": "Two root causes, of equal weight",
+    "xl.ct.rule.causes.detail":
+        "One cause explains why the defect arose, the other why the controls in place "
+        "let it through. Without the second, the next defect — which will not be the "
+        "same one — will escape through the same door.",
+    "xl.ct.rule.containment": "Interim containment depends on nothing",
+    "xl.ct.rule.containment.detail":
+        "Protecting the customer does not wait for the root cause. A containment action "
+        "without an end date and an effectiveness check, however, never closes.",
+    "xl.ct.rule.chain": "Where a why-chain may stop",
+    "xl.ct.rule.chain.detail":
+        "On a cause that can be changed. A technical state is the symptom you set out to "
+        "explain; a person can neither be corrected nor prevented. A why that names a "
+        "person is perfectly legitimate mid-chain — stopping there is the fault.",
+    "xl.ct.rule.closure": "Order of the disciplines",
+    "xl.ct.rule.closure.detail":
+        "You do not look for the cause of a problem you have not described, you do not "
+        "correct before establishing the cause, and you do not validate what has not "
+        "been decided. A case is closed only if the first seven disciplines are.",
+    "xl.ct.limits.col": "What this tool does not do",
+    "xl.ct.limits.detail": "Detail",
+    "xl.ct.limit.form": "It judges the form of the method, not the soundness of the content",
+    "xl.ct.limit.form.detail":
+        "A chain whose statements are hollow but correctly qualified passes the check. "
+        "This report states that a method is complete, never that it is right.",
+    "xl.ct.limit.text": "It does not read the text of the whys",
+    "xl.ct.limit.text.detail":
+        "The verdict rests on the declared nature of each why, never on its words. That "
+        "is what makes it reproducible and independent of the language of entry.",
+    "xl.ct.limit.scope": "One case, no persistence",
+    "xl.ct.limit.scope.detail":
+        "No tracking of several 8Ds, no history, no accounts, no indicators.",
+    "xl.ct.limit.norm": "It does not replace your quality system",
+    "xl.ct.limit.norm.detail":
+        "Educational demonstration. The 8D is in the public domain, but your customer's "
+        "requirements cannot be derived from a form.",
+    "xl.ct.limit.privacy": "The case is sent only on export",
+    "xl.ct.limit.privacy.detail":
+        "Entry and the on-screen verdict stay in the browser. The case is sent to the "
+        "server only when you export, to build this workbook; it is held in memory for "
+        "the duration of the download and never written to disk.",
+    "xl.ct.yes": "yes",
+    "xl.ct.no": "no",
+    # --- CauseTrace — export from the page (step 4) ---
+    "ct.export": "Export to Excel",
+    "ct.js.export.prep": "Building the workbook\u2026",
+    "ct.js.export.ok": "Workbook ready, the download is starting.",
+    "ct.js.export.ko": "The workbook could not be built.",
+    "ct.js.export.diverged":
+        "The server recounted {n} points — the workbook is what counts.",
+    # --- CauseTrace — AI review (step 5) ---
+    "ct.review.why": "{slot} — why {rank}",
+    "err.need.written":
+        "Nothing is written in this discipline yet. The AI reviews what you have "
+        "written; it does not write it for you.",
+    "err.fail.review":
+        "The review failed. Your entries are untouched and the verdict still stands.",
+    "ct.review": "AI review of this D",
+    "ct.js.review.running": "Review under way\u2026",
+    "ct.js.review.none": "Nothing to rephrase here, and nothing to ask for.",
+    "ct.js.review.demands": "What the AI could not write, for lack of knowing",
+    "ct.js.review.apply": "Apply",
+    "ct.js.review.applied": "Applied",
+    "ct.js.review.ko": "The review failed. Your entries are untouched.",
+    # --- CauseTrace — Ishikawa 5M and discriminating questions (step 6) ---
+    "ct.5m.method": "Method",
+    "ct.5m.machine": "Machine",
+    "ct.5m.material": "Material",
+    "ct.5m.manpower": "People",
+    "ct.5m.environment": "Environment",
+    "ct.axis.what": "What — the part and the defect",
+    "ct.axis.where": "Where — place and station",
+    "ct.axis.when": "When — period and frequency",
+    "ct.axis.extent": "How many — extent and trend",
+    "ct.ishikawa": "Suggest leads (5M)",
+    "ct.questions": "Suggest the \u00ab is / is not \u00bb questions",
+    "ct.js.propose.running": "Looking for leads\u2026",
+    "ct.js.propose.none": "No usable lead was suggested.",
+    "ct.js.propose.ko": "The suggestion failed. Your entries are untouched.",
+    "ct.js.propose.title": "Leads to check — unqualified, yours to judge",
+    "ct.js.propose.use": "Add as a why",
+    "ct.js.propose.used": "Added",
+    "ct.js.questions.title": "What could have been affected and is not",
+    "ct.js.questions.note":
+        "These questions are not meant to be copied into a field: they are meant to be "
+        "dug into, and it is their answer that belongs in \u00ab What is NOT affected \u00bb.",
+    "err.need.problem":
+        "Describe the problem first (D2). Without it there is nothing to explore.",
+    "err.fail.propose":
+        "The suggestion failed. Your entries are untouched and the verdict still stands.",
+    # --- CauseTrace on the catalogue page (step 7) ---
+    "home.ct.desc":
+        "Customer complaint resolution following the 8D method. This tool does not fill in "
+        "eight boxes: it refuses to call a case resolved when it is not, and says where it "
+        "falls short — a missing cause, a why-chain that stops at an operator, a claimed "
+        "closure.",
+    "home.ct.tag.public": "Public-domain methods",
+    "home.ct.pair": "Requires the escape root cause, not just the occurrence one",
+    "home.ct.cta": "Open an 8D",
+    "home.stance.ct":
+        "<strong>In CauseTrace the AI does not fill in: it asks.</strong> An 8D report goes "
+        "to the customer; an invented fact there would be far worse than a clumsy sentence. "
+        "So it tightens what the engineer wrote, and anything it would like to add without "
+        "knowing — a date, a number of parts — becomes a question, never a value. An "
+        "Ishikawa lead taken up arrives <strong>unqualified</strong>: it is the engineer who "
+        "says what it is.",
+    "home.status.live": "Online",
+    "home.ct.tag.why": "8D · 5 Whys",
 }

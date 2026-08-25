@@ -30,7 +30,6 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.responses import (
-    FileResponse,
     HTMLResponse,
     JSONResponse,
     Response,
@@ -56,6 +55,17 @@ from sentinelscan.config import require_github_token  # noqa: E402
 from sentinelscan.queries import InvalidKeyword, normalize_keywords  # noqa: E402
 from sentinelscan.report import build_excel, build_markdown  # noqa: E402
 from sentinelscan.scanner import run_scan  # noqa: E402
+from causetrace.check import rules as causetrace_rules  # noqa: E402
+from causetrace.example import mediocre_example  # noqa: E402
+from causetrace.model import InvalidDossier, build_dossier  # noqa: E402
+from causetrace.propose import (  # noqa: E402
+    problem_statement,
+    suggest_causes,
+    suggest_questions,
+)
+from causetrace.review import review_discipline, reviewable_items  # noqa: E402
+from causetrace.report import build_excel as build_causetrace_excel  # noqa: E402
+from causetrace.report import report_summary  # noqa: E402
 from safetyscope.analysis import InvalidAnalysis, build_analysis  # noqa: E402
 from safetyscope.asil import full_matrix  # noqa: E402
 from safetyscope.core import suggest_hazards  # noqa: E402
@@ -191,6 +201,7 @@ _PAGES = {
     "/hara": "hara.html",
     "/tara": "tara.html",
     "/regwatch": "regwatch.html",
+    "/8d": "8d.html",
 }
 
 # Rendu mémorisé par (page, langue). Invalidé si le fichier change, pour
@@ -258,6 +269,11 @@ async def regwatch_page():
     return _page("/regwatch", "fr")
 
 
+@app.get("/8d")
+async def causetrace_page():
+    return _page("/8d", "fr")
+
+
 @app.get("/en")
 async def index_en():
     return _page("", "en")
@@ -281,14 +297,280 @@ async def hara_matrix(lang: str = DEFAULT_LANG):
     return full_matrix(lang)
 
 
-@app.get("/tara")
-async def tara_page():
-    return FileResponse(_SITE_DIR / "tara.html")
+@app.get("/8d/rules")
+async def causetrace_rules_contract(lang: str = DEFAULT_LANG):
+    """Règles du 8D — **source de vérité unique**, même motif que /tara/scales.
+
+    La page n'écrit nulle part quels champs sont exigés, quelle discipline
+    dépend de quelle autre, ni sur quelles natures une chaîne de pourquoi a le
+    droit de s'arrêter : elle les lit ici.
+
+    ⚠️ Ce qu'elle en tire est un indicateur **de commodité**. Le verdict qui
+    compte est recalculé côté serveur avant tout export — le dossier vient du
+    navigateur et n'est pas de confiance. Même discipline que les exports
+    HARA et TARA.
+    """
+    return causetrace_rules(lang)
 
 
-@app.get("/regwatch")
-async def regwatch_page():
-    return FileResponse(_SITE_DIR / "regwatch.html")
+@app.get("/8d/example")
+async def causetrace_example(lang: str = DEFAULT_LANG):
+    """Un 8D réaliste et **volontairement fautif**.
+
+    Un exemple parfait ne démontrerait rien : celui-ci est déclaré clos alors
+    que sa cause de non-détection est absente et que sa chaîne de pourquoi
+    s'arrête sur un opérateur. Voir `causetrace/example.py`.
+    """
+    return mediocre_example(lang)
+
+
+class CausetraceReviewRequest(BaseModel):
+    lang: str = DEFAULT_LANG
+    discipline: str = ""
+    dossier: dict = {}
+
+
+@app.post("/8d/review")
+async def causetrace_review_prepare(request: Request, payload: CausetraceReviewRequest):
+    """Valide la demande et rend un jeton.
+
+    ⚠️ Jeton plutôt que query string, et pour une raison plus forte que
+    SentinelScan : ce qui transite est un dossier de réclamation entier,
+    souvent **collé depuis un mail client**. Il n'a rien à faire dans un
+    journal nginx, un historique de navigateur ou un en-tête `Referer`.
+    """
+    client = _client_key(request)
+
+    refusal = _suggest_refusal(client, _REVIEW_COOLDOWN_SECONDS, _last_review_by_client)
+    if refusal:
+        return JSONResponse({"error": refusal}, status_code=429)
+
+    try:
+        dossier = build_dossier(payload.dossier)
+        items = reviewable_items(dossier, payload.discipline, payload.lang)
+    except InvalidDossier as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+
+    # Rien d'écrit : l'IA n'a rien à relire, et le moteur dit déjà ce qui
+    # manque. Refuser ici évite de brûler un appel pour rien.
+    if not items:
+        return JSONResponse({"error": tr("err.need.written")}, status_code=400)
+
+    return {"token": _issue_token(client, "ctreview", {
+        "discipline": payload.discipline,
+        "dossier": payload.dossier,
+        "lang": payload.lang,
+    })}
+
+
+@app.get("/8d/review/stream")
+async def causetrace_review_stream(request: Request, t: str = ""):
+    queue: asyncio.Queue[str | None] = asyncio.Queue()
+    loop = asyncio.get_event_loop()
+    client = _client_key(request)
+
+    def task_callback(_task_output):
+        loop.call_soon_threadsafe(queue.put_nowait, json.dumps({
+            "type": "step_done", "index": 0, "total": 1,
+        }))
+
+    async def run():
+        try:
+            payload = _consume_token(t, client, "ctreview")
+            if payload is None:
+                await queue.put(json.dumps({
+                    "type": "error", "message": tr("err.session")}))
+                return
+
+            refusal = _suggest_refusal(client, _REVIEW_COOLDOWN_SECONDS,
+                                       _last_review_by_client)
+            if refusal:
+                await queue.put(json.dumps({"type": "error", "message": refusal}))
+                return
+
+            if _suggest_semaphore.locked():
+                await queue.put(json.dumps({
+                    "type": "error", "message": tr("err.busy.suggest")}))
+                return
+
+            async with _suggest_semaphore:
+                _last_review_by_client[client] = time.time()
+                _suggest_daily_usage["count"] += 1
+                require_llm_key()
+
+                await queue.put(json.dumps({"type": "start"}))
+                relecture = await asyncio.to_thread(
+                    review_discipline,
+                    build_dossier(payload["dossier"]),
+                    payload["discipline"],
+                    task_callback,
+                    payload.get("lang", DEFAULT_LANG),
+                )
+                await queue.put(json.dumps({
+                    "type": "done",
+                    "discipline": relecture.discipline,
+                    # ⚠️ Des PROPOSITIONS, jamais des valeurs appliquées.
+                    "fields": [{"field": f.field, "rewritten": f.rewritten}
+                               for f in relecture.fields],
+                    "demands": list(relecture.demands),
+                }))
+        except Exception as exc:
+            _log.exception("Relecture 8D interrompue")
+            await queue.put(json.dumps({
+                "type": "error",
+                "message": _failure_message(exc, tr("err.fail.review")),
+            }))
+        finally:
+            await queue.put(None)
+
+    tache = asyncio.create_task(run())
+    return _sse_response(request, queue, timeout=180.0, task=tache)
+
+
+class CausetraceProposeRequest(BaseModel):
+    lang: str = DEFAULT_LANG
+    kind: str = ""
+    dossier: dict = {}
+
+
+# ⚠️ Une seule paire de routes pour les deux propositions : elles partagent
+# la validation, le limiteur et le flux. Deux paires jumelles auraient fini
+# par diverger — le motif de `xlsxsafe`.
+_PROPOSERS = {"causes": suggest_causes, "questions": suggest_questions}
+
+
+@app.post("/8d/propose")
+async def causetrace_propose_prepare(request: Request, payload: CausetraceProposeRequest):
+    """Valide la demande et rend un jeton — le dossier ne passe pas par une URL."""
+    client = _client_key(request)
+
+    if payload.kind not in _PROPOSERS:
+        return JSONResponse({"error": tr("err.session")}, status_code=400)
+
+    refusal = _suggest_refusal(client, _REVIEW_COOLDOWN_SECONDS, _last_review_by_client)
+    if refusal:
+        return JSONResponse({"error": refusal}, status_code=429)
+
+    try:
+        dossier = build_dossier(payload.dossier)
+    except InvalidDossier as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+
+    # Sans problème décrit, il n'y a rien à explorer — et l'appel serait perdu.
+    if not problem_statement(dossier, payload.lang):
+        return JSONResponse({"error": tr("err.need.problem")}, status_code=400)
+
+    return {"token": _issue_token(client, "ctpropose", {
+        "kind": payload.kind,
+        "dossier": payload.dossier,
+        "lang": payload.lang,
+    })}
+
+
+@app.get("/8d/propose/stream")
+async def causetrace_propose_stream(request: Request, t: str = ""):
+    queue: asyncio.Queue[str | None] = asyncio.Queue()
+    loop = asyncio.get_event_loop()
+    client = _client_key(request)
+
+    def task_callback(_task_output):
+        loop.call_soon_threadsafe(queue.put_nowait, json.dumps({
+            "type": "step_done", "index": 0, "total": 1,
+        }))
+
+    async def run():
+        try:
+            payload = _consume_token(t, client, "ctpropose")
+            if payload is None:
+                await queue.put(json.dumps({
+                    "type": "error", "message": tr("err.session")}))
+                return
+
+            refusal = _suggest_refusal(client, _REVIEW_COOLDOWN_SECONDS,
+                                       _last_review_by_client)
+            if refusal:
+                await queue.put(json.dumps({"type": "error", "message": refusal}))
+                return
+
+            if _suggest_semaphore.locked():
+                await queue.put(json.dumps({
+                    "type": "error", "message": tr("err.busy.suggest")}))
+                return
+
+            async with _suggest_semaphore:
+                _last_review_by_client[client] = time.time()
+                _suggest_daily_usage["count"] += 1
+                require_llm_key()
+
+                await queue.put(json.dumps({"type": "start"}))
+                kind = payload["kind"]
+                propositions = await asyncio.to_thread(
+                    _PROPOSERS[kind],
+                    build_dossier(payload["dossier"]),
+                    task_callback,
+                    payload.get("lang", DEFAULT_LANG),
+                )
+                # ⚠️ Des hypothèses NON QUALIFIÉES et des questions — jamais
+                # une nature, jamais une valeur de champ.
+                await queue.put(json.dumps({
+                    "type": "done",
+                    "kind": kind,
+                    "items": [
+                        {"group": p.family, "text": p.text} if kind == "causes"
+                        else {"group": p.axis, "text": p.question}
+                        for p in propositions
+                    ],
+                }))
+        except Exception as exc:
+            _log.exception("Proposition 8D interrompue")
+            await queue.put(json.dumps({
+                "type": "error",
+                "message": _failure_message(exc, tr("err.fail.propose")),
+            }))
+        finally:
+            await queue.put(None)
+
+    tache = asyncio.create_task(run())
+    return _sse_response(request, queue, timeout=180.0, task=tache)
+
+
+class CausetraceReportRequest(BaseModel):
+    lang: str = DEFAULT_LANG
+    dossier: dict = {}
+
+
+@app.post("/8d/report")
+async def causetrace_report_create(request: Request, payload: CausetraceReportRequest):
+    """Reconstruit le dossier côté serveur, puis prépare le classeur.
+
+    ⚠️ Le dossier vient du navigateur : sa complétude est **recalculée** par
+    `check()` avant écriture. L'indicateur de la page est une commodité
+    d'affichage — même discipline que les exports HARA et TARA.
+
+    Un dossier incomplet n'est pas refusé : il est exporté **en disant ce qui
+    manque**, en tête de l'onglet principal.
+    """
+    try:
+        dossier = build_dossier(payload.dossier)
+    except InvalidDossier as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+
+    edite = datetime.now(timezone.utc)
+    excel = await asyncio.to_thread(build_causetrace_excel, dossier, payload.lang, edite)
+    report_id = _store_report(
+        _client_key(request),
+        "8d",
+        excel,
+        "causetrace_" + edite.strftime("%Y%m%d_%H%M") + ".xlsx",
+    )
+    resume = report_summary(dossier, payload.lang)
+    resume["report_id"] = report_id
+    return resume
+
+
+@app.get("/8d/report/{report_id}.xlsx")
+async def causetrace_report_download(request: Request, report_id: str):
+    return _serve_report(request, report_id, "8d", tr("err.report.gone"))
 
 
 @app.get("/i18n/{lang}.js")
@@ -525,6 +807,16 @@ async def hara_report_download(request: Request, report_id: str):
 
 _suggest_semaphore = asyncio.Semaphore(1)
 _SUGGEST_COOLDOWN_SECONDS = 60
+
+# ⚠️ Cadence PROPRE à CauseTrace, plafond quotidien PARTAGÉ. La relecture
+# s'enchaîne discipline par discipline : attendre 60 s entre chaque rendrait
+# le guidage inutilisable. La cadence protège du martèlement, le cap protège
+# l'enveloppe Groq — ce ne sont pas les mêmes rôles, ils n'ont pas à avoir la
+# même valeur. Le compteur du jour, lui, reste le même que SafetyScope,
+# ThreatScope et RegWatch : un quatrième compteur doublerait les appels sur
+# une seule enveloppe.
+_REVIEW_COOLDOWN_SECONDS = 20
+_last_review_by_client: dict[str, float] = {}
 _MAX_SUGGESTIONS_PER_DAY = 100
 _last_suggest_by_client: dict[str, float] = {}
 _suggest_daily_usage = {"day": None, "count": 0}
@@ -535,19 +827,26 @@ class HaraSuggestRequest(BaseModel):
     lang: str = DEFAULT_LANG
 
 
-def _suggest_refusal(client: str) -> str | None:
+def _suggest_refusal(client: str, cooldown: float = _SUGGEST_COOLDOWN_SECONDS,
+                     seen: dict[str, float] | None = None) -> str | None:
+    """Refus éventuel d'un appel IA.
+
+    ⚠️ Le plafond quotidien est **toujours** `_suggest_daily_usage` : c'est
+    l'enveloppe Groq, elle est unique. Seule la cadence dépend de l'outil.
+    """
     now = time.time()
+    seen = _last_suggest_by_client if seen is None else seen
 
     if _daily_count(_suggest_daily_usage) >= _MAX_SUGGESTIONS_PER_DAY:
         return tr("err.quota.daily")
 
-    for key, stamp in list(_last_suggest_by_client.items()):
-        if now - stamp > _SUGGEST_COOLDOWN_SECONDS:
-            del _last_suggest_by_client[key]
+    for key, stamp in list(seen.items()):
+        if now - stamp > cooldown:
+            del seen[key]
 
-    last = _last_suggest_by_client.get(client)
+    last = seen.get(client)
     if last is not None:
-        wait = int(_SUGGEST_COOLDOWN_SECONDS - (now - last))
+        wait = int(cooldown - (now - last))
         return tr("err.rate.suggest", wait=wait)
 
     return None

@@ -476,7 +476,7 @@ CATALOGUE: dict[str, str] = {
     "home.qc.desc":
         "Audit de conformité par agents IA. Quatre agents analysent un dossier documentaire en temps réel — qualité des exigences, couverture de test, risques sûreté — et produisent un rapport structuré.",
     "home.stance.noai":
-        "<strong>Quatre de ces cinq outils produisent leur résultat sans aucune intelligence artificielle.</strong> Déterminer un ASIL ou une valeur de risque, ce sont des tables de décision : la réponse est exacte et instantanée. Rattacher un signal de veille à une norme, c'est une règle écrite, reproductible et testée hors ligne. Chercher une exposition sur des dépôts publics, c'est une API et des critères de criticité. Y glisser un modèle de langage n'ajouterait qu'une latence et une incertitude.",
+        "<strong>Cinq de ces six outils produisent leur résultat sans aucune intelligence artificielle.</strong> Déterminer un ASIL ou une valeur de risque, ce sont des tables de décision : la réponse est exacte et instantanée. Refuser de clore un 8D dont la cause de non-détection manque, c'est un jeu de règles ordonnées. Rattacher un signal de veille à une norme, c'est une règle écrite, reproductible et testée hors ligne. Chercher une exposition sur des dépôts publics, c'est une API et des critères de criticité. Y glisser un modèle de langage n'ajouterait qu'une latence et une incertitude.",
     "home.rw.tag.public": "Sources publiques",
     "home.h1": "Outils <em>Qualité &amp; Sécurité</em>",
     "home.rw.tag.watch": "Veille normative",
@@ -869,4 +869,302 @@ CATALOGUE: dict[str, str] = {
     "status.js.locale": "fr-FR",
     "status.js.uncapped": "non plafonné",
     "status.js.failed": "Plafonds indisponibles pour le moment.",
+    # --- CauseTrace — disciplines du 8D et constats de complétude ---
+    # ⚠️ Espace de noms « ct. » et non « 8d. » : le scanner de clés de
+    # tests/test_i18n.py exige qu'une clé commence par une lettre. La ROUTE
+    # reste /8d, elle n'a pas cette contrainte.
+    "ct.discipline.d1": "D1 — Équipe",
+    "ct.discipline.d2": "D2 — Description du problème",
+    "ct.discipline.d3": "D3 — Actions immédiates",
+    "ct.discipline.d4": "D4 — Causes racines",
+    "ct.discipline.d5": "D5 — Actions correctives permanentes",
+    "ct.discipline.d6": "D6 — Mise en œuvre et validation",
+    "ct.discipline.d7": "D7 — Prévention",
+    "ct.discipline.d8": "D8 — Clôture",
+    "ct.gap.d1.no_owner": "Aucun pilote n'est nommé",
+    "ct.gap.d2.no_what": "L'objet et le défaut ne sont pas décrits",
+    "ct.gap.d2.no_where": "Le lieu de détection n'est pas indiqué",
+    "ct.gap.d2.no_since": "La date d'apparition n'est pas indiquée",
+    "ct.gap.d2.no_extent": "L'ampleur n'est pas chiffrée",
+    "ct.gap.d2.no_is_not": "Ce qui n'est PAS touché n'est pas précisé",
+    "ct.gap.d3.no_action": "Aucune action immédiate n'est décrite",
+    "ct.gap.d3.no_due_date": "L'action immédiate n'a pas de date de fin",
+    "ct.gap.d3.no_effectiveness_check":
+        "L'efficacité de l'action immédiate n'est pas contrôlée",
+    "ct.gap.d4.locked": "Trop tôt : le problème n'est pas encore décrit",
+    "ct.gap.d4.no_occurrence_cause": "La cause d'occurrence manque",
+    "ct.gap.d4.no_escape_cause": "La cause de non-détection manque",
+    "ct.gap.d5.locked": "Trop tôt : les causes racines ne sont pas établies",
+    "ct.gap.d5.no_action_on_occurrence":
+        "Aucune action permanente sur la cause d'occurrence",
+    "ct.gap.d5.no_action_on_escape":
+        "Aucune action permanente sur la cause de non-détection",
+    "ct.gap.d6.locked": "Trop tôt : les actions permanentes ne sont pas arrêtées",
+    "ct.gap.d6.no_date": "La date de mise en œuvre manque",
+    "ct.gap.d6.no_evidence": "L'efficacité des actions n'est pas prouvée",
+    "ct.gap.d7.no_systemic_update": "Aucun document de référence n'a été mis à jour",
+    "ct.gap.d8.premature_closure":
+        "Le dossier est déclaré clos alors qu'il est incomplet",
+    "ct.gap.d8.not_closed": "Le dossier est complet mais n'est pas déclaré clos",
+    "ct.gap.d8.no_closure_date": "La date de clôture manque",
+    # --- CauseTrace — chaînes de pourquoi (étape 2) ---
+    # ⚠️ Les natures sont des IDENTIFIANTS ; ces libellés ne sont que leur
+    # affichage. `whychain` ne lit jamais le texte d'un pourquoi.
+    "ct.nature.technical": "État technique constaté",
+    "ct.nature.process": "Règle, procédé ou mode opératoire",
+    "ct.nature.system": "Dispositif de management ou de conception",
+    "ct.nature.person": "Une personne et son geste",
+    "ct.slot.occurrence": "cause d'occurrence",
+    "ct.slot.escape": "cause de non-détection",
+    "ct.gap.d4.chain_missing": "Aucune chaîne de pourquoi n'étaye cette cause",
+    "ct.gap.d4.chain_too_short": "La chaîne s'arrête trop tôt pour étayer une cause racine",
+    "ct.gap.d4.chain_truncated":
+        "La chaîne dépasse le plafond : les derniers pourquoi ont été écartés",
+    "ct.gap.d4.chain_step_without_nature": "Un pourquoi n'est pas qualifié",
+    "ct.gap.d4.chain_repeats_itself":
+        "La chaîne se répète : un pourquoi n'apporte rien de neuf",
+    "ct.gap.d4.chain_ends_on_person":
+        "La chaîne s'arrête sur une personne — c'est un symptôme, pas une cause",
+    "ct.gap.d4.chain_ends_on_symptom":
+        "La chaîne s'arrête sur un état technique — rien n'y est prévenable",
+    # --- CauseTrace — le 8D d'exemple, volontairement médiocre (étape 3) ---
+    # ⚠️ Références, dates et noms propres restent en clair dans example.py :
+    # ce sont des identifiants, pas des libellés.
+    "ct.example.title": "Perte intermittente du signal de vitesse roue",
+    "ct.example.member.1": "Atelier montage",
+    "ct.example.member.2": "Qualité fournisseur",
+    "ct.example.what": "Le capteur de vitesse roue avant gauche perd son signal",
+    "ct.example.where": "Remonté par le client",
+    "ct.example.since": "Depuis fin mai",
+    "ct.example.how_many": "Plusieurs pièces",
+    "ct.example.is_not": "Pas d'autre défaut signalé",
+    "ct.example.containment": "Tri des pièces en stock",
+    "ct.example.occurrence": "Serrage insuffisant du connecteur",
+    "ct.example.why.1": "Le connecteur perd le contact",
+    "ct.example.why.2": "Le couple de serrage était insuffisant",
+    "ct.example.why.3": "L'opérateur n'a pas respecté la consigne de serrage",
+    "ct.example.lessons": "Sensibilisation de l'équipe au serrage des connecteurs",
+    # --- CauseTrace — page /8d (étape 3) ---
+    "ct.title": "CauseTrace — Résolution de réclamation 8D",
+    "ct.meta":
+        "Résolution de réclamation 8D avec analyse causale : l'outil refuse "
+        "d'appeler « résolu » un dossier qui ne l'est pas, et dit où il pèche.",
+    "ct.badge": "Verdict immédiat — aucun temps d'attente",
+    "ct.h1": "Cause<em>Trace</em>",
+    "ct.subtitle":
+        "Résolution de réclamation client selon la démarche 8D. L'outil ne remplit pas "
+        "huit cases : il <strong>refuse d'appeler « résolu » un dossier qui ne l'est "
+        "pas</strong>, et dit précisément où il pèche. Le verdict est déterministe, "
+        "sans intelligence artificielle.",
+    "ct.note":
+        "<strong>Démonstration pédagogique.</strong> Le 8D, l'Ishikawa et les 5 Pourquoi "
+        "relèvent du domaine public : cet outil peut les nommer et les implémenter sans "
+        "restriction. Il ne remplace ni votre système qualité, ni les exigences de votre "
+        "client. Vos saisies restent dans votre navigateur ; elles ne sont transmises "
+        "qu'au moment de l'export, pour construire le classeur.",
+    "ct.reset": "Repartir d'un dossier vierge",
+    "ct.section.case": "Dossier",
+    "ct.section.verdict": "Verdict",
+    "ct.section.disciplines": "Les huit disciplines",
+    "ct.load": "Charger un exemple",
+    "ct.load.hint":
+        "Un 8D réaliste tel qu'on en reçoit — et que l'outil refuse de tenir pour clos.",
+    "ct.ph.reference": "ex : 8D-2026-014",
+    "ct.ph.title": "ex : Perte intermittente du signal de vitesse roue",
+    "ct.ph.why": "Pourquoi ?",
+    "footer.8d":
+        "CauseTrace · démonstration pédagogique · vos saisies ne sont transmises qu'à l'export",
+    # Libellés de champ, par discipline
+    "ct.f.d1.owner": "Pilote du 8D",
+    "ct.f.d1.members": "Membres de l'équipe",
+    "ct.f.d2.what": "Quoi — l'objet et le défaut",
+    "ct.f.d2.where": "Où — lieu de détection",
+    "ct.f.d2.since": "Depuis quand",
+    "ct.f.d2.how_many": "Combien — l'ampleur",
+    "ct.f.d2.is_not": "Ce qui n'est PAS touché",
+    "ct.f.d3.action": "Action immédiate",
+    "ct.f.d3.due_date": "Date de fin",
+    "ct.f.d3.effectiveness_check": "Contrôle d'efficacité",
+    "ct.f.d4.occurrence": "Cause d'occurrence",
+    "ct.f.d4.escape": "Cause de non-détection",
+    "ct.f.d5.on_occurrence": "Action sur la cause d'occurrence",
+    "ct.f.d5.on_escape": "Action sur la cause de non-détection",
+    "ct.f.d6.implemented_on": "Date de mise en œuvre",
+    "ct.f.d6.evidence": "Preuve d'efficacité",
+    "ct.f.d7.systemic_update": "Document de référence mis à jour",
+    "ct.f.d7.lessons": "Leçons apprises (facultatif)",
+    "ct.f.d8.claimed_closed": "Déclarer le dossier clos",
+    "ct.f.d8.closed_on": "Date de clôture",
+    # Textes d'exemple — seulement là où ils guident vraiment
+    "ct.ph.d2.what": "ex : le capteur avant gauche perd son signal au-delà de 80 km/h",
+    "ct.ph.d2.how_many": "ex : 7 pièces sur 1 240 contrôlées",
+    "ct.ph.d2.is_not": "ex : aucune occurrence sur la roue avant droite ni sur le lot d'avril",
+    "ct.ph.d3.effectiveness_check": "ex : aucun défaut sorti du tri sur 3 lots consécutifs",
+    "ct.ph.d4.occurrence": "Pourquoi le défaut est-il né ?",
+    "ct.ph.d4.escape": "Pourquoi les contrôles en place l'ont-ils laissé passer ?",
+    "ct.ph.d6.evidence": "ex : 0 défaut sur 4 300 pièces produites après mise en œuvre",
+    "ct.ph.d7.systemic_update": "ex : AMDEC processus et plan de surveillance mis à jour",
+    # Chaînes construites en JavaScript
+    "ct.js.chain": "Chaîne de pourquoi — {slot}",
+    "ct.js.addwhy": "Ajouter un pourquoi",
+    "ct.js.nature.none": "— nature du pourquoi —",
+    "ct.js.del": "Supprimer",
+    "ct.js.state.complete": "complète",
+    "ct.js.state.incomplete": "à compléter",
+    "ct.js.state.locked": "trop tôt",
+    "ct.js.verdict.blank": "dossier vierge",
+    "ct.js.verdict.hint": "Commencez à saisir, ou chargez l'exemple.",
+    "ct.js.verdict.closable": "peut être clos",
+    "ct.js.verdict.ok": "Les huit disciplines sont complètes.",
+    "ct.js.verdict.open": "non résolu",
+    "ct.js.verdict.count.one": "{n} point bloque la clôture.",
+    "ct.js.verdict.count.other": "{n} points bloquent la clôture.",
+    "ct.js.draft": "Brouillon restauré depuis cet onglet.",
+    "ct.js.example.failed": "L'exemple n'a pas pu être chargé.",
+    # --- CauseTrace — export Excel (étape 4) ---
+    # ⚠️ Espace de noms « xl. » : rendu côté serveur, exclu de la charge utile
+    # JavaScript servie aux pages.
+    "xl.ct.title": "Rapport 8D",
+    "xl.ct.sheet.form": "8D",
+    "xl.ct.sheet.gaps": "Ce qui manque",
+    "xl.ct.sheet.chains": "Chaînes de pourquoi",
+    "xl.ct.sheet.rules": "Règles appliquées",
+    "xl.ct.sheet.limits": "Limites",
+    "xl.ct.state.closed": "DOSSIER CLOS le {date} — les huit disciplines sont complètes.",
+    "xl.ct.state.draft.one":
+        "BROUILLON — {n} discipline reste à compléter. Ce dossier n'est pas résolu.",
+    "xl.ct.state.draft.other":
+        "BROUILLON — {n} disciplines restent à compléter. Ce dossier n'est pas résolu.",
+    "xl.ct.reference": "Référence",
+    "xl.ct.case": "Intitulé",
+    "xl.ct.edited": "Édité le",
+    "xl.ct.seechains": "Le raisonnement figure dans l'onglet « Chaînes de pourquoi ».",
+    "xl.ct.col.discipline": "Discipline",
+    "xl.ct.col.slot": "Cause visée",
+    "xl.ct.col.gap": "Ce qui manque",
+    "xl.ct.col.owner": "Responsable",
+    "xl.ct.col.due": "Échéance",
+    "xl.ct.col.done": "Fait le",
+    "xl.ct.col.n": "N°",
+    "xl.ct.col.statement": "Pourquoi",
+    "xl.ct.col.nature": "Nature",
+    "xl.ct.col.concludes": "Peut conclure",
+    "xl.ct.nogaps": "Rien à signaler : les huit disciplines sont complètes.",
+    "xl.ct.chains.title": "Le raisonnement qui mène à chaque cause racine",
+    "xl.ct.chain.for": "Chaîne — {slot}",
+    "xl.ct.chain.none": "Aucune chaîne saisie.",
+    "xl.ct.rules.title": "Les règles que ce rapport applique",
+    "xl.ct.rules.terminal": "Natures pouvant conclure une chaîne",
+    "xl.ct.rule.causes": "Deux causes racines, à égalité",
+    "xl.ct.rule.causes.detail":
+        "Une cause explique pourquoi le défaut est né, l'autre pourquoi les contrôles "
+        "en place l'ont laissé passer. Sans la seconde, le prochain défaut — qui ne "
+        "sera pas le même — sortira par la même porte.",
+    "xl.ct.rule.containment": "Les actions immédiates ne dépendent de rien",
+    "xl.ct.rule.containment.detail":
+        "Protéger le client n'attend pas la cause racine. En revanche une action "
+        "immédiate sans date de fin ni contrôle d'efficacité ne se referme jamais.",
+    "xl.ct.rule.chain": "Où une chaîne de pourquoi a le droit de s'arrêter",
+    "xl.ct.rule.chain.detail":
+        "Sur une cause qu'on peut changer. Un état technique est le symptôme qu'on "
+        "cherchait à expliquer ; une personne ne se corrige pas et ne se prévient pas. "
+        "Un pourquoi qui met en cause une personne reste légitime au milieu d'une "
+        "chaîne — c'est s'y arrêter qui est la faute.",
+    "xl.ct.rule.closure": "Ordre des disciplines",
+    "xl.ct.rule.closure.detail":
+        "On ne cherche pas la cause d'un problème qu'on n'a pas su décrire, on ne "
+        "corrige pas avant d'avoir établi la cause, et on ne valide pas ce qui n'a pas "
+        "été décidé. Un dossier n'est clos que si les sept premières disciplines le sont.",
+    "xl.ct.limits.col": "Ce que cet outil ne fait pas",
+    "xl.ct.limits.detail": "Précision",
+    "xl.ct.limit.form": "Il juge la forme de la démarche, pas la justesse du fond",
+    "xl.ct.limit.form.detail":
+        "Une chaîne dont les affirmations seraient creuses mais correctement qualifiées "
+        "passe le contrôle. Le rapport dit qu'une démarche est complète, jamais qu'elle "
+        "est juste.",
+    "xl.ct.limit.text": "Il ne lit pas le texte des pourquoi",
+    "xl.ct.limit.text.detail":
+        "Le verdict repose sur la nature déclarée de chaque pourquoi, jamais sur ses "
+        "mots. C'est ce qui le rend reproductible et indépendant de la langue de saisie.",
+    "xl.ct.limit.scope": "Un seul dossier, aucune persistance",
+    "xl.ct.limit.scope.detail":
+        "Ni suivi de plusieurs 8D, ni historique, ni comptes, ni indicateurs.",
+    "xl.ct.limit.norm": "Il ne remplace pas votre système qualité",
+    "xl.ct.limit.norm.detail":
+        "Démonstration pédagogique. Le 8D relève du domaine public, mais les exigences "
+        "de votre client, elles, ne se déduisent pas d'un formulaire.",
+    "xl.ct.limit.privacy": "Le dossier n'est transmis qu'à l'export",
+    "xl.ct.limit.privacy.detail":
+        "La saisie et le verdict affiché restent dans le navigateur. Le dossier n'est "
+        "envoyé au serveur qu'au moment de l'export, pour construire ce classeur ; il "
+        "est gardé en mémoire le temps du téléchargement et n'est jamais écrit sur disque.",
+    "xl.ct.yes": "oui",
+    "xl.ct.no": "non",
+    # --- CauseTrace — export depuis la page (étape 4) ---
+    "ct.export": "Exporter en Excel",
+    "ct.js.export.prep": "Construction du classeur…",
+    "ct.js.export.ok": "Classeur prêt, le téléchargement démarre.",
+    "ct.js.export.ko": "Le classeur n'a pas pu être construit.",
+    "ct.js.export.diverged":
+        "Le serveur a recompté {n} points — c'est le classeur qui fait foi.",
+    # --- CauseTrace — relecture par IA (étape 5) ---
+    "ct.review.why": "{slot} — pourquoi {rank}",
+    "err.need.written":
+        "Rien n'est encore écrit dans cette discipline. L'IA relit ce que vous "
+        "avez rédigé ; elle ne le rédige pas à votre place.",
+    "err.fail.review":
+        "La relecture a échoué. Votre saisie est intacte et le verdict reste valable.",
+    "ct.review": "Relire ce D par IA",
+    "ct.js.review.running": "Relecture en cours…",
+    "ct.js.review.none": "Rien à reformuler ici, et rien à réclamer.",
+    "ct.js.review.demands": "Ce que l'IA n'a pas pu écrire, faute de le savoir",
+    "ct.js.review.apply": "Appliquer",
+    "ct.js.review.applied": "Appliqué",
+    "ct.js.review.ko": "La relecture a échoué. Votre saisie est intacte.",
+    # --- CauseTrace — Ishikawa 5M et questions discriminantes (étape 6) ---
+    # ⚠️ Identifiants stables : ces libellés ne voyagent jamais, seuls les
+    # numéros font contrat avec le modèle.
+    "ct.5m.method": "Méthode",
+    "ct.5m.machine": "Machine",
+    "ct.5m.material": "Matière",
+    "ct.5m.manpower": "Main-d'œuvre",
+    "ct.5m.environment": "Milieu",
+    "ct.axis.what": "Quoi — l'objet et le défaut",
+    "ct.axis.where": "Où — lieu et poste",
+    "ct.axis.when": "Quand — période et fréquence",
+    "ct.axis.extent": "Combien — ampleur et tendance",
+    "ct.ishikawa": "Proposer des pistes (5M)",
+    "ct.questions": "Proposer les questions « est / n'est pas »",
+    "ct.js.propose.running": "Recherche de pistes…",
+    "ct.js.propose.none": "Aucune piste exploitable n'a été proposée.",
+    "ct.js.propose.ko": "La proposition a échoué. Votre saisie est intacte.",
+    "ct.js.propose.title": "Pistes à vérifier — non qualifiées, à vous de trancher",
+    "ct.js.propose.use": "Ajouter comme pourquoi",
+    "ct.js.propose.used": "Ajouté",
+    "ct.js.questions.title": "Ce qui aurait pu être touché et ne l'est pas",
+    "ct.js.questions.note":
+        "Ces questions ne se recopient pas dans un champ : elles se creusent, "
+        "et c'est leur réponse qui va dans « Ce qui n'est PAS touché ».",
+    "err.need.problem":
+        "Décrivez d'abord le problème (D2). Sans lui, il n'y a rien à explorer.",
+    "err.fail.propose":
+        "La proposition a échoué. Votre saisie est intacte et le verdict reste valable.",
+    # --- CauseTrace sur la page de garde (étape 7) ---
+    "home.ct.desc":
+        "Résolution de réclamation client selon la démarche 8D. L'outil ne remplit pas "
+        "huit cases : il refuse d'appeler « résolu » un dossier qui ne l'est pas, et dit "
+        "où il pèche — cause manquante, chaîne de pourquoi qui s'arrête sur un opérateur, "
+        "clôture prétendue.",
+    "home.ct.tag.public": "Méthodes du domaine public",
+    "home.ct.pair": "Exige la cause de non-détection, pas seulement celle d'occurrence",
+    "home.ct.cta": "Ouvrir un 8D",
+    "home.stance.ct":
+        "<strong>Dans CauseTrace, l'IA ne complète pas : elle réclame.</strong> Un rapport "
+        "8D part chez le client ; un fait inventé y serait bien pire qu'une phrase mal "
+        "écrite. Elle resserre donc ce que l'ingénieur a écrit, et tout ce qu'elle voudrait "
+        "ajouter sans le savoir — une date, un nombre de pièces — devient une question "
+        "posée, jamais une valeur. Une piste d'Ishikawa reprise arrive <strong>non "
+        "qualifiée</strong> : c'est l'ingénieur qui dit ce qu'elle est.",
+    "home.status.live": "En ligne",
+    "home.ct.tag.why": "8D · 5 Pourquoi",
 }

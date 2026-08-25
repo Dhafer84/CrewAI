@@ -17,6 +17,7 @@ rien changé à l'écran** — la promesse entière de l'étape A.
 """
 
 import re
+import unicodedata
 import sys
 from pathlib import Path
 
@@ -417,11 +418,17 @@ CLASSEURS = _ROOT / "tests" / "fixtures" / "i18n" / "workbooks_fr.json"
 
 
 def test_the_workbooks_are_unchanged_in_french():
-    """Le pendant de l'instantané des contrats, pour les quatre exports.
+    """Le pendant de l'instantané des contrats, pour les cinq exports.
 
     Les classeurs ne passent par aucun contrat JSON : rien d'autre ne
-    verrouille leurs ~450 chaînes. Sans cet instantané, l'extraction du
+    verrouille leurs ~500 chaînes. Sans cet instantané, l'extraction du
     texte des exports se ferait à l'aveugle.
+
+    ⚠️ La comparaison va **dans les deux sens**. Elle n'allait que dans un,
+    et un cinquième export ajouté à `_workbooks.py` a été construit sans
+    jamais être comparé — l'instantané le passait sous silence. Un
+    instantané qui ne connaît pas tout ce qu'il devrait couvrir ne protège
+    de rien.
     """
     import json
     sys.path.insert(0, str(_ROOT / "tests"))
@@ -429,6 +436,10 @@ def test_the_workbooks_are_unchanged_in_french():
 
     attendu = json.loads(CLASSEURS.read_text(encoding="utf-8"))
     actuel = {nom: cell_values(data) for nom, data in workbooks("fr").items()}
+
+    absents = sorted(set(actuel) - set(attendu))
+    assert not absents, f"classeurs construits mais jamais comparés : {absents}"
+    assert not sorted(set(attendu) - set(actuel)), "un classeur de l'instantané a disparu"
 
     for nom in sorted(attendu):
         for onglet in sorted(attendu[nom]):
@@ -502,6 +513,24 @@ def test_every_page_loads_the_catalogue_before_its_own_script():
         if inline:
             assert outil_pos < inline.start(), (
                 f"{chemin.name} : le script de page s'exécute avant T()")
+
+
+def test_no_catalogue_entry_strays_out_of_the_latin_script():
+    """⚠️ Garde-fou contre un caractère qui se glisse sans se voir.
+
+    Un « с » cyrillique dans « processus » est invisible à la relecture, passe
+    tous les autres tests, et ne se remarque qu'une fois en ligne. Les deux
+    catalogues sont français et anglais : toute lettre non latine est une
+    scorie de saisie, jamais un choix.
+    """
+    fautes = []
+    for langue in LANGUAGES:
+        for cle, texte in catalogue(langue).items():
+            for caractere in texte:
+                if caractere.isalpha() and "LATIN" not in unicodedata.name(caractere, ""):
+                    fautes.append(f"{langue} · {cle} · {caractere!r} "
+                                  f"({unicodedata.name(caractere, '?')})")
+    assert not fautes, "caractères hors alphabet latin : " + " | ".join(fautes)
 
 
 def main() -> int:

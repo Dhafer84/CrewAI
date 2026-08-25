@@ -36,7 +36,7 @@ _ATTR_KEY = re.compile(r'data-i18n-content="([^"]+)"')
 # visiteur qui revenait gardait l'ancien script en cache indéfiniment.
 VERSIONED_ASSETS = ("style.css", "i18n.js", "aistatus.js")
 
-PAGE_PATHS = ("", "/qualitycrew", "/sentinelscan", "/hara", "/tara", "/regwatch")
+PAGE_PATHS = ("", "/qualitycrew", "/sentinelscan", "/hara", "/tara", "/regwatch", "/8d")
 
 
 def _end_of_element(html: str, tag: str, after: int) -> int | None:
