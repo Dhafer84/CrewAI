@@ -22,9 +22,9 @@ CATALOGUE: dict[str, str] = {
     "footer.sentinelscan":
         "OSINT passif · sources publiques · les termes ne transitent jamais par une URL",
     "footer.hara":
-        "SafetyScope · démonstration pédagogique, ne remplace pas la norme",
+        "SafetyScope · ne remplace pas la norme",
     "footer.tara":
-        "ThreatScope · démonstration pédagogique, ne remplace pas la norme",
+        "ThreatScope · ne remplace pas la norme",
     "footer.regwatch":
         "Veille à la demande · sources publiques · le contenu des normes "
         "n'est jamais republié",
@@ -184,7 +184,7 @@ CATALOGUE: dict[str, str] = {
     "xl.rw.sheet.summary": "Synthèse",
     # --- Export Excel RegWatch — avertissement et limites ---
     "xl.rw.disclaimer":
-        "Démonstration pédagogique. RegWatch ne republie jamais le contenu des normes — elles sont payantes et protégées : seuls le titre, la date et le lien vers la source sont remontés, et le corps des pages n'est même pas téléchargé. Le niveau de signal est déduit du titre seul : il oriente, c'est le lien qui fait foi. Cet outil ne remplace ni la lecture des normes, ni un service de veille réglementaire.",
+        "RegWatch ne republie jamais le contenu des normes — elles sont payantes et protégées : seuls le titre, la date et le lien vers la source sont remontés, et le corps des pages n'est même pas téléchargé. Le niveau de signal est déduit du titre seul : il oriente, c'est le lien qui fait foi. Cet outil ne remplace ni la lecture des normes, ni un service de veille réglementaire.",
     "xl.rw.limit.window": "La fenêtre est fixe, elle ne suit pas vos visites",
     "xl.rw.limit.window.detail":
         "Ce classeur couvre les {n} derniers jours au moment de l'export, pas « depuis la dernière fois » : l'outil ne garde aucune trace de vos passages",
@@ -233,7 +233,7 @@ CATALOGUE: dict[str, str] = {
     "xl.hara.limits.col": "Limite",
     "xl.hara.limits.detail": "Ce que cela implique",
     "xl.hara.disclaimer":
-        "Démonstration pédagogique. Cet outil implémente la logique de détermination ASIL avec des formulations qui lui sont propres. Il ne reproduit pas le texte de l'ISO 26262, document sous licence, et ne s'y substitue en aucun cas.",
+        "Cet outil implémente la logique de détermination ASIL avec des formulations qui lui sont propres. Il ne reproduit pas le texte de l'ISO 26262, document sous licence, et ne s'y substitue en aucun cas.",
     "xl.hara.limit.judgment": "La cotation S/E/C relève du jugement de l'ingénieur",
     "xl.hara.limit.judgment.detail": "L'outil calcule, il ne décide pas à votre place",
     "xl.hara.limit.situations": "Les situations de conduite ne sont pas exhaustives",
@@ -306,7 +306,7 @@ CATALOGUE: dict[str, str] = {
     "xl.tara.limits.title": "Ce que cet outil ne fait pas",
     "xl.tara.limits.why": "Pourquoi c'est important",
     "xl.tara.disclaimer":
-        "Démonstration pédagogique. Le barème de potentiel d'attaque employé ici est une calibration propre à cet outil : il ne reproduit ni l'ISO/SAE 21434 ni l'ISO 18045, documents sous licence. La norme laisse chaque organisation définir sa méthode de détermination du risque — celle-ci est donc une méthode, pas la méthode, et ne se substitue à aucun référentiel.",
+        "Le barème de potentiel d'attaque employé ici est une calibration propre à cet outil : il ne reproduit ni l'ISO/SAE 21434 ni l'ISO 18045, documents sous licence. La norme laisse chaque organisation définir sa méthode de détermination du risque — celle-ci est donc une méthode, pas la méthode, et ne se substitue à aucun référentiel.",
     "xl.tara.limit.judgment":
         "La cotation d'impact et de faisabilité relève du jugement de l'ingénieur",
     "xl.tara.limit.judgment.detail": "L'outil calcule et trace, il ne décide pas à votre place",
@@ -575,7 +575,7 @@ CATALOGUE: dict[str, str] = {
     "hara.bridge.head": "Poursuivre en analyse cybersécurité",
     # --- Page RegWatch ---
     "rw.disclaimer":
-        "Démonstration pédagogique. RegWatch ne remplace ni la lecture des normes, ni un abonnement à un service de veille réglementaire. Les libellés de signal sont déduits du titre seul : ils orientent, c'est le lien vers la source qui fait foi.",
+        "RegWatch ne remplace ni la lecture des normes, ni un abonnement à un service de veille réglementaire. Les libellés de signal sont déduits du titre seul : ils orientent, c'est le lien vers la source qui fait foi.",
     "rw.hint":
         "Sélectionnez au moins un référentiel. Comptez une dizaine de secondes.",
     "rw.title": "RegWatch — Veille normative et réglementaire",
@@ -767,7 +767,7 @@ CATALOGUE: dict[str, str] = {
     "hara.subtitle":
         "Analyse de risques et détermination du niveau ASIL, dans l'esprit de la démarche HARA de l'ISO 26262. La détermination est une table de décision : elle est <strong>exacte et immédiate</strong>, sans intelligence artificielle.",
     "hara.disclaimer":
-        "<strong>Démonstration pédagogique.</strong> Cet outil implémente la logique de détermination, avec des formulations qui nous sont propres. Il ne reproduit pas le texte de l'ISO 26262, document sous licence, et ne s'y substitue en aucun cas.",
+        "<strong>Cet outil implémente la logique de détermination</strong>, avec des formulations qui nous sont propres. Il ne reproduit pas le texte de l'ISO 26262, document sous licence, et ne s'y substitue en aucun cas.",
     "hara.bridge.1":
         "Une attaque peut provoquer les mêmes dysfonctionnements qu'une panne. <strong>ThreatScope</strong> reprend vos événements redoutés et <strong>leur sévérité</strong> pour amorcer une analyse TARA (ISO/SAE 21434).",
     "hara.bridge.2":
@@ -776,7 +776,7 @@ CATALOGUE: dict[str, str] = {
     "tara.subtitle":
         "Analyse de menaces et de risques cybersécurité, dans l'esprit de la démarche TARA de l'ISO/SAE 21434. La faisabilité d'une attaque se cote, elle ne se devine pas&nbsp;: le résultat est <strong>déterministe et immédiat</strong>, sans intelligence artificielle.",
     "tara.disclaimer":
-        "<strong>Démonstration pédagogique.</strong> Le barème de potentiel d'attaque employé ici est une <strong>calibration qui nous est propre</strong>&nbsp;: il ne reproduit ni l'ISO/SAE 21434 ni l'ISO 18045, documents sous licence. La norme laisse d'ailleurs chaque organisation définir sa méthode de détermination du risque — celle-ci est donc <em>une</em> méthode, pas <em>la</em> méthode.",
+        "Le barème de potentiel d'attaque employé ici est une <strong>calibration qui nous est propre</strong>&nbsp;: il ne reproduit ni l'ISO/SAE 21434 ni l'ISO 18045, documents sous licence. La norme laisse d'ailleurs chaque organisation définir sa méthode de détermination du risque — celle-ci est donc <em>une</em> méthode, pas <em>la</em> méthode.",
     "tara.damage.note":
         "Chaque scénario de dommage porte la cotation d'<strong>impact</strong> — quatre catégories, toutes à renseigner. Les scénarios de menace qu'il contient portent la <strong>faisabilité de l'attaque</strong>. Le risque naît du croisement des deux.",
     # --- Page regwatch — blocs explicatifs ---
@@ -957,8 +957,8 @@ CATALOGUE: dict[str, str] = {
         "pas</strong>, et dit précisément où il pèche. Le verdict est déterministe, "
         "sans intelligence artificielle.",
     "ct.note":
-        "<strong>Démonstration pédagogique.</strong> Le 8D, l'Ishikawa et les 5 Pourquoi "
-        "relèvent du domaine public : cet outil peut les nommer et les implémenter sans "
+        "<strong>Le 8D, l'Ishikawa et les 5 Pourquoi "
+        "relèvent du domaine public</strong> : cet outil peut les nommer et les implémenter sans "
         "restriction. Il ne remplace ni votre système qualité, ni les exigences de votre "
         "client. Vos saisies restent dans votre navigateur ; elles ne sont transmises "
         "qu'au moment de l'export, pour construire le classeur.",
@@ -973,7 +973,7 @@ CATALOGUE: dict[str, str] = {
     "ct.ph.title": "ex : Perte intermittente du signal de vitesse roue",
     "ct.ph.why": "Pourquoi ?",
     "footer.8d":
-        "CauseTrace · démonstration pédagogique · vos saisies ne sont transmises qu'à l'export",
+        "CauseTrace · vos saisies ne sont transmises qu'à l'export",
     # Libellés de champ, par discipline
     "ct.f.d1.owner": "Pilote du 8D",
     "ct.f.d1.members": "Membres de l'équipe",
@@ -1091,7 +1091,7 @@ CATALOGUE: dict[str, str] = {
         "Ni suivi de plusieurs 8D, ni historique, ni comptes, ni indicateurs.",
     "xl.ct.limit.norm": "Il ne remplace pas votre système qualité",
     "xl.ct.limit.norm.detail":
-        "Démonstration pédagogique. Le 8D relève du domaine public, mais les exigences "
+        "Le 8D relève du domaine public, mais les exigences "
         "de votre client, elles, ne se déduisent pas d'un formulaire.",
     "xl.ct.limit.privacy": "Le dossier n'est transmis qu'à l'export",
     "xl.ct.limit.privacy.detail":

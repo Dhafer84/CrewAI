@@ -117,7 +117,7 @@
    "Un seul dossier, aucune persistance",
    "Ni suivi de plusieurs 8D, ni historique, ni comptes, ni indicateurs.",
    "Il ne remplace pas votre système qualité",
-   "Démonstration pédagogique. Le 8D relève du domaine public, mais les exigences de votre client, elles, ne se déduisent pas d'un formulaire.",
+   "Le 8D relève du domaine public, mais les exigences de votre client, elles, ne se déduisent pas d'un formulaire.",
    "Le dossier n'est transmis qu'à l'export",
    "La saisie et le verdict affiché restent dans le navigateur. Le dossier n'est envoyé au serveur qu'au moment de l'export, pour construire ce classeur ; il est gardé en mémoire le temps du téléchargement et n'est jamais écrit sur disque."
   ],
@@ -202,7 +202,7 @@
    "C(D) + A(D)",
    "B(D) + B(D)",
    "Sous réserve d'une indépendance suffisante entre les éléments.",
-   "Démonstration pédagogique. Cet outil implémente la logique de détermination ASIL avec des formulations qui lui sont propres. Il ne reproduit pas le texte de l'ISO 26262, document sous licence, et ne s'y substitue en aucun cas."
+   "Cet outil implémente la logique de détermination ASIL avec des formulations qui lui sont propres. Il ne reproduit pas le texte de l'ISO 26262, document sous licence, et ne s'y substitue en aucun cas."
   ],
   "Échelles": [
    "Échelles de cotation",
@@ -371,7 +371,7 @@
    "Information",
    "Répartition par référentiel",
    "ISO 9001",
-   "Démonstration pédagogique. RegWatch ne republie jamais le contenu des normes — elles sont payantes et protégées : seuls le titre, la date et le lien vers la source sont remontés, et le corps des pages n'est même pas téléchargé. Le niveau de signal est déduit du titre seul : il oriente, c'est le lien qui fait foi. Cet outil ne remplace ni la lecture des normes, ni un service de veille réglementaire."
+   "RegWatch ne republie jamais le contenu des normes — elles sont payantes et protégées : seuls le titre, la date et le lien vers la source sont remontés, et le corps des pages n'est même pas téléchargé. Le niveau de signal est déduit du titre seul : il oriente, c'est le lien qui fait foi. Cet outil ne remplace ni la lecture des normes, ni un service de veille réglementaire."
   ]
  },
  "sentinelscan": {
@@ -592,7 +592,7 @@
    "Risque 3",
    "Risque 4",
    "Risque 5",
-   "Démonstration pédagogique. Le barème de potentiel d'attaque employé ici est une calibration propre à cet outil : il ne reproduit ni l'ISO/SAE 21434 ni l'ISO 18045, documents sous licence. La norme laisse chaque organisation définir sa méthode de détermination du risque — celle-ci est donc une méthode, pas la méthode, et ne se substitue à aucun référentiel."
+   "Le barème de potentiel d'attaque employé ici est une calibration propre à cet outil : il ne reproduit ni l'ISO/SAE 21434 ni l'ISO 18045, documents sous licence. La norme laisse chaque organisation définir sa méthode de détermination du risque — celle-ci est donc une méthode, pas la méthode, et ne se substitue à aucun référentiel."
   ],
   "Tableau TARA": [
    "Réf.",

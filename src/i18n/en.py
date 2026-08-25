@@ -17,9 +17,9 @@ CATALOGUE: dict[str, str] = {
     "footer.sentinelscan":
         "Passive OSINT · public sources only · search terms never travel in a URL",
     "footer.hara":
-        "SafetyScope · educational demonstration, not a substitute for the standard",
+        "SafetyScope · not a substitute for the standard",
     "footer.tara":
-        "ThreatScope · educational demonstration, not a substitute for the standard",
+        "ThreatScope · not a substitute for the standard",
     "footer.regwatch":
         "On-demand watch · public sources · the content of standards is never "
         "republished",
@@ -177,7 +177,7 @@ CATALOGUE: dict[str, str] = {
     "xl.rw.sheet.summary": "Summary",
     # --- RegWatch Excel export — disclaimer and limits ---
     "xl.rw.disclaimer":
-        "Educational demonstration. RegWatch never republishes the content of standards — they are paid-for and protected: only the title, the date and the link to the source are reported, and the body of the pages is not even downloaded. The signal level is inferred from the title alone: it points the way, the link is what counts. This tool replaces neither reading the standards nor a regulatory watch service.",
+        "RegWatch never republishes the content of standards — they are paid-for and protected: only the title, the date and the link to the source are reported, and the body of the pages is not even downloaded. The signal level is inferred from the title alone: it points the way, the link is what counts. This tool replaces neither reading the standards nor a regulatory watch service.",
     "xl.rw.limit.window": "The window is fixed, it does not track your visits",
     "xl.rw.limit.window.detail":
         "This workbook covers the last {n} days as at the export, not « since last time »: the tool keeps no trace of your visits",
@@ -226,7 +226,7 @@ CATALOGUE: dict[str, str] = {
     "xl.hara.limits.col": "Limit",
     "xl.hara.limits.detail": "What that implies",
     "xl.hara.disclaimer":
-        "Educational demonstration. This tool implements the ASIL determination logic with wordings of its own. It does not reproduce the text of ISO 26262, a licensed document, and in no way replaces it.",
+        "This tool implements the ASIL determination logic with wordings of its own. It does not reproduce the text of ISO 26262, a licensed document, and in no way replaces it.",
     "xl.hara.limit.judgment": "S/E/C rating is a matter of engineering judgement",
     "xl.hara.limit.judgment.detail": "The tool computes, it does not decide for you",
     "xl.hara.limit.situations": "The driving situations are not exhaustive",
@@ -297,7 +297,7 @@ CATALOGUE: dict[str, str] = {
     "xl.tara.limits.title": "What this tool does not do",
     "xl.tara.limits.why": "Why it matters",
     "xl.tara.disclaimer":
-        "Educational demonstration. The attack potential scale used here is a calibration of this tool's own: it reproduces neither ISO/SAE 21434 nor ISO 18045, both licensed documents. The standard lets each organisation define its own risk determination method — this is therefore a method, not the method, and replaces no reference framework.",
+        "The attack potential scale used here is a calibration of this tool's own: it reproduces neither ISO/SAE 21434 nor ISO 18045, both licensed documents. The standard lets each organisation define its own risk determination method — this is therefore a method, not the method, and replaces no reference framework.",
     "xl.tara.limit.judgment": "Impact and feasibility rating is a matter of engineering judgement",
     "xl.tara.limit.judgment.detail": "The tool computes and records, it does not decide for you",
     "xl.tara.limit.calibration": "The attack potential scale is a calibration of our own",
@@ -558,7 +558,7 @@ CATALOGUE: dict[str, str] = {
     "hara.bridge.head": "Continue into cybersecurity analysis",
     # --- RegWatch page ---
     "rw.disclaimer":
-        "Educational demonstration. RegWatch replaces neither reading the standards nor a subscription to a regulatory watch service.",
+        "RegWatch replaces neither reading the standards nor a subscription to a regulatory watch service.",
     "rw.hint": "Select at least one standard. Allow about ten seconds.",
     "rw.title": "RegWatch — Standards and regulatory watch",
     "rw.subtitle":
@@ -738,7 +738,7 @@ CATALOGUE: dict[str, str] = {
     "hara.subtitle":
         "Risk analysis and ASIL determination, in the spirit of the ISO 26262 HARA method. Determination is a decision table: it is <strong>exact and immediate</strong>, with no artificial intelligence.",
     "hara.disclaimer":
-        "<strong>Educational demonstration.</strong> This tool implements the determination logic with wordings of our own. It does not reproduce the text of ISO 26262, a licensed document, and does not replace it.",
+        "<strong>This tool implements the determination logic</strong> with wordings of our own. It does not reproduce the text of ISO 26262, a licensed document, and does not replace it.",
     "hara.bridge.1":
         "An attack can cause the same malfunctions as a failure. <strong>ThreatScope</strong> carries over your hazardous events and <strong>their severity</strong> to start a TARA analysis (ISO/SAE 21434).",
     "hara.bridge.2":
@@ -747,7 +747,7 @@ CATALOGUE: dict[str, str] = {
     "tara.subtitle":
         "Cybersecurity threat and risk analysis, in the spirit of the ISO/SAE 21434 TARA method. Attack feasibility is rated, not guessed&nbsp;: the result is <strong>deterministic and immediate</strong>, with no artificial intelligence.",
     "tara.disclaimer":
-        "<strong>Educational demonstration.</strong> The attack potential scale used here is a <strong>calibration of our own</strong>&nbsp;: it reproduces neither ISO/SAE 21434 nor ISO 18045, both licensed documents. The standard does leave each organisation to define its own method.",
+        "The attack potential scale used here is a <strong>calibration of our own</strong>&nbsp;: it reproduces neither ISO/SAE 21434 nor ISO 18045, both licensed documents. The standard does leave each organisation to define its own method.",
     "tara.damage.note":
         "Every damage scenario carries the <strong>impact</strong> rating — four categories, all to be filled in. The threat scenarios it contains carry the <strong>attack feasibility</strong>. Risk arises from crossing the two.",
     # --- regwatch page — explanatory blocks ---
@@ -919,8 +919,8 @@ CATALOGUE: dict[str, str] = {
         "and says exactly where it falls short. The verdict is deterministic, with no "
         "artificial intelligence.",
     "ct.note":
-        "<strong>Educational demonstration.</strong> The 8D, Ishikawa and 5 Whys are in the "
-        "public domain: this tool may name and implement them without restriction. It "
+        "<strong>The 8D, Ishikawa and 5 Whys are in the "
+        "public domain</strong>: this tool may name and implement them without restriction. It "
         "replaces neither your quality system nor your customer's requirements. What you "
         "type stays in your browser; it is sent only when you export, to build the workbook.",
     "ct.reset": "Start from a blank case",
@@ -934,7 +934,7 @@ CATALOGUE: dict[str, str] = {
     "ct.ph.reference": "e.g. 8D-2026-014",
     "ct.ph.title": "e.g. Intermittent loss of the wheel speed signal",
     "ct.ph.why": "Why?",
-    "footer.8d": "CauseTrace · educational demonstration · your entries are sent only on export",
+    "footer.8d": "CauseTrace · your entries are sent only on export",
     "ct.f.d1.owner": "8D champion",
     "ct.f.d1.members": "Team members",
     "ct.f.d2.what": "What — the part and the defect",
@@ -1045,7 +1045,7 @@ CATALOGUE: dict[str, str] = {
         "No tracking of several 8Ds, no history, no accounts, no indicators.",
     "xl.ct.limit.norm": "It does not replace your quality system",
     "xl.ct.limit.norm.detail":
-        "Educational demonstration. The 8D is in the public domain, but your customer's "
+        "The 8D is in the public domain, but your customer's "
         "requirements cannot be derived from a form.",
     "xl.ct.limit.privacy": "The case is sent only on export",
     "xl.ct.limit.privacy.detail":
