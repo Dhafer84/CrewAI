@@ -30,6 +30,12 @@ _ANNOTATED = re.compile(r'<([a-zA-Z][\w-]*)([^>]*?data-i18n="([^"]+)"[^>]*?)>')
 _ATTR_KEY = re.compile(r'data-i18n-content="([^"]+)"')
 
 # Chemins de page, en français — les seuls href que le rendu préfixe.
+# ⚠️ UNE seule liste d'actifs versionnés — celle qui APPLIQUE le `?v=` et
+# celle qui le CALCULE (`api.main._asset_version`) doivent être la même. Elles
+# ont divergé le 25/08/2026 : `aistatus.js` n'avait été ajouté qu'ici, et un
+# visiteur qui revenait gardait l'ancien script en cache indéfiniment.
+VERSIONED_ASSETS = ("style.css", "i18n.js", "aistatus.js")
+
 PAGE_PATHS = ("", "/qualitycrew", "/sentinelscan", "/hara", "/tara", "/regwatch")
 
 
@@ -130,9 +136,9 @@ def render(html: str, lang: str, path: str, base_url: str,
                                 f'href="/{lang}{chemin}"')
 
     if asset_version:
-        for actif in ("/static/style.css", "/static/i18n.js",
-                      "/static/aistatus.js"):
-            html = html.replace(f'"{actif}"', f'"{actif}?v={asset_version}"')
+        for actif in VERSIONED_ASSETS:
+            html = html.replace(f'"/static/{actif}"',
+                                f'"/static/{actif}?v={asset_version}"')
 
     # Le sélecteur pointe vers la MÊME page dans l'autre langue.
     autre = "en" if lang == "fr" else "fr"

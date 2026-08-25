@@ -17,7 +17,7 @@ CATALOGUE: dict[str, str] = {
 
     # --- Pieds de page ----------------------------------------------------
     "footer.tools": "Tous les outils",
-    "footer.index": "Projets de démonstration · données 100 % fictives",
+    "footer.index": "Données 100 % fictives",
     "footer.qualitycrew": "QualityCrew — projet démo · documents 100% fictifs",
     "footer.sentinelscan":
         "OSINT passif · sources publiques · les termes ne transitent jamais par une URL",
@@ -485,7 +485,6 @@ CATALOGUE: dict[str, str] = {
     "home.section.stance": "Parti pris",
     "home.section.tools": "Outils",
     # --- Page de garde — libellés accompagnés d'une icône ---
-    "home.badge": "Démos live — automobile &amp; embarqué",
     "home.qc.cta": "Lancer la démo",
     "home.ss.cta": "Lancer un scan",
     "home.hara.cta": "Coter un item",
@@ -854,27 +853,11 @@ CATALOGUE: dict[str, str] = {
     # présenter ensemble sous « quota IA » contredirait le « Parti pris ».
     "status.title": "Plafonds du jour",
     "status.group.ai": "Fonctions IA",
-    "status.group.ai.note":
-        "Ces fonctions sont facultatives : chaque outil rend son résultat sans elles.",
     "status.group.service": "Plafonds de service",
-    "status.group.service.note":
-        "Sans rapport avec l'IA — ils protègent des ressources partagées entre visiteurs.",
     "status.cap.suggestions": "Propositions par IA",
-    "status.cap.suggestions.note":
-        "Compteur commun à SafetyScope, ThreatScope et RegWatch : un compteur par outil "
-        "donnerait trois fois plus d'appels sur une seule enveloppe.",
     "status.cap.scans": "Scans SentinelScan",
-    "status.cap.scans.note":
-        "Tous les visiteurs partagent un même jeton GitHub — le plafond évite qu'une "
-        "personne le monopolise. Cet outil n'appelle aucune IA.",
     "status.cap.watches": "Veilles RegWatch",
-    "status.cap.watches.note":
-        "Le site interroge sept sources tierces depuis une seule adresse : le plafond "
-        "est une courtoisie envers elles. La veille elle-même n'appelle aucune IA.",
     "status.uncapped.audit": "Audit QualityCrew",
-    "status.uncapped.audit.note":
-        "Aucun plafond quotidien, alors que c'est le plus gros consommateur d'IA du site. "
-        "Le dire vaut mieux que le taire.",
     "status.outage":
         "Les fonctions IA sont indisponibles pour aujourd'hui : le quota quotidien du "
         "fournisseur est épuisé. Tout le reste du site fonctionne normalement.",

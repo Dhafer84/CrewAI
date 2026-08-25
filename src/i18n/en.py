@@ -12,7 +12,7 @@ CATALOGUE: dict[str, str] = {
 
     # --- Footers -----------------------------------------------------------
     "footer.tools": "All tools",
-    "footer.index": "Demonstration projects · 100% fictional data",
+    "footer.index": "100% fictional data",
     "footer.qualitycrew": "QualityCrew — demo project · 100% fictional documents",
     "footer.sentinelscan":
         "Passive OSINT · public sources only · search terms never travel in a URL",
@@ -469,7 +469,6 @@ CATALOGUE: dict[str, str] = {
     "home.section.stance": "Where we stand",
     "home.section.tools": "Tools",
     # --- Home page — labels next to an icon ---
-    "home.badge": "Live demos — automotive &amp; embedded",
     "home.qc.cta": "Run the demo",
     "home.ss.cta": "Run a scan",
     "home.hara.cta": "Rate an item",
@@ -825,27 +824,11 @@ CATALOGUE: dict[str, str] = {
     # together under "AI quota" would contradict the "Our stance" block.
     "status.title": "Today's caps",
     "status.group.ai": "AI features",
-    "status.group.ai.note":
-        "These features are optional: every tool produces its result without them.",
     "status.group.service": "Service caps",
-    "status.group.service.note":
-        "Unrelated to AI — they protect resources shared between visitors.",
     "status.cap.suggestions": "AI suggestions",
-    "status.cap.suggestions.note":
-        "One counter shared by SafetyScope, ThreatScope and RegWatch: a counter per tool "
-        "would allow three times the calls on a single allowance.",
     "status.cap.scans": "SentinelScan scans",
-    "status.cap.scans.note":
-        "Every visitor shares one GitHub token — the cap stops any single person "
-        "monopolising it. This tool calls no AI at all.",
     "status.cap.watches": "RegWatch runs",
-    "status.cap.watches.note":
-        "The site queries seven third-party sources from a single address: the cap is a "
-        "courtesy towards them. The watch itself calls no AI.",
     "status.uncapped.audit": "QualityCrew audit",
-    "status.uncapped.audit.note":
-        "No daily cap, even though it is the heaviest AI consumer on the site. "
-        "Saying so beats hiding it.",
     "status.outage":
         "AI features are unavailable for today: the provider's daily quota is exhausted. "
         "Everything else on the site works normally.",

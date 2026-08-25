@@ -49,7 +49,7 @@ sys.path.insert(0, str(_ROOT / "src"))
 from i18n import DEFAULT_LANG  # noqa: E402
 from i18n import t as tr  # noqa: E402
 
-from api.render import render  # noqa: E402
+from api.render import VERSIONED_ASSETS, render  # noqa: E402
 from qualitycrew.config import is_daily_quota, require_llm_key  # noqa: E402
 from qualitycrew.core import run_audit  # noqa: E402
 from sentinelscan.config import require_github_token  # noqa: E402
@@ -207,7 +207,7 @@ def _asset_version() -> str:
     """
     horodatages = [
         (_SITE_DIR / nom).stat().st_mtime
-        for nom in ("style.css", "i18n.js")
+        for nom in VERSIONED_ASSETS
         if (_SITE_DIR / nom).exists()
     ]
     return str(int(max(horodatages))) if horodatages else ""
@@ -355,7 +355,6 @@ async def ai_status(lang: str = DEFAULT_LANG):
             "limit": limite,
             "remaining": max(0, limite - utilise),
             "label": tr(f"status.cap.{cle}", lang),
-            "note": tr(f"status.cap.{cle}.note", lang),
         }
 
     disponible = _llm_available()
@@ -370,14 +369,12 @@ async def ai_status(lang: str = DEFAULT_LANG):
             {
                 "key": "ai",
                 "label": tr("status.group.ai", lang),
-                "note": tr("status.group.ai.note", lang),
                 "caps": [plafond("suggestions", _suggest_daily_usage,
                                  _MAX_SUGGESTIONS_PER_DAY)],
             },
             {
                 "key": "service",
                 "label": tr("status.group.service", lang),
-                "note": tr("status.group.service.note", lang),
                 "caps": [
                     plafond("scans", _daily_usage, _MAX_SCANS_PER_DAY),
                     plafond("watches", _watch_daily_usage, _MAX_WATCHES_PER_DAY),
@@ -387,7 +384,6 @@ async def ai_status(lang: str = DEFAULT_LANG):
         "uncapped": [{
             "key": "audit",
             "label": tr("status.uncapped.audit", lang),
-            "note": tr("status.uncapped.audit.note", lang),
         }],
     }
 

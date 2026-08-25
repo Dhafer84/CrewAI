@@ -6,7 +6,7 @@
   var bandeau = document.getElementById('ai-outage');
   if (!boite && !bandeau) { return; }
 
-  function ligne(libelle, valeur, pourquoi) {
+  function ligne(libelle, valeur) {
     var l = document.createElement('div');
     l.className = 'caps-row';
     var lib = document.createElement('span');
@@ -15,10 +15,7 @@
     var val = document.createElement('span');
     val.className = 'caps-count';
     val.textContent = valeur;
-    var why = document.createElement('span');
-    why.className = 'caps-why';
-    why.textContent = pourquoi;
-    l.appendChild(lib); l.appendChild(val); l.appendChild(why);
+    l.appendChild(lib); l.appendChild(val);
     return l;
   }
 
@@ -53,22 +50,20 @@
         tete.appendChild(etat);
       }
       bloc.appendChild(tete);
-      var note = document.createElement('p');
-      note.className = 'caps-note';
-      note.textContent = g.note;
-      bloc.appendChild(note);
       (g.caps || []).forEach(function (c) {
         bloc.appendChild(ligne(
           c.label,
-          T('status.js.remaining', { n: c.remaining, limit: c.limit }),
-          c.note));
+          T('status.js.remaining', { n: c.remaining, limit: c.limit })));
       });
-      boite.appendChild(bloc);
-    });
-    (d.uncapped || []).forEach(function (u) {
-      var bloc = document.createElement('div');
-      bloc.className = 'caps-group';
-      bloc.appendChild(ligne(u.label, T('status.js.uncapped'), u.note));
+      // ⚠️ L'audit est une fonction IA — simplement sans plafond quotidien.
+      // Le rendre après les plafonds de service le ferait passer pour l'un
+      // d'eux, ce qui est faux : c'est le plus gros consommateur d'IA du site.
+      // Il reste dans `uncapped` côté contrat, il n'a pas de compteur.
+      if (g.key === 'ai') {
+        (d.uncapped || []).forEach(function (u) {
+          bloc.appendChild(ligne(u.label, T('status.js.uncapped')));
+        });
+      }
       boite.appendChild(bloc);
     });
     // ⚠️ La remise à zéro se lit dans la charge utile, elle ne se devine pas.

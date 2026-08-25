@@ -1113,15 +1113,26 @@ def test_the_ai_status_is_free_of_french_in_english():
     utiles injectées ensuite par JavaScript."""
     with client() as c:
         charge = c.get("/ai/status?lang=en").json()
-    textes = [charge.get("notice", "")]
-    for g in charge["groups"]:
-        textes += [g["label"], g["note"]]
-        for p in g["caps"]:
-            textes += [p["label"], p["note"]]
-    for u in charge["uncapped"]:
-        textes += [u["label"], u["note"]]
-    for texte in textes:
-        assert not _MOTS_FR.search(texte or ""), f"français en anglais : {texte!r}"
+
+    def chaines(noeud):
+        """Toutes les chaînes de la charge utile, quelle que soit sa forme.
+
+        Énumérer les champs à la main obligerait à tenir la liste à jour : le
+        jour où l'on ajoute un libellé, le test cesserait de le couvrir sans
+        rien dire. Il a d'ailleurs cassé le jour où un champ a été retiré.
+        """
+        if isinstance(noeud, str):
+            yield noeud
+        elif isinstance(noeud, dict):
+            for cle, valeur in noeud.items():
+                if cle not in ("key", "resetsAt", "since"):
+                    yield from chaines(valeur)
+        elif isinstance(noeud, list):
+            for valeur in noeud:
+                yield from chaines(valeur)
+
+    for texte in chaines(charge):
+        assert not _MOTS_FR.search(texte), f"français en anglais : {texte!r}"
 
 
 def test_sentinelscan_carries_no_ai_outage_banner():
@@ -1151,6 +1162,52 @@ def test_the_daily_counters_roll_over_with_the_day():
         assert plafond["remaining"] == m._MAX_SUGGESTIONS_PER_DAY
     finally:
         m._suggest_daily_usage.update(memoire)
+
+
+def test_every_static_asset_a_page_loads_is_versioned():
+    """⚠️ Les deux listes d'actifs ont divergé le 25/08/2026.
+
+    `aistatus.js` avait été ajouté à la boucle qui APPLIQUE le `?v=` mais pas
+    à `_asset_version()` qui le CALCULE : modifier le script ne changeait plus
+    l'empreinte, et un visiteur qui revenait gardait l'ancien fichier en cache
+    **indéfiniment**. Aucun test ne le voyait — la page servait bien un `?v=`,
+    simplement toujours le même. D'où ce contrôle : tout actif chargé par une
+    page doit figurer dans la liste unique.
+    """
+    from api.render import VERSIONED_ASSETS
+
+    charges = set()
+    for chemin in sorted((_ROOT / "site").glob("*.html")):
+        charges |= set(re.findall(r'(?:src|href)="/static/([\w.-]+\.(?:js|css))"',
+                                  chemin.read_text(encoding="utf-8")))
+    manquants = charges - set(VERSIONED_ASSETS)
+    assert not manquants, f"chargés par une page mais jamais versionnés : {sorted(manquants)}"
+
+    # Et la liste ne doit pas décrire des fichiers qui n'existent plus.
+    for nom in VERSIONED_ASSETS:
+        assert (_ROOT / "site" / nom).exists(), f"{nom} n'existe pas"
+
+
+def test_touching_an_asset_changes_the_version():
+    """Contre-épreuve : l'empreinte doit vraiment suivre CHAQUE actif."""
+    import os
+
+    from api.main import _asset_version
+    from api.render import VERSIONED_ASSETS
+
+    # ⚠️ L'empreinte est le MAXIMUM des horodatages : décaler un fichier par
+    # rapport à sa propre date ne suffit pas si un autre actif est plus récent.
+    # Il faut passer devant le maximum courant.
+    for nom in VERSIONED_ASSETS:
+        fichier = _ROOT / "site" / nom
+        avant = fichier.stat().st_mtime
+        cible = int(_asset_version()) + 10_000
+        try:
+            os.utime(fichier, (cible, cible))
+            assert _asset_version() == str(cible), (
+                f"modifier {nom} ne change pas l'empreinte des actifs")
+        finally:
+            os.utime(fichier, (avant, avant))
 
 
 def main() -> int:
