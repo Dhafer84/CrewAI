@@ -3,10 +3,10 @@
 Logique purement déterministe : aucun appel réseau, aucun LLM, aucune
 dépendance. C'est ce qui permet à l'interface de réagir instantanément.
 
-⚠️ Démonstration pédagogique. Les libellés ci-dessous sont des reformulations
-personnelles destinées à rendre l'outil utilisable ; ils ne reproduisent pas
-le texte de l'ISO 26262, qui est un document sous licence. Se référer à la
-norme pour toute application réelle.
+⚠️ Les libellés ci-dessous sont des reformulations personnelles destinées à
+rendre l'outil utilisable ; ils ne reproduisent pas le texte de l'ISO 26262,
+qui est un document sous licence. Se référer à la norme pour toute
+application réelle.
 """
 
 from dataclasses import dataclass
