@@ -1688,6 +1688,169 @@ def test_the_page_names_what_blocks_a_locked_discipline():
         assert cle not in contrat, "ces clés passent par le catalogue, pas le contrat"
 
 
+# --------------------------------------------------------------------------
+# Partage sur les réseaux — ce qu'un lien collé sur LinkedIn donne à voir
+# --------------------------------------------------------------------------
+
+_OG = re.compile(r'<meta property="og:([\w:]+)" content="([^"]*)">')
+
+
+def _social_tags(html: str) -> dict:
+    """Les balises `og:` d'une page, une balise absente valant chaîne vide.
+
+    ⚠️ Le repli n'est pas de la complaisance : sans lui, une balise supprimée
+    fait **lever** le premier test qui l'indexe, et `main()` s'arrête là — on
+    ne sait plus quels autres tests seraient tombés. Constaté en preuve par
+    mutation. Chaque test doit énoncer son propre échec.
+    """
+    balises = dict(_OG.findall(html))
+    return {cle: balises.get(cle, "") for cle in
+            set(balises) | {"type", "url", "site_name", "title",
+                            "description", "image", "image:width",
+                            "image:height", "image:alt"}}
+
+
+def test_every_page_carries_a_sharing_card():
+    """Les 14 URL doivent porter de quoi construire un aperçu.
+
+    ⚠️ **Sans ces balises, un lien collé sur LinkedIn n'affiche qu'une ligne
+    de texte grise** — pas d'image, pas de titre, souvent même pas le nom du
+    site. Rien ne le signale côté serveur : la page répond 200, elle est juste
+    invisible là où on la partage. C'est le genre de défaut qu'on découvre
+    publié.
+    """
+    obligatoires = {"type", "url", "site_name", "title", "description",
+                    "image", "image:width", "image:height", "image:alt"}
+    with client() as c:
+        for chemin in PAGES_FR + PAGES_EN:
+            balises = _social_tags(c.get(chemin).text)
+            manquantes = obligatoires - set(balises)
+            assert not manquantes, f"{chemin} : balises absentes {sorted(manquantes)}"
+            assert all(balises[cle].strip() for cle in obligatoires), \
+                f"{chemin} : une balise sociale est vide"
+
+
+def test_the_sharing_image_follows_the_page_language():
+    """⚠️ Le piège de cette fonctionnalité, et il a déjà été payé six fois.
+
+    Tout le chantier i18n a consisté à empêcher le français de survivre dans
+    une page anglaise. Une carte française servie en `og:image` sur `/en`
+    serait exactement cette faute — au seul endroit qu'un visiteur voit
+    **avant** d'avoir ouvert le site, et que
+    `test_no_french_survives_in_an_english_page` ne peut pas voir : le
+    français y serait dans une image, pas dans le HTML.
+    """
+    with client() as c:
+        for chemin in PAGES_FR:
+            assert "og-fr.png" in _social_tags(c.get(chemin).text)["image"], \
+                f"{chemin} partage une image qui n'est pas la française"
+        for chemin in PAGES_EN:
+            assert "og-en.png" in _social_tags(c.get(chemin).text)["image"], \
+                f"{chemin} partage une image qui n'est pas l'anglaise"
+
+
+def test_the_sharing_tags_are_absolute():
+    """⚠️ Une URL relative est purement et simplement IGNORÉE.
+
+    LinkedIn, Slack et Facebook lisent le HTML hors de son contexte : ils
+    n'ont aucune page de référence pour résoudre `/static/og-fr.png`. Une
+    balise relative ne produit pas une erreur, elle produit un aperçu sans
+    image — indiscernable d'une balise absente.
+    """
+    with client() as c:
+        for chemin in PAGES_FR + PAGES_EN:
+            balises = _social_tags(c.get(chemin).text)
+            for cle in ("url", "image"):
+                assert balises[cle].startswith("http"), \
+                    f"{chemin} : og:{cle} est relatif — il sera ignoré"
+
+
+def test_the_sharing_card_is_derived_from_the_page_never_retyped():
+    """`og:title` et `og:description` sortent de ce que la page déclare déjà.
+
+    Les saisir à côté, ce serait quatorze occasions — sept pages, deux
+    langues — de laisser une version diverger de l'autre en silence. Personne
+    ne relit un aperçu social.
+    """
+    titre = re.compile(r"<title[^>]*>(.*?)</title>", re.S)
+    desc = re.compile(r'<meta name="description"[^>]*?\scontent="([^"]*)">')
+    with client() as c:
+        for chemin in PAGES_FR + PAGES_EN:
+            page = c.get(chemin).text
+            balises = _social_tags(page)
+            attendu_titre = titre.search(page)
+            attendu_desc = desc.search(page)
+            assert attendu_titre and balises["title"] == attendu_titre.group(1).strip(), \
+                f"{chemin} : og:title a divergé du <title>"
+            assert attendu_desc and balises["description"] == attendu_desc.group(1), \
+                f"{chemin} : og:description a divergé de la meta description"
+
+
+def test_every_page_declares_a_description():
+    """Quatre pages sur sept n'en avaient aucune jusqu'au 28/08/2026.
+
+    Un aperçu sans description est à moitié vide, et Google compose alors le
+    sien à partir d'un fragment de page pris au hasard.
+    """
+    for chemin in sorted((_ROOT / "site").glob("*.html")):
+        source = chemin.read_text(encoding="utf-8")
+        assert 'name="description"' in source, f"{chemin.name} n'a pas de description"
+        assert 'data-i18n-content=' in source, \
+            f"{chemin.name} : la description n'est pas traduisible"
+
+
+def test_the_sharing_images_exist_and_have_the_declared_size():
+    """L'image doit exister, être un PNG, et faire exactement 1200 × 630.
+
+    ⚠️ **La largeur n'est pas cosmétique.** En dessous de 1200 px, LinkedIn
+    rétrograde l'aperçu en petite vignette carrée : la carte soignée devient
+    un timbre-poste. Et des dimensions déclarées qui ne sont pas celles du
+    fichier valent mieux que rien seulement tant qu'elles sont justes.
+
+    Le format est lu à la main dans l'en-tête PNG — aucune dépendance ajoutée
+    à la suite de tests pour vérifier deux entiers.
+    """
+    from api.render import OG_IMAGE, OG_IMAGE_SIZE
+
+    for nom in OG_IMAGE.values():
+        fichier = _ROOT / "site" / nom
+        assert fichier.exists(), f"{nom} n'existe pas — lancer scripts/build_og_image.py"
+        entete = fichier.read_bytes()[:24]
+        assert entete[:8] == b"\x89PNG\r\n\x1a\n", f"{nom} n'est pas un PNG"
+        largeur = int.from_bytes(entete[16:20], "big")
+        hauteur = int.from_bytes(entete[20:24], "big")
+        assert (largeur, hauteur) == OG_IMAGE_SIZE, \
+            f"{nom} fait {largeur}x{hauteur}, pas {OG_IMAGE_SIZE}"
+
+
+def test_the_sharing_image_is_actually_served():
+    """La déclarer ne suffit pas — le fichier doit sortir de `/static`.
+
+    ⚠️ C'est le piège du **fichier non suivi**, déjà rencontré avec
+    `site/aistatus.js` : oublié au commit, la route répond 404 et l'aperçu
+    perd son image, sans la moindre erreur au démarrage du service.
+    """
+    from api.render import OG_IMAGE
+
+    with client() as c:
+        for nom in OG_IMAGE.values():
+            resp = c.get(f"/static/{nom}")
+            assert resp.status_code == 200, f"/static/{nom} → {resp.status_code}"
+            assert resp.headers["content-type"] == "image/png"
+
+
+def test_every_page_declares_its_canonical_url():
+    """Une page servie sous deux chemins doit dire lequel fait foi."""
+    canonique = re.compile(r'<link rel="canonical" href="([^"]+)">')
+    with client() as c:
+        for chemin in PAGES_FR + PAGES_EN:
+            page = c.get(chemin).text
+            trouve = canonique.search(page)
+            assert trouve, f"{chemin} n'a pas de canonical"
+            assert trouve.group(1) == _social_tags(page)["url"], \
+                f"{chemin} : canonical et og:url se contredisent"
+
+
 def main() -> int:
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failures = 0

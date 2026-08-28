@@ -730,6 +730,18 @@ CATALOGUE: dict[str, str] = {
     "tara.js.export.ko": "Export refused.",
     "tara.js.export.ok": "Workbook ready — the download is starting.",
     # --- Search-engine descriptions ---
+    "qc.meta":
+        "ASPICE and ISO 26262 compliance audit by four CrewAI agents: requirement quality, test coverage, safety risks, summary report. The audit really runs, nothing is simulated.",
+    "ss.meta":
+        "Information leak watch on public GitHub repositories: exposures ranked by criticality, Excel report. No secret is ever displayed or stored — only its metadata.",
+    "hara.meta":
+        "Risk analysis and ASIL determination, in the spirit of the ISO 26262 HARA method. S/E/C rating is a decision table: exact, immediate, with no artificial intelligence.",
+    "tara.meta":
+        "Cybersecurity threat and risk analysis, in the spirit of the ISO/SAE 21434 method and UN Regulation R155. From the damage scenario through to the cybersecurity goals.",
+    # Alternative text for the sharing image — read by social network screen
+    # readers, and displayed when the image fails to load.
+    "og.alt":
+        "The six Quality & Safety tools of qualitycrew.fr: QualityCrew, SentinelScan, SafetyScope, ThreatScope, RegWatch and CauseTrace.",
     "home.meta":
         "Quality and Safety demonstration tools for the automotive and embedded industry: compliance audit by AI agents, information leak watch, HARA / ASIL analysis, TARA threat analysis.",
     "rw.meta":

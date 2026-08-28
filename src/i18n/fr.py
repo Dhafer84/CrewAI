@@ -753,6 +753,18 @@ CATALOGUE: dict[str, str] = {
     "tara.js.export.ko": "Export refusé.",
     "tara.js.export.ok": "Classeur prêt — le téléchargement démarre.",
     # --- Descriptions pour les moteurs de recherche ---
+    "qc.meta":
+        "Audit de conformité ASPICE et ISO 26262 par quatre agents CrewAI : qualité des exigences, couverture de test, risques sûreté, rapport de synthèse. L'audit tourne réellement, rien n'est simulé.",
+    "ss.meta":
+        "Veille de fuite d'information sur les dépôts publics GitHub : expositions classées par criticité, rapport Excel. Aucun secret n'est jamais affiché ni stocké — seulement ses métadonnées.",
+    "hara.meta":
+        "Analyse de risques et détermination du niveau ASIL, dans l'esprit de la démarche HARA de l'ISO 26262. La cotation S/E/C est une table de décision : exacte, immédiate, sans intelligence artificielle.",
+    "tara.meta":
+        "Analyse de menaces et de risques cybersécurité, dans l'esprit de la démarche TARA de l'ISO/SAE 21434 et du règlement UN R155. Du scénario de dommage jusqu'aux objectifs de cybersécurité.",
+    # Texte alternatif de l'image de partage — lu par les lecteurs d'écran des
+    # réseaux sociaux, et affiché si l'image ne charge pas.
+    "og.alt":
+        "Les six outils Qualité & Sécurité de qualitycrew.fr : QualityCrew, SentinelScan, SafetyScope, ThreatScope, RegWatch et CauseTrace.",
     "home.meta":
         "Outils de démonstration Qualité et Sécurité pour l'industrie automobile et l'embarqué : audit de conformité par agents IA, veille de fuite d'information, analyse HARA / ASIL, analyse de menaces TARA.",
     "rw.meta":

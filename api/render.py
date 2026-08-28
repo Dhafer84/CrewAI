@@ -17,6 +17,7 @@ d'un paragraphe.
 """
 
 import re
+from html import unescape
 from pathlib import Path
 
 from i18n import DEFAULT_LANG, LANGUAGES, normalize, t
@@ -34,7 +35,29 @@ _ATTR_KEY = re.compile(r'data-i18n-content="([^"]+)"')
 # celle qui le CALCULE (`api.main._asset_version`) doivent être la même. Elles
 # ont divergé le 25/08/2026 : `aistatus.js` n'avait été ajouté qu'ici, et un
 # visiteur qui revenait gardait l'ancien script en cache indéfiniment.
-VERSIONED_ASSETS = ("style.css", "i18n.js", "aistatus.js")
+VERSIONED_ASSETS = ("style.css", "i18n.js", "aistatus.js",
+                    "og-fr.png", "og-en.png")
+
+# Image de partage, une par langue — ce que LinkedIn, Slack ou WhatsApp
+# affichent quand on colle un lien du site. Construite par
+# `scripts/build_og_image.py` ; **ce n'est pas un fichier à retoucher à la
+# main**, c'est une sortie.
+#
+# ⚠️ **Une image PAR LANGUE, et non une seule.** Tout le chantier i18n a
+# consisté à empêcher le français de survivre dans une page anglaise. Une
+# carte française en `og:image` sur `/en` serait exactement cette faute, au
+# seul endroit qu'un visiteur voit *avant* d'avoir ouvert le site.
+OG_IMAGE = {"fr": "og-fr.png", "en": "og-en.png"}
+OG_IMAGE_SIZE = (1200, 630)
+
+# `og:site_name` — un nom propre, identique dans les deux langues.
+OG_SITE_NAME = "Dhafer Bouthelja"
+
+_LOCALES = {"fr": "fr_FR", "en": "en_US"}
+
+_TITLE = re.compile(r"<title[^>]*>(.*?)</title>", re.S)
+_DESCRIPTION = re.compile(
+    r'<meta\s+name="description"[^>]*?\scontent="([^"]*)"')
 
 PAGE_PATHS = ("", "/qualitycrew", "/sentinelscan", "/hara", "/tara", "/regwatch", "/8d")
 
@@ -104,6 +127,83 @@ def _alternates(chemin: str, base: str) -> str:
     ])
 
 
+def _attr(valeur: str) -> str:
+    """Prépare une valeur pour un attribut `content`.
+
+    ⚠️ Deux provenances, deux échappements — et c'est le piège. Le titre et la
+    description sont extraits du HTML, donc **déjà** échappés (`&amp;`) ; le
+    texte alternatif sort du catalogue Python, donc **brut** (`&`). Les
+    concaténer tels quels produirait un `&` nu dans un attribut. On désamorce
+    d'abord, on ré-échappe ensuite : le traitement devient le même pour les
+    deux, et il est idempotent.
+
+    ⚠️ **L'apostrophe n'est PAS échappée**, à la différence de `html.escape` :
+    dans un attribut entre guillemets doubles elle n'a rien d'ambigu, et
+    l'échapper rendrait `og:description` littéralement différent de la
+    description de la page — deux textes identiques qui ne se comparent plus.
+    """
+    valeur = unescape(valeur)
+    for brut, code in (("&", "&amp;"), ("<", "&lt;"),
+                       (">", "&gt;"), ('"', "&quot;")):
+        valeur = valeur.replace(brut, code)
+    return valeur
+
+
+def social(html: str, lang: str, path: str, base_url: str,
+           asset_version: str = "") -> str:
+    """Les balises que lisent LinkedIn, Slack, WhatsApp et consorts.
+
+    ⚠️ **Elles sont DÉRIVÉES de la page, jamais saisies à côté.** Le titre et
+    la description sortent de ce que la page déclare déjà — et donc de ce que
+    `translate_markup` vient de traduire. Les écrire à la main dans les sept
+    fichiers, en deux langues, ce serait quatorze occasions de laisser une
+    version diverger de l'autre en silence : personne ne relit un aperçu
+    social, on le découvre publié.
+
+    Sans ces balises, un lien collé sur LinkedIn ne montre qu'une ligne de
+    texte grise. Avec elles, il montre la carte du site.
+    """
+    fr, en = _urls(path, base_url)
+    canonique = fr if lang == DEFAULT_LANG else en
+    autre = "en" if lang == DEFAULT_LANG else "fr"
+
+    image = base_url + "/static/" + OG_IMAGE.get(lang, OG_IMAGE[DEFAULT_LANG])
+    if asset_version:
+        image += f"?v={asset_version}"
+
+    titre = _TITLE.search(html)
+    description = _DESCRIPTION.search(html)
+    largeur, hauteur = OG_IMAGE_SIZE
+
+    balises = [f'<link rel="canonical" href="{canonique}">',
+               f'<meta property="og:type" content="website">',
+               f'<meta property="og:url" content="{canonique}">',
+               f'<meta property="og:site_name" content="{_attr(OG_SITE_NAME)}">',
+               f'<meta property="og:locale" content="{_LOCALES[lang]}">',
+               f'<meta property="og:locale:alternate" content="{_LOCALES[autre]}">']
+
+    if titre:
+        balises.append(
+            f'<meta property="og:title" content="{_attr(titre.group(1).strip())}">')
+    if description:
+        balises.append('<meta property="og:description" '
+                       f'content="{_attr(description.group(1))}">')
+
+    balises += [
+        f'<meta property="og:image" content="{image}">',
+        # ⚠️ Les dimensions ne sont pas décoratives : sans elles, LinkedIn
+        # rend souvent la petite vignette carrée le temps d'avoir téléchargé
+        # l'image — c'est-à-dire au moment précis où le lien est partagé.
+        f'<meta property="og:image:width" content="{largeur}">',
+        f'<meta property="og:image:height" content="{hauteur}">',
+        f'<meta property="og:image:type" content="image/png">',
+        f'<meta property="og:image:alt" content="{_attr(t("og.alt", lang))}">',
+        '<meta name="twitter:card" content="summary_large_image">',
+        f'<meta name="twitter:image:alt" content="{_attr(t("og.alt", lang))}">',
+    ]
+    return "\n  ".join(balises)
+
+
 def render(html: str, lang: str, path: str, base_url: str,
            asset_version: str = "") -> str:
     """Rend une page dans la langue demandée.
@@ -149,8 +249,9 @@ def render(html: str, lang: str, path: str, base_url: str,
                    f'{autre.upper()}</a>'),
         html, count=1)
 
-    html = html.replace(
-        "</head>", "  " + _alternates(path, base_url) + "\n</head>", 1)
+    entete = "\n  ".join([_alternates(path, base_url),
+                          social(html, lang, path, base_url, asset_version)])
+    html = html.replace("</head>", "  " + entete + "\n</head>", 1)
     return html
 
 
@@ -158,4 +259,5 @@ def catalogue_languages() -> tuple[str, ...]:
     return LANGUAGES
 
 
-__all__ = ["render", "translate_markup", "catalogue_languages", "DEFAULT_LANG"]
+__all__ = ["render", "translate_markup", "social", "catalogue_languages",
+           "DEFAULT_LANG"]
