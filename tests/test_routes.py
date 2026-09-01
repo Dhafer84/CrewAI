@@ -1998,11 +1998,114 @@ _OPACITES_ADMISES = {
     # Décoration pure, aucune typographie.
     ".warn-list li::before",        # la puce « › »
     ".b-body",                      # un <rect> SVG des bonhommes animés
-    # ⚠️ Exception connue et MESURÉE : une cellule de répartition à zéro tombe à
-    # 3,35:1. C'est un décompte nul, donc une absence de donnée — mais c'est du
-    # texte, et ça reste sous le plancher. Décision en suspens, pas un oubli.
-    ".spread-cell", ".spread-cell.has-value",
 }
+
+
+def test_a_zero_count_reads_as_empty_without_fading():
+    """Une cellule de répartition à zéro doit reculer, pas faner.
+
+    Elle valait `opacity:.4`, soit **3,35:1** — troisième occurrence du même
+    réflexe après `.d-card.is-locked` et `.impact-proposal.is-applied`.
+
+    ⚠️ Mais retirer l'opacité ne suffit pas, et une mutation l'a montré en
+    survivant : sans neutralisation du badge, une cellule à zéro devient
+    **indiscernable** d'une cellule pleine, et la répartition ne veut plus rien
+    dire. Le contraste seul ne défend pas ça — il faut l'exiger.
+    """
+    css = _STYLE.read_text(encoding="utf-8")
+
+    cellule = re.search(r"\.spread-cell\{([^{}]*)\}", css)
+    assert cellule, "règle .spread-cell introuvable"
+    assert "opacity" not in cellule.group(1), (
+        "`opacity` sur .spread-cell divise le contraste du décompte ET du badge")
+
+    vide = "".join(re.findall(r"\.spread-cell:not\(\.has-value\)[^{}]*\{([^{}]*)\}", css))
+    assert vide, "rien ne distingue plus une cellule à zéro d'une cellule pleine"
+    assert "background" in vide and "color" in vide, (
+        "une cellule à zéro doit neutraliser son badge ET son décompte, sinon "
+        f"elle se lit comme une cellule pleine : {vide.strip()!r}")
+
+
+def test_every_declared_colour_pair_clears_the_floor():
+    """Toute règle qui pose ELLE-MÊME son texte et son fond doit franchir 4,5:1.
+
+    ⚠️ Exact, sans approximation : quand une règle déclare les deux, on sait ce
+    qui sera rendu sur quoi, sans avoir à deviner l'ancêtre. C'est ce qui aurait
+    attrapé d'un coup `.asil-d`, `.risk-5` et `.icon-red` — `--red` sur
+    `--red-bg` donnait **4,25:1**, c'est-à-dire que le badge le plus grave de
+    chaque outil était le moins lisible.
+
+    Complément indispensable de `test_text_tokens_clear_the_contrast_floor`,
+    qui ne connaît que les jetons de texte sur les jetons de fond : il ne voit
+    pas une règle qui apparie un accent à un fond teinté.
+    """
+    css = _STYLE.read_text(encoding="utf-8")
+    sans = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+
+    def resoudre(valeur: str):
+        valeur = valeur.strip()
+        jeton = re.fullmatch(r"var\(--([a-z-]+)\)", valeur)
+        if jeton:
+            return _token(css, jeton.group(1)) if f"--{jeton.group(1)}:" in css else None
+        litteral = re.match(r"(#[0-9a-fA-F]{3,8})", valeur)
+        return litteral.group(1) if litteral else None
+
+    fautes = []
+    for selecteur, corps in re.findall(r"([^{}]+)\{([^{}]*)\}", sans):
+        selecteur = " ".join(selecteur.split())
+        if selecteur.startswith("@") or selecteur == ":root":
+            continue
+        texte = re.search(r"(?:^|;)\s*color\s*:\s*([^;]+)", corps)
+        fond = re.search(r"(?:^|;)\s*background(?:-color)?\s*:\s*([^;]+)", corps)
+        if not (texte and fond):
+            continue
+        avant, arriere = resoudre(texte.group(1)), resoudre(fond.group(1))
+        if not avant or not arriere:
+            continue
+        ratio = _contrast(avant, arriere)
+        if ratio < 4.5:
+            fautes.append(f"{selecteur} : {avant} sur {arriere} = {ratio:.2f}:1")
+
+    assert not fautes, "paires couleur/fond sous le plancher : " + " · ".join(fautes)
+
+
+# Accents employés comme couleur de TEXTE. `--bg` en est exclu : c'est une
+# couleur de réserve, posée sur un accent — sa paire est vérifiée par
+# `test_every_declared_colour_pair_clears_the_floor`, qui la voit vraiment.
+_ACCENTS = ("green", "amber", "red", "blue", "coral", "purple")
+
+
+def test_accent_colours_are_readable_where_they_land():
+    """Un accent doit rester lisible sur les fonds qu'il rencontre réellement.
+
+    Deux familles, et seulement celles-là — croiser tous les accents avec tous
+    les fonds sur-signalerait des appariements qui n'existent pas (du bleu sur
+    du vert, personne n'écrit ça) :
+
+    1. Les trois surfaces **neutres**, où n'importe quel texte peut atterrir.
+       C'est là que `--red` valait **4,18:1** sur une carte cotée — donc les
+       messages d'erreur, précisément ce qu'il faut pouvoir lire.
+    2. Chaque accent sur **son propre** fond teinté, qui est la convention de
+       la feuille (`.asil-d` = rouge sur `--red-bg`).
+    """
+    css = _STYLE.read_text(encoding="utf-8")
+    neutres = {nom: _token(css, nom) for nom in ("bg", "bg-card", "bg-card-hover")}
+
+    fautes = []
+    for accent in _ACCENTS:
+        # L'accent n'est retenu que s'il sert vraiment de couleur de texte —
+        # `border-color:var(--x)` ne compte pas, et la regex doit le refuser.
+        if not re.search(rf"(?:^|;|\{{)\s*color\s*:\s*var\(--{accent}\)", css):
+            continue
+        couleur = _token(css, accent)
+        fonds = dict(neutres)
+        fonds[f"--{accent}-bg"] = _token(css, f"{accent}-bg")
+        for nom, fond in fonds.items():
+            ratio = _contrast(couleur, fond)
+            if ratio < 4.5:
+                fautes.append(f"--{accent} ({couleur}) sur {nom} ({fond}) = {ratio:.2f}:1")
+
+    assert fautes == [], "accents illisibles : " + " · ".join(fautes)
 
 
 def test_no_opacity_fades_readable_text():

@@ -17,7 +17,12 @@
   --green-border:#1d9e75;
   --amber:#ef9f27;
   --amber-bg:#2a2010;
-  --red:#e24b4a;
+  /* Éclairci depuis #e24b4a : il tombait à 4,25:1 sur --red-bg (badges ASIL D et
+     risque 5), 4,18:1 sur une carte cotée (texte d'erreur) et 3,66:1 sur le ✕ du
+     bandeau de pont. Conséquence assumée : il se rapproche de --coral en
+     luminance (1,11) — sans conséquence sur le sens, chaque badge porte son
+     libellé (« C » / « D », « 4 » / « 5 »), la couleur ne dit rien à elle seule. */
+  --red:#ea6867;
   --red-bg:#2d1818;
   --blue:#5b8def;
   --blue-bg:#1c2340;
@@ -192,8 +197,14 @@ h1 em{color:var(--green);font-style:normal}
 .summary-note{font-size:12px;color:var(--text-muted)}
 
 .asil-spread{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 4px}
-.spread-cell{display:flex;align-items:center;gap:6px;opacity:.4}
-.spread-cell.has-value{opacity:1}
+/* Pas d'`opacity` ici non plus : une cellule dont le décompte vaut zéro tombait
+   à 3,35:1. Elle RECULE — le badge perd sa couleur, le nombre passe en ton
+   secondaire — au lieu de faner. Même règle que .d-card.is-locked et
+   .impact-proposal.is-applied. `has-value` reste la charnière, elle ne porte
+   simplement plus d'opacité. */
+.spread-cell{display:flex;align-items:center;gap:6px}
+.spread-cell:not(.has-value) .badge-sm{background:#0d1014;border-color:var(--border);color:var(--text-dim)}
+.spread-cell:not(.has-value) .spread-count{color:var(--text-dim)}
 .spread-count{font-size:14px;font-weight:600;color:var(--text)}
 
 .decomp{margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border-sub)}
