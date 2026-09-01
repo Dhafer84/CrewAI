@@ -1851,6 +1851,168 @@ def test_every_page_declares_its_canonical_url():
                 f"{chemin} : canonical et og:url se contredisent"
 
 
+_STYLE = _ROOT / "site" / "style.css"
+
+# Fond des cartes verrouillées de /8d — extrait du CSS, jamais recopié ici :
+# éclaircir ce fond doit faire tomber le test, pas passer inaperçu.
+_LOCKED_RULES = re.compile(r"\.d-card\.is-locked[^{}]*\{([^{}]*)\}")
+
+
+def _luminance(couleur: str) -> float:
+    """Luminance relative WCAG d'un `#rrggbb`."""
+    brut = couleur.lstrip("#")
+    if len(brut) == 3:
+        brut = "".join(c * 2 for c in brut)
+    canaux = []
+    for i in (0, 2, 4):
+        v = int(brut[i:i + 2], 16) / 255
+        canaux.append(v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4)
+    return 0.2126 * canaux[0] + 0.7152 * canaux[1] + 0.0722 * canaux[2]
+
+
+def _contrast(avant: str, arriere: str) -> float:
+    a, b = _luminance(avant), _luminance(arriere)
+    haut, bas = max(a, b), min(a, b)
+    return (haut + 0.05) / (bas + 0.05)
+
+
+def _token(css: str, nom: str) -> str:
+    """Valeur d'un jeton déclaré dans `:root`."""
+    racine = re.search(r":root\s*\{(.*?)\}", css, re.S)
+    assert racine, "style.css n'a plus de bloc :root"
+    trouve = re.search(rf"--{nom}\s*:\s*(#[0-9a-fA-F]{{3,8}})\s*;", racine.group(1))
+    assert trouve, f"jeton --{nom} introuvable dans :root"
+    return trouve.group(1)
+
+
+def test_text_tokens_clear_the_contrast_floor():
+    """Aucun texte du site ne descend sous 4,5:1 sur les fonds qu'il occupe.
+
+    ⚠️ Ce test existe parce que la régression est invisible en relecture de
+    diff : `--text-dim` valait `#555`, soit **2,2:1** sur une carte, et les
+    41 libellés de /8d en dépendaient. Un gris se change sans rien casser —
+    c'est exactement le genre de défaut qu'on ne découvre qu'en ligne.
+
+    Le seuil de 4,5:1 est celui de la WCAG pour du texte sous 18,66 px gras
+    ou 24 px : toutes les tailles concernées ici (10 à 13 px) y tombent.
+    """
+    css = _STYLE.read_text(encoding="utf-8")
+
+    fonds = {nom: _token(css, nom) for nom in ("bg", "bg-card", "bg-card-hover")}
+    # Les fonds propres aux disciplines verrouillées viennent du CSS lui-même.
+    for corps in _LOCKED_RULES.findall(css):
+        for fond in re.findall(r"background\s*:\s*(#[0-9a-fA-F]{3,8})", corps):
+            fonds[f"carte verrouillée {fond}"] = fond
+
+    assert len(fonds) >= 5, f"fonds trouvés insuffisants : {sorted(fonds)}"
+
+    for jeton in ("text", "text-muted", "text-dim"):
+        couleur = _token(css, jeton)
+        for nom, fond in fonds.items():
+            ratio = _contrast(couleur, fond)
+            assert ratio >= 4.5, (
+                f"--{jeton} ({couleur}) sur {nom} ({fond}) : "
+                f"{ratio:.2f}:1, sous le plancher de 4,5:1")
+
+
+def test_the_two_secondary_tones_stay_apart():
+    """Les deux gris de texte doivent rester deux gris distincts.
+
+    ⚠️ Ce test ne défend PAS une règle d'accessibilité — il défend une
+    décision de conception, et il le dit. `--text-muted` à `#888` passait
+    déjà 4,64:1 sur le fond le plus clair ; s'il a été relevé, c'est pour
+    garder deux crans visibles après la remontée de `--text-dim`.
+
+    Le piège qu'il ferme : quelqu'un corrige un jour `--text-dim` pour
+    passer le plancher de contraste, ne touche pas à `--text-muted`, et la
+    hiérarchie disparaît en silence — les deux tons se confondent sans
+    qu'aucun test de contraste ne bronche. Mesuré : la confusion donne un
+    écart de 1,09, la hiérarchie actuelle 1,33, l'ancienne 2,10.
+    """
+    css = _STYLE.read_text(encoding="utf-8")
+    dim, muted = _token(css, "text-dim"), _token(css, "text-muted")
+    ecart = _contrast(dim, muted)
+    assert _luminance(muted) > _luminance(dim), (
+        f"--text-muted ({muted}) doit rester plus clair que --text-dim ({dim})")
+    assert ecart >= 1.2, (
+        f"--text-dim ({dim}) et --text-muted ({muted}) ne se distinguent plus : "
+        f"écart de {ecart:.2f}, il en faut 1,20")
+
+
+def test_a_locked_discipline_is_never_dimmed_by_opacity():
+    """⚠️ `opacity` sur une carte multiplie le contraste de TOUT son contenu.
+
+    `.d-card.is-locked` portait `opacity:.5`. Effet mesuré : le libellé
+    tombait à **1,45:1** et la valeur déjà saisie à **4,43:1** — or une
+    discipline peut être remplie puis re-verrouillée quand la chaîne du D4
+    est cassée après coup. Aucune valeur de jeton ne rattrape ça : il
+    faudrait monter l'opacité à 0,90, et à 0,90 elle ne dit plus « inerte ».
+
+    Le garde-fou est volontairement **étroit**. Un test qui chercherait
+    « toute opacité sur un ancêtre de texte » demanderait un vrai analyseur
+    CSS ; écrit à l'expression régulière, il aurait l'air solide en ne
+    vérifiant rien — la mutation édentée du 25/08.
+    """
+    css = _STYLE.read_text(encoding="utf-8")
+    regles = _LOCKED_RULES.findall(css)
+    assert regles, "les règles .d-card.is-locked ont disparu"
+
+    for corps in regles:
+        assert "opacity" not in corps, (
+            "une règle .d-card.is-locked déclare une opacité — elle diviserait "
+            f"le contraste de tout son contenu : {corps.strip()!r}")
+
+    # Ce qui remplace l'atténuation : la carte s'enfonce. « S'enfonce » et non
+    # « change de fond » — un fond plus CLAIR passerait le plancher de
+    # contraste sans problème et dirait pourtant l'inverse de ce qu'on veut.
+    # Trouvé par mutation : remplacer #101319 par #1c1f28 laissait la suite
+    # entièrement au vert alors que la carte verrouillée devenait la plus
+    # lumineuse de la page.
+    normale = _luminance(_token(css, "bg-card"))
+    fonds = [fond for corps in regles
+             for fond in re.findall(r"background\s*:\s*(#[0-9a-fA-F]{3,8})", corps)]
+    assert fonds, ("sans opacité ni fond distinct, une discipline verrouillée "
+                   "ne se distingue plus d'une discipline à compléter")
+    for fond in fonds:
+        assert _luminance(fond) <= normale, (
+            f"le fond {fond} d'une carte verrouillée est plus clair que la carte "
+            f"normale ({_token(css, 'bg-card')}) — elle se lira comme active")
+
+
+def test_a_locked_discipline_really_locks_its_fields():
+    """⚠️ `pointer-events:none` n'arrête que la souris.
+
+    Mesuré en production avant correction : dans une carte verrouillée,
+    `tabIndex` valait 0, le champ prenait le focus et acceptait la frappe.
+    L'opacité faisait tout le travail perceptif — en la retirant, on
+    découvre que le verrou n'en était pas un.
+
+    `readonly` et non `disabled` sur les champs de saisie : ce qui a été
+    écrit avant le reverrouillage doit rester lisible et copiable, au
+    clavier comme au lecteur d'écran.
+    """
+    compact = " ".join(_EIGHTD.read_text(encoding="utf-8").split())
+
+    assert "champ.readOnly = verrouillee;" in compact, (
+        "les champs d'une discipline verrouillée doivent passer en readonly")
+    assert "champ.disabled = verrouillee;" in compact, (
+        "un <select> n'accepte pas readonly — il doit être désactivé")
+
+    # Un bouton d'IA n'est jamais offert sur une discipline verrouillée.
+    # Sans ça, un D rempli PUIS reverrouillé affichait un bouton d'apparence
+    # active que `pointer-events` refusait d'actionner — l'ancienne opacité de
+    # carte masquait l'incohérence, la retirer l'a rendue visible.
+    assert "bouton.disabled = verrous[d] || !reviewable(d, dossier);" in compact, (
+        "la relecture par IA doit être refusée sur une discipline verrouillée")
+    assert "proposer.disabled = verrous[d] ||" in compact, (
+        "la proposition par IA doit être refusée sur une discipline verrouillée")
+
+    css = _STYLE.read_text(encoding="utf-8")
+    assert re.search(r"\.d-card\.is-locked button\s*\{[^{}]*pointer-events\s*:\s*none", css), (
+        "les boutons d'une carte verrouillée doivent rester bloqués — "
+        "« Ajouter un pourquoi » n'est jamais désactivé par la logique de verrou")
+
+
 def main() -> int:
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failures = 0

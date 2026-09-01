@@ -506,6 +506,7 @@
     var gaps = evaluate(dossier);
     var vierge = isBlank(dossier);
 
+    var verrous = {};
     RULES.order.forEach(function (d) {
       var siens = gaps.filter(function (g) { return g.d === d; });
       var liste = el('gaps-' + d);
@@ -513,12 +514,25 @@
       siens.forEach(function (g) { liste.appendChild(gapLine(g, false)); });
 
       var verrouillee = siens.some(function (g) { return g.lock; });
+      verrous[d] = verrouillee;
       var etat = verrouillee ? 'locked' : (siens.length ? 'incomplete' : 'complete');
       var badge = el('state-' + d);
       badge.textContent = T('ct.js.state.' + etat);
       badge.className = 'treatment-state ' + (etat === 'complete' ? 'is-ok'
                         : etat === 'locked' ? 'is-locked' : 'is-todo');
-      el('card-' + d).className = 'event-card d-card' + (verrouillee ? ' is-locked' : '');
+      var carte = el('card-' + d);
+      carte.className = 'event-card d-card' + (verrouillee ? ' is-locked' : '');
+      // Un verrou seulement visuel n'en est pas un : `pointer-events:none` n'arrête
+      // que la souris, on tabulait dans le champ et on y écrivait. `readonly` plutôt
+      // que `disabled` — un champ déjà rempli avant que la discipline ne se
+      // reverrouille doit rester lisible, sélectionnable et copiable.
+      Array.prototype.forEach.call(carte.querySelectorAll('input, textarea'), function (champ) {
+        champ.readOnly = verrouillee;
+      });
+      // `readonly` n'existe pas sur un <select> : il faut le désactiver.
+      Array.prototype.forEach.call(carte.querySelectorAll('select'), function (champ) {
+        champ.disabled = verrouillee;
+      });
     });
 
     var boite = el('verdict');
@@ -545,12 +559,16 @@
     }
 
     RULES.order.forEach(function (d) {
+      // Une discipline verrouillée n'offre aucune action d'IA : il est trop tôt
+      // pour travailler dessus. Sans ce test, un D rempli PUIS reverrouillé
+      // affichait un bouton d'apparence active que `pointer-events` refusait
+      // d'actionner — l'opacité de la carte masquait l'incohérence avant.
       var bouton = el('review-' + d);
-      if (bouton) { bouton.disabled = !reviewable(d, dossier); }
+      if (bouton) { bouton.disabled = verrous[d] || !reviewable(d, dossier); }
       // La proposition part du D2 : sans problème décrit, rien à explorer.
       var proposer = el('propose-' + d);
       if (proposer) {
-        proposer.disabled = !(RULES.fields.d2 || []).some(function (f) {
+        proposer.disabled = verrous[d] || !(RULES.fields.d2 || []).some(function (f) {
           return String(dossier.d2[f] || '').trim();
         });
       }

@@ -7,8 +7,10 @@
   --border:#2a2d35;
   --border-sub:#1e2128;
   --text:#e8e9eb;
-  --text-muted:#888;
-  --text-dim:#555;
+  /* Contraste vérifié : ces deux tons franchissent 4,5:1 sur les trois fonds de
+     carte. Les rabaisser rend illisible tout ce qui n'est pas une valeur saisie. */
+  --text-muted:#a0a6b0;
+  --text-dim:#8a8f98;
   --green:#5dcaa5;
   --green-bg:#1a2e24;
   --green-border:#1d9e75;
@@ -148,7 +150,7 @@ h1 em{color:var(--green);font-style:normal}
 
 .event-rating{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end;margin-top:12px}
 .rating{display:flex;flex-direction:column;gap:5px;min-width:0}
-.rating-label{font-size:10.5px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--text-dim)}
+.rating-label{font-size:11.5px;font-weight:600;letter-spacing:.2px;color:var(--text-dim)}
 .rating-select{background:#0d1014;border:0.5px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit;font-size:12px;padding:7px 9px;width:100%;cursor:pointer}
 .rating-select:focus{outline:none;border-color:var(--purple)}
 .rating-result{display:flex;flex-direction:column;gap:5px;align-items:flex-start}
@@ -665,8 +667,15 @@ a.signal-title:hover{color:var(--green)}
 .nav-lang:hover{border-color:var(--text-muted);color:var(--text)}
 
 /* CauseTrace — 8D : chaînes de pourquoi et disciplines verrouillées */
-.d-card.is-locked{opacity:.5}
-.d-card.is-locked input,.d-card.is-locked select,.d-card.is-locked textarea,.d-card.is-locked button{pointer-events:none}
+/* Surtout PAS `opacity` ici : elle multiplie le contraste de tout le contenu, y
+   compris les valeurs déjà saisies (une discipline peut être remplie puis
+   re-verrouillée). La carte s'enfonce — un fond plus sombre dit « inerte » et
+   *améliore* la lisibilité au lieu de la détruire. */
+.d-card.is-locked{background:#101319;border-color:var(--border-sub)}
+.d-card.is-locked .kw-input,.d-card.is-locked .rating-select{background:#0d1014;border-color:var(--border-sub)}
+/* Les champs, eux, sont readonly/disabled côté page : le curseur peut donc y
+   entrer pour lire et copier. Seuls les boutons restent bloqués ici. */
+.d-card.is-locked button{pointer-events:none}
 .treatment-state.is-locked{background:#0d1014;border:0.5px solid var(--border);color:var(--text-dim)}
 .d-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:12px}
 .why-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
