@@ -1939,6 +1939,100 @@ def test_the_two_secondary_tones_stay_apart():
         f"écart de {ecart:.2f}, il en faut 1,20")
 
 
+def _css_value(css: str, corps: str, propriete: str) -> str:
+    """Valeur d'une propriété dans un corps de règle, `var(--x)` résolu."""
+    trouve = re.search(rf"(?:^|;)\s*{propriete}\s*:\s*([^;]+)", corps)
+    assert trouve, f"propriété {propriete} absente de : {corps.strip()!r}"
+    valeur = trouve.group(1).strip()
+    jeton = re.fullmatch(r"var\(--([a-z-]+)\)", valeur)
+    return _token(css, jeton.group(1)) if jeton else valeur
+
+
+def test_the_primary_button_is_readable():
+    """Le bouton d'appel à l'action doit franchir le plancher, survol compris.
+
+    ⚠️ Il ne le franchissait pas : `#fff` sur `--green-border` donnait **3,39:1**,
+    et **2,53:1** au survol — le survol éclaircit le fond, donc il *dégradait* un
+    contraste déjà insuffisant. C'est le bouton « Lancer le scan » et « Lancer la
+    veille » : le contrôle le plus important de deux pages sur six.
+
+    Aucun test de jeton ne pouvait l'attraper : ni `#fff` ni `--green-border` ne
+    sont des jetons de texte, c'est leur *appariement* qui était fautif.
+    """
+    css = _STYLE.read_text(encoding="utf-8")
+    regles = {
+        "au repos": r"\.btn-primary\{([^}]*)\}",
+        "au survol": r"\.btn-primary:hover:not\(:disabled\)\{([^}]*)\}",
+    }
+    fond = None
+    for etat, motif in regles.items():
+        trouve = re.search(motif, css)
+        assert trouve, f"règle .btn-primary {etat} introuvable"
+        corps = trouve.group(1)
+        if "background" in corps:
+            fond = _css_value(css, corps, "background")
+        texte = (_css_value(css, corps, "color") if "color" in corps
+                 else _css_value(css, re.search(regles["au repos"], css).group(1), "color"))
+        assert fond, "aucun fond connu pour .btn-primary"
+        ratio = _contrast(texte, fond)
+        assert ratio >= 4.5, (
+            f".btn-primary {etat} : {texte} sur {fond} = {ratio:.2f}:1, "
+            f"sous le plancher de 4,5:1")
+
+
+# Opacités passées en revue une par une, avec leur raison d'être. Une opacité
+# absente de cette liste fait échouer le test : c'est le seul moyen d'obliger
+# à justifier chaque nouvelle. Voir `test_no_opacity_fades_readable_text`.
+_OPACITES_ADMISES = {
+    # Contrôles réellement inactifs — la WCAG 1.4.3 les exempte explicitement.
+    ".btn:disabled", ".summary-head .btn-download:disabled",
+    ".handoff .btn-primary:disabled", ".btn-download:disabled",
+    # Décoration pure, aucune typographie.
+    ".warn-list li::before",        # la puce « › »
+    ".b-body",                      # un <rect> SVG des bonhommes animés
+    # ⚠️ Exception connue et MESURÉE : une cellule de répartition à zéro tombe à
+    # 3,35:1. C'est un décompte nul, donc une absence de donnée — mais c'est du
+    # texte, et ça reste sous le plancher. Décision en suspens, pas un oubli.
+    ".spread-cell", ".spread-cell.has-value",
+}
+
+
+def test_no_opacity_fades_readable_text():
+    """⚠️ `opacity` sur un conteneur divise le contraste de tout son contenu.
+
+    Deux fois le même défaut, trouvés à trois jours d'intervalle :
+    `.d-card.is-locked` (libellé à 1,44:1) et `.impact-proposal.is-applied`
+    (traçabilité HARA à 2,74:1). Dans les deux cas l'atténuation voulait dire
+    « inactif » — et le bon moyen de le dire est de **reculer** (fond plus
+    sombre) et non de **faner**.
+
+    Ce test ne calcule aucun contraste : il oblige seulement à inscrire toute
+    nouvelle opacité dans `_OPACITES_ADMISES`, donc à se poser la question.
+    Un garde-fou qui force une décision vaut mieux qu'un analyseur CSS
+    approximatif qui aurait l'air de vérifier.
+    """
+    css = _STYLE.read_text(encoding="utf-8")
+    sans_commentaires = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+
+    inconnues = []
+    for selecteur, corps in re.findall(r"([^{}]+)\{([^{}]*)\}", sans_commentaires):
+        if not re.search(r"(?:^|;)\s*opacity\s*:", corps):
+            continue
+        for part in selecteur.split(","):
+            part = " ".join(part.split())
+            # Les étapes d'une animation (`0%`, `50%`, `from`…) ne sont pas des
+            # sélecteurs : elles décrivent une image-clé, pas un élément.
+            if not part or re.fullmatch(r"(\d+%|from|to)", part) or part.startswith("@"):
+                continue
+            if part not in _OPACITES_ADMISES:
+                inconnues.append((part, corps.strip()))
+
+    assert not inconnues, (
+        "opacité non justifiée — si le sélecteur porte du texte lisible, faites-le "
+        "reculer (fond plus sombre) plutôt que faner ; sinon inscrivez-le dans "
+        f"_OPACITES_ADMISES avec sa raison : {inconnues}")
+
+
 def test_a_locked_discipline_is_never_dimmed_by_opacity():
     """⚠️ `opacity` sur une carte multiplie le contraste de TOUT son contenu.
 

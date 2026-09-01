@@ -61,7 +61,10 @@ h1 em{color:var(--green);font-style:normal}
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;padding:10px 20px;border-radius:var(--radius);border:none;cursor:pointer;transition:opacity .15s}
 .btn:disabled{opacity:.5;cursor:not-allowed}
-.btn-primary{background:var(--green-border);color:#fff}
+/* Texte SOMBRE sur le vert, pas blanc : #fff sur --green-border ne donnait que
+   3,39:1, et 2,53:1 au survol — le survol éclaircit le fond, donc dégradait un
+   contraste déjà insuffisant. En inversant, le survol l'améliore (5,57 -> 7,44). */
+.btn-primary{background:var(--green-border);color:var(--bg)}
 .btn-primary:hover:not(:disabled){background:#25b887}
 .btn-ghost{background:transparent;color:var(--text-muted);border:0.5px solid var(--border)}
 .btn-ghost:hover:not(:disabled){color:var(--text);border-color:var(--text-dim)}
@@ -361,10 +364,15 @@ h1 em{color:var(--green);font-style:normal}
 .damage-card.is-from-hara{border-left:2px solid var(--green-border)}
 .damage-origin{font-size:11px;color:var(--green);margin-bottom:10px}
 .impact-proposal{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;padding:9px 12px;background:var(--green-bg);border:0.5px solid rgba(29,158,117,.4);border-radius:6px;font-size:12px;color:var(--text-muted)}
-.impact-proposal.is-applied{opacity:.55}
+/* Même règle que .d-card.is-locked : pas d'`opacity` sur un bloc qui porte du
+   texte encore utile. Cette ligne dit d'où vient la sévérité (« S3 en HARA ») —
+   une traçabilité qu'on lit APRÈS l'avoir appliquée. Elle perd son vert au lieu
+   de sa lisibilité : 2,74:1 -> 5,41:1. */
+.impact-proposal.is-applied{background:var(--bg-card);border-color:var(--border-sub);color:var(--text-dim)}
 .btn-apply{background:var(--green-bg);border:0.5px solid var(--green-border);color:var(--green);border-radius:5px;font-family:inherit;font-size:11.5px;font-weight:500;padding:4px 11px;cursor:pointer;white-space:nowrap}
 .btn-apply:hover{background:#1d3b30}
-.impact-proposal.is-applied .btn-apply{cursor:default;opacity:.7}
+.impact-proposal.is-applied .btn-apply{cursor:default;background:transparent;border-color:var(--border-sub);color:var(--text-dim)}
+.impact-proposal.is-applied .btn-apply:hover{background:transparent}
 
 /* Téléchargement du rapport */
 .btn-download{display:inline-flex;align-items:center;gap:6px;margin-left:auto;font-size:12px;font-weight:500;color:var(--green);background:var(--green-bg);border:0.5px solid var(--green-border);border-radius:6px;padding:5px 11px;white-space:nowrap}
