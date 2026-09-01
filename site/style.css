@@ -7,10 +7,11 @@
   --border:#2a2d35;
   --border-sub:#1e2128;
   --text:#e8e9eb;
-  /* Contraste vérifié : ces deux tons franchissent 4,5:1 sur les trois fonds de
-     carte. Les rabaisser rend illisible tout ce qui n'est pas une valeur saisie. */
+  /* Contraste vérifié : ces deux tons franchissent 4,5:1 sur TOUS les fonds
+     déclarés ici, y compris --green-bg qui est le plus clair de la palette.
+     Les rabaisser rend illisible tout ce qui n'est pas une valeur saisie. */
   --text-muted:#a0a6b0;
-  --text-dim:#8a8f98;
+  --text-dim:#8e939c;
   --green:#5dcaa5;
   --green-bg:#1a2e24;
   --green-border:#1d9e75;

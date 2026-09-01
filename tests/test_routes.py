@@ -1898,13 +1898,21 @@ def test_text_tokens_clear_the_contrast_floor():
     """
     css = _STYLE.read_text(encoding="utf-8")
 
-    fonds = {nom: _token(css, nom) for nom in ("bg", "bg-card", "bg-card-hover")}
+    # ⚠️ TOUS les fonds déclarés, pas seulement ceux des cartes. Ce test n'en
+    # couvrait d'abord que trois, et il a laissé passer --text-dim sur
+    # --green-bg (4,43:1) — le bandeau du pont HARA → TARA. --green-bg est le
+    # fond le plus CLAIR de la palette : c'est lui qui décide, et il n'était
+    # pas dans la liste.
+    fonds = {nom: val for nom, val in re.findall(
+        r"--((?:bg|[a-z]+-bg)[a-z-]*)\s*:\s*(#[0-9a-fA-F]{3,8})\s*;",
+        re.search(r":root\s*\{(.*?)\}", css, re.S).group(1))}
+    assert len(fonds) >= 8, f"trop peu de fonds détectés : {sorted(fonds)}"
     # Les fonds propres aux disciplines verrouillées viennent du CSS lui-même.
     for corps in _LOCKED_RULES.findall(css):
         for fond in re.findall(r"background\s*:\s*(#[0-9a-fA-F]{3,8})", corps):
             fonds[f"carte verrouillée {fond}"] = fond
 
-    assert len(fonds) >= 5, f"fonds trouvés insuffisants : {sorted(fonds)}"
+    assert len(fonds) >= 10, f"fonds trouvés insuffisants : {sorted(fonds)}"
 
     for jeton in ("text", "text-muted", "text-dim"):
         couleur = _token(css, jeton)
