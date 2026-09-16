@@ -8,6 +8,7 @@ CATALOGUE: dict[str, str] = {
     # --- Navigation, shared by all six pages ------------------------------
     "nav.back": "All tools",
     "nav.github": "GitHub",
+    "nav.about": "About",
     "nav.source": "Source code",
 
     # --- Footers -----------------------------------------------------------
@@ -1133,4 +1134,34 @@ CATALOGUE: dict[str, str] = {
     "home.ct.tag.why": "8D · 5 Whys",
     "ct.lock.missing": " — missing: {items}",
     "ct.lock.blocking": " — to settle first: {items}",
+
+    # --- About page --------------------------------------------------------
+    "about.title": "About — Dhafer Bouthelja",
+    "about.meta": "Dhafer Bouthelja, software quality lead in automotive and industrial electronics. Why these tools exist, the rule that governs them — AI never decides — and how they are built.",
+    "about.h1": "About",
+    "about.intro": "I am Dhafer Bouthelja, a software quality lead with eighteen years in automotive and industrial electronics — from production floors and customer audits to ASPICE, ISO 26262 and ISO/SAE 21434 compliance on embedded software programmes.",
+    "about.own": "qualitycrew.fr is my own project. I built it, I host it, and I run it.",
+    "about.why": "Why this exists",
+    "about.why.1": "Compliance work in safety-critical engineering is slow in a specific way: the standards are long, the evidence is scattered across tools, and the person reviewing a work product spends more time locating information than judging it. That gap is where I spend my days, and it is what these tools address.",
+    "about.why.2": "Every tool here started as a problem I had actually met — a review that took three days when the reading took three hours, a regulatory change nobody noticed until an audit, a root-cause analysis that went in circles because the questions were asked in the wrong order.",
+    "about.doctrine": "The doctrine: AI never decides",
+    "about.doctrine.rule": "This is the rule the whole platform is built on, and it is not a disclaimer.",
+    "about.doctrine.scope": "Here, AI never rates and never decides what is kept. <strong>Five of the six tools produce their result without it</strong>; the only one that depends on it, QualityCrew, has its audit written by agents.",
+    "about.doctrine.human": "Decisions belong to a qualified human who remains accountable for them — that is what functional safety and quality management require, and no amount of model capability changes it.",
+    "about.doctrine.lead": "In practice this means three things:",
+    "about.doctrine.trace": "<strong>Every output is traceable.</strong> An agent that cites a clause points to the clause. An agent that raises a finding shows what it read to get there.",
+    "about.doctrine.draft": "<strong>Every output is a draft.</strong> The tools produce material for a reviewer, never a signed conclusion.",
+    "about.doctrine.doubt": "<strong>Uncertainty is stated, not smoothed.</strong> An agent that lacks the evidence says so instead of producing a confident-sounding paragraph.",
+    "about.doctrine.close": "I would rather ship a tool that admits what it does not know than one that sounds authoritative and is occasionally wrong. In this field, the second kind is worse than no tool at all.",
+    "about.tools": "The tools",
+    "about.tools.qc": "multi-agent compliance auditing against ASPICE and ISO 26262.",
+    "about.tools.rw": "standards and regulatory watch.",
+    "about.tools.ct": "8D root-cause analysis with 5 Whys, Ishikawa 5M and is / is-not questioning.",
+    "about.tools.hara": "HARA risk analysis and ASIL determination (ISO 26262).",
+    "about.tools.tara": "TARA threat analysis, through to cybersecurity goals (ISO/SAE 21434, UN R155).",
+    "about.tools.ss": "information-leak watch on public GitHub repositories, ranked by criticality.",
+    "about.built": "How it is built",
+    "about.built.1": "A Python architecture, hosted on a server I administer, designed, developed, deployed and operated end to end by me. Agents are used where a model genuinely adds something, each with a defined scope. Everywhere else, the work is done by written, tested rules.",
+    "about.scope": "Scope",
+    "about.scope.1": "qualitycrew.fr is a personal project. It contains no company data, no client data and no confidential material of any kind. The standards are cited, never reproduced; the examples are my own.",
 }

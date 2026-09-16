@@ -48,6 +48,7 @@ PAGES = {
     "/tara": "/tara/scales",
     "/regwatch": "/regwatch/sources",
     "/8d": "/8d/rules",
+    "/about": "about.doctrine",
 }
 
 # Contrat de /tara/scales : chaque chemin est réellement lu par site/tara.html.
@@ -583,9 +584,10 @@ def test_a_regwatch_report_is_not_served_by_another_tool_route():
 # Bilinguisme — français à la racine, anglais sous /en/
 # --------------------------------------------------------------------------
 
-PAGES_FR = ["/", "/qualitycrew", "/sentinelscan", "/hara", "/tara", "/regwatch", "/8d"]
+PAGES_FR = ["/", "/qualitycrew", "/sentinelscan", "/hara", "/tara", "/regwatch", "/8d",
+            "/about"]
 PAGES_EN = ["/en", "/en/qualitycrew", "/en/sentinelscan", "/en/hara",
-            "/en/tara", "/en/regwatch", "/en/8d"]
+            "/en/tara", "/en/regwatch", "/en/8d", "/en/about"]
 
 # Mots-outils qui n'existent pas en anglais. Leur présence dans une page
 # `/en/` signale un texte oublié à l'extraction.
@@ -2216,6 +2218,89 @@ def test_a_locked_discipline_really_locks_its_fields():
     assert re.search(r"\.d-card\.is-locked button\s*\{[^{}]*pointer-events\s*:\s*none", css), (
         "les boutons d'une carte verrouillée doivent rester bloqués — "
         "« Ajouter un pourquoi » n'est jamais désactivé par la logique de verrou")
+
+
+# --------------------------------------------------------------------------
+# Page À propos
+# --------------------------------------------------------------------------
+
+_SELECTEUR = re.compile(r'<a class="nav-link nav-lang"[^>]*>')
+
+
+def test_every_page_links_to_the_about_page():
+    """Une page « À propos » qu'on ne trouve pas ne sert à rien.
+
+    Le lien vit dans le menu des huit pages et suit leur langue : sur
+    `/en/tara` il mène à `/en/about`. Le sélecteur de langue est retiré avant
+    de chercher — sur `/en/about`, il pointe légitimement vers `/about`.
+    """
+    with client() as c:
+        for fr, en in zip(PAGES_FR, PAGES_EN):
+            page_fr = _SELECTEUR.sub("", c.get(fr).text)
+            page_en = _SELECTEUR.sub("", c.get(en).text)
+            assert 'href="/about"' in page_fr, f"{fr} ne lie pas /about"
+            assert 'href="/en/about"' in page_en, f"{en} ne lie pas /en/about"
+            assert 'href="/about"' not in page_en, f"{en} renvoie vers le français"
+
+
+_LINKEDIN = "https://www.linkedin.com/in/bouthelja-dhafer"
+
+
+def test_the_about_page_says_how_to_reach_its_author():
+    """Le site ne disait nulle part qui l'a fait ni comment le joindre.
+
+    La page À propos comble ce manque ; ce test refuse qu'elle le perde, dans
+    l'une ou l'autre langue — une adresse absolue n'est pas préfixée en `/en/`.
+    """
+    with client() as c:
+        for chemin in ("/about", "/en/about"):
+            page = c.get(chemin).text
+            assert f'href="{_LINKEDIN}"' in page, f"{chemin} : lien LinkedIn absent"
+
+
+_NOMBRES = {"un": 1, "deux": 2, "trois": 3, "quatre": 4, "cinq": 5, "six": 6,
+            "sept": 7, "huit": 8, "neuf": 9, "dix": 10,
+            "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+            "seven": 7, "eight": 8, "nine": 9, "ten": 10}
+
+
+def _decompte(page: str, motif: str, chemin: str) -> tuple[int, int]:
+    trouve = re.search(motif, page, re.I)
+    assert trouve, f"{chemin} : décompte « N outils sur M » introuvable"
+    return tuple(_NOMBRES[mot.lower()] for mot in trouve.groups())
+
+
+def test_the_about_page_stays_in_step_with_the_catalogue():
+    """⚠️ Le décompte « N outils sur M » existe désormais à DEUX endroits.
+
+    Celui du « Parti pris » a été faux deux fois, et
+    `test_the_catalogue_links_to_every_tool` oblige à le recompter à chaque
+    outil ajouté. La page À propos en porte une copie : sans ce test, elle
+    resterait à « cinq sur six » pendant que l'accueil passerait à sept —
+    le motif des deux listes d'actifs versionnés qui avaient divergé.
+
+    Même raison pour la liste des outils : un septième outil absent de la
+    page À propos ne casserait rien d'autre.
+    """
+    with client() as c:
+        accueil, apropos = c.get("/").text, c.get("/about").text
+        accueil_en, apropos_en = c.get("/en").text, c.get("/en/about").text
+
+    cartes = set(re.findall(r'<a class="tool-card[^"]*" href="(/[^"]+)"', accueil))
+    liste = re.search(r'<ul class="about-tools">(.*?)</ul>', apropos, re.S)
+    assert cartes and liste, "la page de garde ou la liste d'outils a changé de forme"
+    lies = set(re.findall(r'href="(/[^"]+)"', liste.group(1)))
+    assert lies == cartes, (f"À propos ≠ page de garde : manque {sorted(cartes - lies)}, "
+                            f"en trop {sorted(lies - cartes)}")
+
+    for page_accueil, page_apropos, motif_accueil, motif_apropos, langue in (
+        (accueil, apropos, r"(\w+) de ces (\w+) outils", r"(\w+) outils sur (\w+)", "fr"),
+        (accueil_en, apropos_en, r"(\w+) of these (\w+) tools", r"(\w+) of the (\w+) tools", "en"),
+    ):
+        attendu = _decompte(page_accueil, motif_accueil, f"accueil {langue}")
+        obtenu = _decompte(page_apropos, motif_apropos, f"À propos {langue}")
+        assert obtenu == attendu, f"{langue} : À propos dit {obtenu}, l'accueil {attendu}"
+        assert attendu[1] == len(cartes), f"{langue} : « sur {attendu[1]} » pour {len(cartes)} outils"
 
 
 def main() -> int:

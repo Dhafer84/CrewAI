@@ -47,6 +47,19 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:20px 0
 .nav-link{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-muted)}
 .nav-link:hover{color:var(--text);text-decoration:none}
 .nav-link svg{width:16px;height:16px}
+/* « À propos » et GitHub groupés au centre : le menu garde ses trois blocs,
+   donc la même disposition qu'avant l'ajout du lien. */
+.nav-links{display:flex;align-items:center;gap:20px}
+.nav-link[aria-current="page"]{color:var(--text)}
+/* ⚠️ Mesuré à 320 px : avec « À propos », le menu français ne tient plus sur une
+   ligne — le lien se coupe en deux et les blocs se touchent. Sous 360 px, GitHub
+   ne garde que son icône ; son libellé est masqué VISUELLEMENT seulement, pour
+   rester le nom du lien au lecteur d'écran. */
+.nav-link,.nav-back{white-space:nowrap}
+@media(max-width:360px){
+  .nav-links{gap:14px}
+  .nav-links .nav-link span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+}
 
 .nav-back{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-muted)}
 .nav-back:hover{color:var(--text);text-decoration:none}
@@ -712,3 +725,23 @@ a.signal-title:hover{color:var(--green)}
 .verdict-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 .verdict-count{font-size:12px;color:var(--text-muted)}
 .gap-src{color:var(--text-dim)}
+
+/* PAGE À PROPOS — de la prose à lire, pas un outil : texte à 15 px, pas à 13,5 */
+.hero-about .subtitle{margin-bottom:14px}
+.hero-about .subtitle:last-child{margin-bottom:0}
+.prose{max-width:640px;margin-bottom:48px}
+.prose p,.prose li{font-size:15px;line-height:1.75;color:var(--text-muted)}
+.prose p{margin-bottom:16px}
+.prose p:last-child{margin-bottom:0}
+.prose strong{color:var(--text);font-weight:600}
+/* Un nom d'outil lié garde la couleur du lien, sinon il ne se lit pas comme un lien */
+.prose a strong{color:inherit}
+.prose ul{list-style:none;margin-bottom:16px}
+.prose ul:last-child{margin-bottom:0}
+.prose li{position:relative;padding-left:18px;margin-bottom:10px}
+.prose li:last-child{margin-bottom:0}
+.prose li::before{content:"›";position:absolute;left:2px;color:var(--green)}
+.prose-card{max-width:none;background:var(--bg-card);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:24px 26px}
+@media(max-width:600px){
+  .prose-card{padding:18px}
+}

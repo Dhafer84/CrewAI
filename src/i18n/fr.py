@@ -13,6 +13,7 @@ CATALOGUE: dict[str, str] = {
     # --- Navigation, partagée par les six pages ---------------------------
     "nav.back": "Tous les outils",
     "nav.github": "GitHub",
+    "nav.about": "À propos",
     "nav.source": "Code source",
 
     # --- Pieds de page ----------------------------------------------------
@@ -1181,4 +1182,34 @@ CATALOGUE: dict[str, str] = {
     "home.ct.tag.why": "8D · 5 Pourquoi",
     "ct.lock.missing": " — il manque : {items}",
     "ct.lock.blocking": " — à régler d'abord : {items}",
+
+    # --- Page À propos -----------------------------------------------------
+    "about.title": "À propos — Dhafer Bouthelja",
+    "about.meta": "Dhafer Bouthelja, responsable qualité logicielle en électronique automobile et industrielle. Pourquoi ces outils existent, la règle qui les gouverne — l'IA ne décide jamais — et comment ils sont construits.",
+    "about.h1": "À propos",
+    "about.intro": "Je m'appelle Dhafer Bouthelja. Je suis responsable qualité logicielle, avec dix-huit ans dans l'électronique automobile et industrielle — des lignes de production et des audits clients jusqu'à la conformité ASPICE, ISO 26262 et ISO/SAE 21434 sur des programmes de logiciel embarqué.",
+    "about.own": "qualitycrew.fr est mon projet personnel. Je l'ai construit, je l'héberge, je l'exploite.",
+    "about.why": "Pourquoi ces outils",
+    "about.why.1": "Dans l'ingénierie critique, le travail de conformité est lent d'une manière très particulière : les référentiels sont longs, les preuves sont dispersées entre les outils, et celui qui revoit un livrable passe plus de temps à chercher l'information qu'à la juger. C'est exactement l'écart où se situe mon métier, et c'est à cela que répondent ces outils.",
+    "about.why.2": "Chaque outil est né d'un problème que j'ai réellement rencontré : une revue qui prend trois jours quand la lecture en prend trois heures, une évolution normative que personne ne voit passer avant l'audit, une analyse de cause racine qui tourne en rond parce que les questions ont été posées dans le mauvais ordre.",
+    "about.doctrine": "La doctrine : l'IA ne décide jamais",
+    "about.doctrine.rule": "C'est la règle sur laquelle toute la plateforme est construite. Ce n'est pas une clause de style.",
+    "about.doctrine.scope": "Ici, l'IA ne cote jamais et ne décide jamais de ce qui est retenu. <strong>Cinq outils sur six rendent leur résultat sans elle</strong> ; le seul qui en dépend, QualityCrew, fait rédiger son audit par des agents.",
+    "about.doctrine.human": "La décision revient à une personne qualifiée, qui en reste responsable : c'est ce qu'exigent la sûreté de fonctionnement et le management de la qualité, et aucune montée en puissance des modèles n'y change quoi que ce soit.",
+    "about.doctrine.lead": "Concrètement, cela tient en trois points :",
+    "about.doctrine.trace": "<strong>Toute sortie est traçable.</strong> Un agent qui cite une exigence pointe l'exigence. Un agent qui lève un constat montre ce qu'il a lu pour y arriver.",
+    "about.doctrine.draft": "<strong>Toute sortie est un brouillon.</strong> Les outils produisent de la matière pour un relecteur, jamais une conclusion signée.",
+    "about.doctrine.doubt": "<strong>L'incertitude est affichée, pas lissée.</strong> Un agent qui n'a pas la preuve le dit, au lieu de produire un paragraphe qui sonne juste.",
+    "about.doctrine.close": "Je préfère livrer un outil qui admet ce qu'il ignore plutôt qu'un outil qui a l'air sûr de lui et se trompe de temps en temps. Dans ce domaine, le second est pire que pas d'outil du tout.",
+    "about.tools": "Les outils",
+    "about.tools.qc": "audit de conformité multi-agents sur ASPICE et ISO 26262.",
+    "about.tools.rw": "veille normative et réglementaire.",
+    "about.tools.ct": "analyse de cause racine 8D : 5 Pourquoi, Ishikawa 5M, questionnement est / n'est pas.",
+    "about.tools.hara": "analyse de risques HARA et détermination du niveau ASIL (ISO 26262).",
+    "about.tools.tara": "analyse de menaces TARA, jusqu'aux objectifs de cybersécurité (ISO/SAE 21434, UN R155).",
+    "about.tools.ss": "veille de fuite d'information sur les dépôts GitHub publics, classée par criticité.",
+    "about.built": "Comment c'est construit",
+    "about.built.1": "Une architecture en Python, hébergée sur un serveur que j'administre, conçue, développée, déployée et exploitée de bout en bout par moi. Les agents interviennent là où un modèle apporte vraiment quelque chose, avec un périmètre défini. Ailleurs, ce sont des règles écrites et testées.",
+    "about.scope": "Périmètre",
+    "about.scope.1": "qualitycrew.fr est un projet personnel. Il ne contient aucune donnée d'entreprise, aucune donnée client, aucun élément confidentiel. Les référentiels sont cités, jamais reproduits ; les exemples sont les miens.",
 }

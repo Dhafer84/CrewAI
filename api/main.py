@@ -202,6 +202,7 @@ _PAGES = {
     "/tara": "tara.html",
     "/regwatch": "regwatch.html",
     "/8d": "8d.html",
+    "/about": "about.html",
 }
 
 # Rendu mémorisé par (page, langue). Invalidé si le fichier change, pour
@@ -272,6 +273,11 @@ async def regwatch_page():
 @app.get("/8d")
 async def causetrace_page():
     return _page("/8d", "fr")
+
+
+@app.get("/about")
+async def about_page():
+    return _page("/about", "fr")
 
 
 @app.get("/en")

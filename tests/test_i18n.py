@@ -299,7 +299,10 @@ def test_the_pages_match_their_catalogue():
     sans risque — et le jour où quelqu'un modifie un libellé dans le HTML
     sans toucher au catalogue, ce test le dit.
     """
-    annote = re.compile(r'<([a-z]+)([^>]*?)data-i18n="([^"]+)"([^>]*?)>(.*?)</\1>', re.S)
+    # ⚠️ `[a-z]+` seul ne reconnaissait pas `h1`…`h6` : les sept `<h1>` annotés
+    # n'ont jamais été comparés au catalogue. Trouvé en ajoutant les `<h2>` de
+    # la page À propos. Élargi, le test vérifie 7 annotations de plus, 0 écart.
+    annote = re.compile(r'<([a-z][a-z0-9]*)([^>]*?)data-i18n="([^"]+)"([^>]*?)>(.*?)</\1>', re.S)
     verifies = 0
 
     for chemin in sorted(SITE.glob("*.html")):

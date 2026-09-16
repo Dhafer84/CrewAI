@@ -59,7 +59,8 @@ _TITLE = re.compile(r"<title[^>]*>(.*?)</title>", re.S)
 _DESCRIPTION = re.compile(
     r'<meta\s+name="description"[^>]*?\scontent="([^"]*)"')
 
-PAGE_PATHS = ("", "/qualitycrew", "/sentinelscan", "/hara", "/tara", "/regwatch", "/8d")
+PAGE_PATHS = ("", "/qualitycrew", "/sentinelscan", "/hara", "/tara", "/regwatch", "/8d",
+              "/about")
 
 
 def _end_of_element(html: str, tag: str, after: int) -> int | None:

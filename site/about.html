@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="about.title">À propos — Dhafer Bouthelja</title>
+  <meta name="description" data-i18n-content="about.meta" content="Dhafer Bouthelja, responsable qualité logicielle en électronique automobile et industrielle. Pourquoi ces outils existent, la règle qui les gouverne — l'IA ne décide jamais — et comment ils sont construits.">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+
+  <nav>
+    <a class="nav-back" href="/">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      <span data-i18n="nav.back">Tous les outils</span>
+    </a>
+    <div class="nav-links">
+      <a class="nav-link" href="/about" aria-current="page" data-i18n="nav.about">À propos</a>
+      <a class="nav-link" href="https://github.com/Dhafer84/CrewAI" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+        <span data-i18n="nav.github">GitHub</span>
+      </a>
+    </div>
+    <a class="nav-link nav-lang" href="/en/about" hreflang="en" title="English version">EN</a>
+  </nav>
+
+  <section class="hero hero-about">
+    <h1 data-i18n="about.h1">À propos</h1>
+    <p class="subtitle" data-i18n="about.intro">Je m'appelle Dhafer Bouthelja. Je suis responsable qualité logicielle, avec dix-huit ans dans l'électronique automobile et industrielle — des lignes de production et des audits clients jusqu'à la conformité ASPICE, ISO 26262 et ISO/SAE 21434 sur des programmes de logiciel embarqué.</p>
+    <p class="subtitle" data-i18n="about.own">qualitycrew.fr est mon projet personnel. Je l'ai construit, je l'héberge, je l'exploite.</p>
+  </section>
+
+  <h2 class="section-label" data-i18n="about.why">Pourquoi ces outils</h2>
+  <div class="prose">
+    <p data-i18n="about.why.1">Dans l'ingénierie critique, le travail de conformité est lent d'une manière très particulière : les référentiels sont longs, les preuves sont dispersées entre les outils, et celui qui revoit un livrable passe plus de temps à chercher l'information qu'à la juger. C'est exactement l'écart où se situe mon métier, et c'est à cela que répondent ces outils.</p>
+    <p data-i18n="about.why.2">Chaque outil est né d'un problème que j'ai réellement rencontré : une revue qui prend trois jours quand la lecture en prend trois heures, une évolution normative que personne ne voit passer avant l'audit, une analyse de cause racine qui tourne en rond parce que les questions ont été posées dans le mauvais ordre.</p>
+  </div>
+
+  <h2 class="section-label" data-i18n="about.doctrine">La doctrine : l'IA ne décide jamais</h2>
+  <div class="prose prose-card">
+    <p data-i18n="about.doctrine.rule">C'est la règle sur laquelle toute la plateforme est construite. Ce n'est pas une clause de style.</p>
+    <p data-i18n="about.doctrine.scope">Ici, l'IA ne cote jamais et ne décide jamais de ce qui est retenu. <strong>Cinq outils sur six rendent leur résultat sans elle</strong> ; le seul qui en dépend, QualityCrew, fait rédiger son audit par des agents.</p>
+    <p data-i18n="about.doctrine.human">La décision revient à une personne qualifiée, qui en reste responsable : c'est ce qu'exigent la sûreté de fonctionnement et le management de la qualité, et aucune montée en puissance des modèles n'y change quoi que ce soit.</p>
+    <p data-i18n="about.doctrine.lead">Concrètement, cela tient en trois points :</p>
+    <ul>
+      <li data-i18n="about.doctrine.trace"><strong>Toute sortie est traçable.</strong> Un agent qui cite une exigence pointe l'exigence. Un agent qui lève un constat montre ce qu'il a lu pour y arriver.</li>
+      <li data-i18n="about.doctrine.draft"><strong>Toute sortie est un brouillon.</strong> Les outils produisent de la matière pour un relecteur, jamais une conclusion signée.</li>
+      <li data-i18n="about.doctrine.doubt"><strong>L'incertitude est affichée, pas lissée.</strong> Un agent qui n'a pas la preuve le dit, au lieu de produire un paragraphe qui sonne juste.</li>
+    </ul>
+    <p data-i18n="about.doctrine.close">Je préfère livrer un outil qui admet ce qu'il ignore plutôt qu'un outil qui a l'air sûr de lui et se trompe de temps en temps. Dans ce domaine, le second est pire que pas d'outil du tout.</p>
+  </div>
+
+  <h2 class="section-label" data-i18n="about.tools">Les outils</h2>
+  <div class="prose">
+    <ul class="about-tools">
+      <li><a href="/qualitycrew"><strong>QualityCrew</strong></a> — <span data-i18n="about.tools.qc">audit de conformité multi-agents sur ASPICE et ISO 26262.</span></li>
+      <li><a href="/regwatch"><strong>RegWatch</strong></a> — <span data-i18n="about.tools.rw">veille normative et réglementaire.</span></li>
+      <li><a href="/8d"><strong>CauseTrace</strong></a> — <span data-i18n="about.tools.ct">analyse de cause racine 8D : 5 Pourquoi, Ishikawa 5M, questionnement est / n'est pas.</span></li>
+      <li><a href="/hara"><strong>SafetyScope</strong></a> — <span data-i18n="about.tools.hara">analyse de risques HARA et détermination du niveau ASIL (ISO 26262).</span></li>
+      <li><a href="/tara"><strong>ThreatScope</strong></a> — <span data-i18n="about.tools.tara">analyse de menaces TARA, jusqu'aux objectifs de cybersécurité (ISO/SAE 21434, UN R155).</span></li>
+      <li><a href="/sentinelscan"><strong>SentinelScan</strong></a> — <span data-i18n="about.tools.ss">veille de fuite d'information sur les dépôts GitHub publics, classée par criticité.</span></li>
+    </ul>
+  </div>
+
+  <h2 class="section-label" data-i18n="about.built">Comment c'est construit</h2>
+  <div class="prose">
+    <p data-i18n="about.built.1">Une architecture en Python, hébergée sur un serveur que j'administre, conçue, développée, déployée et exploitée de bout en bout par moi. Les agents interviennent là où un modèle apporte vraiment quelque chose, avec un périmètre défini. Ailleurs, ce sont des règles écrites et testées.</p>
+  </div>
+
+  <h2 class="section-label" data-i18n="about.scope">Périmètre</h2>
+  <div class="prose">
+    <p data-i18n="about.scope.1">qualitycrew.fr est un projet personnel. Il ne contient aucune donnée d'entreprise, aucune donnée client, aucun élément confidentiel. Les référentiels sont cités, jamais reproduits ; les exemples sont les miens.</p>
+  </div>
+
+  <h2 class="section-label">Contact</h2>
+  <div class="prose">
+    <p><strong>LinkedIn</strong> — <a href="https://www.linkedin.com/in/bouthelja-dhafer" target="_blank" rel="noopener">linkedin.com/in/bouthelja-dhafer</a></p>
+  </div>
+
+  <footer>
+    <div class="footer-inner">
+      <span class="footer-text" data-i18n="footer.index">Données 100 % fictives</span>
+      <a class="nav-link footer-text" href="https://github.com/Dhafer84/CrewAI" target="_blank" rel="noopener" data-i18n="nav.source">Code source</a>
+    </div>
+  </footer>
+
+</div>
+<script src="/i18n/fr.js"></script>
+<script src="/static/i18n.js"></script>
+
+</body>
+</html>
