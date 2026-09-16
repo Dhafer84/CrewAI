@@ -413,10 +413,14 @@ h1 em{color:var(--green);font-style:normal}
 
 /* ─── GRILLE D'OUTILS (page de garde) ───
    auto-fill : la grille absorbe n'importe quel nombre de cartes.
-   Ajouter un outil ne demande aucun réglage ici. */
+   Ajouter un outil ne demande aucun réglage ici.
+   ⚠️ `min(300px,100%)` et non `300px` : à 320 px d'écran le conteneur ne fait
+   que 272 px, et un minimum fixe de 300 px faisait déborder chaque carte de
+   4 px. Dès que le conteneur atteint 300 px (écran ≥ 348 px), les deux
+   écritures sont strictement identiques. */
 .tools-grid{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));
   gap:16px;
   margin-bottom:56px;
 }

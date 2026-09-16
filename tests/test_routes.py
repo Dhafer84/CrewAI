@@ -2303,6 +2303,38 @@ def test_the_about_page_stays_in_step_with_the_catalogue():
         assert attendu[1] == len(cartes), f"{langue} : « sur {attendu[1]} » pour {len(cartes)} outils"
 
 
+_ECRAN_LE_PLUS_ETROIT = 320
+
+
+def test_no_grid_forces_a_column_wider_than_the_narrowest_screen():
+    """⚠️ Un minimum de colonne fixe fait déborder la page sur un petit écran.
+
+    `.tools-grid` imposait `minmax(300px,1fr)` : à 320 px, le conteneur ne fait
+    que 272 px, et les six cartes de l'accueil débordaient de 4 px. Constaté
+    le 16/09/2026, présent depuis la création de la grille.
+
+    Le conteneur utile est **calculé** depuis le padding de `.container`, jamais
+    recopié. Garde volontairement étroit : il ne voit que le conteneur de page,
+    pas une grille imbriquée dans une carte qui a son propre padding — ce cas
+    se mesure dans le navigateur, élément par élément.
+    """
+    css = _STYLE.read_text(encoding="utf-8")
+    regle = re.search(r"\.container\{([^}]*)\}", css)
+    assert regle, "règle .container introuvable"
+    padding = re.search(r"padding:\s*\S+\s+(\d+)px", regle.group(1))
+    assert padding, "padding horizontal de .container introuvable"
+    utile = _ECRAN_LE_PLUS_ETROIT - 2 * int(padding.group(1))
+
+    fautives = [
+        f"minmax({largeur}px,…)"
+        for largeur in map(int, re.findall(r"minmax\(\s*(\d+)px", css))
+        if largeur > utile
+    ]
+    assert not fautives, (
+        f"minimum plus large que les {utile} px disponibles à "
+        f"{_ECRAN_LE_PLUS_ETROIT} px — écrire minmax(min(Npx,100%),1fr) : {fautives}")
+
+
 def main() -> int:
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failures = 0
