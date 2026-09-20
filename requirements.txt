@@ -20,5 +20,10 @@ openpyxl==3.1.5
 # python-docx==1.1.2
 # pypdf==5.6.0
 
+# Tests (dev uniquement)
+# Les tests sont des fonctions test_*, pas des classes unittest.TestCase :
+# `python -m unittest discover` n'en collecte aucune, pytest les prend toutes.
+pytest==9.1.1
+
 # Qualité / audit de dépendances (dev uniquement)
 # pip-audit==2.7.3
