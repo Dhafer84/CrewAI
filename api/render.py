@@ -255,10 +255,14 @@ def render(html: str, lang: str, path: str, base_url: str,
     # français : la version anglaise devient un cul-de-sac dès le premier
     # clic. Seuls les chemins de PAGE sont préfixés — jamais les routes
     # d'API, qui portent leur langue en query string.
+    # Une ancre compte aussi : sans la seconde règle, « Voir les outils »
+    # (`/#outils`) renvoyait un visiteur anglophone sur l'accueil français.
     if lang != DEFAULT_LANG:
         for chemin in sorted(PAGE_PATHS, key=len, reverse=True):
             html = html.replace(f'href="{chemin or "/"}"',
                                 f'href="/{lang}{chemin}"')
+            html = html.replace(f'href="{chemin or "/"}#',
+                                f'href="/{lang}{chemin}#')
 
     if asset_version:
         for actif in VERSIONED_ASSETS:

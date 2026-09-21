@@ -810,6 +810,21 @@ def test_internal_links_stay_in_the_page_language():
         f"la page française a été préfixée : {sorted(pages_fr)}"
 
 
+def test_anchored_links_stay_in_the_page_language():
+    """⚠️ Une ancre échappait au préfixage des liens.
+
+    Le rendu ne reconnaissait que les chemins exacts : « Voir les outils » de
+    la page À propos (`/#outils`) restait tel quel sur `/en/about`, et
+    renvoyait un visiteur anglophone sur l'accueil FRANÇAIS. Trouvé en
+    intégrant la page, avant tout déploiement.
+    """
+    with client() as c:
+        francais, anglais = c.get("/about").text, c.get("/en/about").text
+    assert 'href="/#outils"' in francais, "le lien vers le catalogue a disparu de /about"
+    assert 'href="/en#outils"' in anglais, "le lien à ancre n'est pas passé en anglais"
+    assert 'href="/#' not in anglais, "un lien à ancre renvoie vers le français"
+
+
 def test_the_hara_bridge_stays_in_the_page_language():
     """Le pont vers ThreatScope navigue en JavaScript — il compte aussi."""
     source = (_ROOT / "site" / "hara.html").read_text(encoding="utf-8")
@@ -2321,6 +2336,10 @@ def test_the_about_page_stays_in_step_with_the_catalogue():
         obtenu = _decompte(page_apropos, motif_apropos, f"À propos {langue}")
         assert obtenu == attendu, f"{langue} : À propos dit {obtenu}, l'accueil {attendu}"
         assert attendu[1] == len(cartes), f"{langue} : « sur {attendu[1]} » pour {len(cartes)} outils"
+        # Depuis la refonte du 21/09/2026, le même décompte s'affiche aussi en
+        # chiffres dans la fiche de la page.
+        assert f"<b>{attendu[0]}/{attendu[1]}</b>" in page_apropos, \
+            f"{langue} : le chiffre de la fiche À propos ne dit plus {attendu[0]}/{attendu[1]}"
 
 
 _ECRAN_LE_PLUS_ETROIT = 320
@@ -2452,6 +2471,7 @@ _PAIRES_ACCUEIL = [
     ("h-ink-2", "h-visual", "légendes du visuel"),
     ("h-ink", "h-chip", "cartouches du visuel"),
     ("h-ink-2", "h-chip", "surtitres des cartouches"),
+    ("h-accent-ink", "h-chip", "chiffres de la page À propos"),
     ("h-frame-ink", "h-frame", "pied de page"),
     ("h-frame-dim", "h-frame", "notes de la bande, sélecteur de langue"),
     ("h-on-accent", "h-accent", "bouton principal"),
@@ -2482,16 +2502,20 @@ def test_the_home_palette_clears_the_contrast_floor():
     assert not fautes, "paires de l'accueil sous le plancher : " + " · ".join(fautes)
 
 
-def test_home_css_is_loaded_by_the_home_page_only():
+# Les pages « vitrine » en cadre à crans : l'accueil, puis À propos (21/09/2026).
+_PAGES_VITRINE = {"index.html", "about.html"}
+
+
+def test_home_css_is_loaded_by_the_showcase_pages_only():
     """Les pages d'outils ne reçoivent pas une ligne d'indigo.
 
-    La refonte de l'accueil ne devait rien toucher d'autre. Une page d'outil
-    qui chargerait home.css par copier-coller hériterait de ses règles non
+    La refonte ne devait toucher que les pages vitrine. Une page d'outil qui
+    chargerait home.css par copier-coller hériterait de ses règles non
     préfixées (`.tool-head`, `.status-live`…) sans que rien ne le signale.
     """
     for page in sorted((_ROOT / "site").glob("*.html")):
         charge = "/static/home.css" in page.read_text(encoding="utf-8")
-        assert charge == (page.name == "index.html"), (
+        assert charge == (page.name in _PAGES_VITRINE), (
             f"{page.name} {'charge' if charge else 'ne charge pas'} home.css")
 
 
@@ -2506,9 +2530,15 @@ _NEUTRES_ACCUEIL = {
     "ASPICE · ISO 26262", "ISO/IEC 27001", "ISO 26262 · HARA",
     "ISO/SAE 21434 · UN R155", "ISO · ASPICE · UN R155", "8D · Ishikawa",
 }
+_NEUTRES_APROPOS = {
+    "Dhafer", "Bouthelja", "Menu", "GitHub", "LinkedIn", "Contact",
+    "linkedin.com/", "in/bouthelja-dhafer",
+    "QualityCrew", "SentinelScan", "SafetyScope", "ThreatScope", "RegWatch", "CauseTrace",
+    "Audit", "HARA", "TARA", "8D", "5/6", "01", "02", "03",
+}
 
 
-def test_the_english_home_page_shares_only_neutral_text():
+def test_the_english_showcase_pages_share_only_neutral_text():
     """⚠️ Le détecteur lexical ne voit pas les libellés courts.
 
     « Sans IA », « IA requise » ou « IA facultative » n'ont ni accent ni
@@ -2526,9 +2556,12 @@ def test_the_english_home_page_shares_only_neutral_text():
         return {t.strip() for t in re.split(r"<[^>]+>", html) if t.strip()}
 
     with client() as c:
-        communs = textes(c.get("/").text) & textes(c.get("/en").text)
-    suspects = sorted(communs - _NEUTRES_ACCUEIL)
-    assert not suspects, f"textes identiques sur / et /en — annotation oubliée ? {suspects}"
+        for fr, en, neutres in (("/", "/en", _NEUTRES_ACCUEIL),
+                                ("/about", "/en/about", _NEUTRES_APROPOS)):
+            communs = textes(c.get(fr).text) & textes(c.get(en).text)
+            suspects = sorted(communs - neutres)
+            assert not suspects, (
+                f"textes identiques sur {fr} et {en} — annotation oubliée ? {suspects}")
 
 
 def test_the_home_font_is_served_by_the_site_itself():

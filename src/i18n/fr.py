@@ -1214,7 +1214,13 @@ CATALOGUE: dict[str, str] = {
     "about.why": "Pourquoi ces outils",
     "about.why.1": "Dans l'ingénierie critique, le travail de conformité est lent d'une manière très particulière : les référentiels sont longs, les preuves sont dispersées entre les outils, et celui qui revoit un livrable passe plus de temps à chercher l'information qu'à la juger. C'est exactement l'écart où se situe mon métier, et c'est à cela que répondent ces outils.",
     "about.why.2": "Chaque outil est né d'un problème que j'ai réellement rencontré : une revue qui prend trois jours quand la lecture en prend trois heures, une évolution normative que personne ne voit passer avant l'audit, une analyse de cause racine qui tourne en rond parce que les questions ont été posées dans le mauvais ordre.",
-    "about.doctrine": "La doctrine : l'IA ne décide jamais",
+    # Refonte du 21/09/2026 : l'ancien titre « La doctrine : l'IA ne décide jamais »
+    # est coupé en deux — l'onglet de section, puis le grand titre.
+    "about.doctrine": "La doctrine",
+    "about.doctrine.title": "L'IA <em>ne décide jamais</em>",
+    "about.fact.years": "+18 ans",
+    "about.fact.years.text": "dans l'électronique automobile et industrielle",
+    "about.project": "Le projet",
     "about.doctrine.rule": "C'est la règle sur laquelle toute la plateforme est construite. Ce n'est pas une clause de style.",
     "about.doctrine.scope": "Ici, l'IA ne cote jamais et ne décide jamais de ce qui est retenu. <strong>Cinq outils sur six rendent leur résultat sans elle</strong> ; le seul qui en dépend, QualityCrew, fait rédiger son audit par des agents.",
     "about.doctrine.human": "La décision revient à une personne qualifiée, qui en reste responsable : c'est ce qu'exigent la sûreté de fonctionnement et le management de la qualité, et aucune montée en puissance des modèles n'y change quoi que ce soit.",

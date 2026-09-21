@@ -6,79 +6,141 @@
   <title data-i18n="about.title">À propos — Dhafer Bouthelja</title>
   <meta name="description" data-i18n-content="about.meta" content="Dhafer Bouthelja, responsable qualité logicielle en électronique automobile et industrielle. Pourquoi ces outils existent, la règle qui les gouverne — l'IA ne décide jamais — et comment ils sont construits.">
   <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/home.css">
+  <!-- Préchargée, comme sur l'accueil : sans elle, les grands titres sautent. -->
+  <link rel="preload" href="/static/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
 </head>
-<body>
-<div class="container">
+<body class="home">
+<div class="h-shell">
 
-  <nav>
-    <a class="nav-back" href="/">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-      <span data-i18n="nav.back">Tous les outils</span>
-    </a>
-    <div class="nav-end">
-      <a class="nav-link nav-lang" href="/en/about" hreflang="en" title="English version">EN</a>
-      <!-- menu -->
+  <!-- En-tête : l'onglet porte le nom (lien vers l'accueil), la bande la langue et le menu. -->
+  <nav class="h-notch">
+    <div class="h-tab"><a class="logo" href="/">Dhafer <em>Bouthelja</em></a></div>
+    <svg class="h-step" viewBox="0 0 72 64" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0C38 0 34 64 72 64H0Z" fill="currentColor"/></svg>
+    <div class="h-band">
+      <div class="nav-end">
+        <a class="nav-link nav-lang" href="/en/about" hreflang="en" title="English version">EN</a>
+        <!-- menu -->
+      </div>
     </div>
   </nav>
 
-  <section class="hero hero-about">
-    <h1 data-i18n="about.h1">À propos</h1>
-    <p class="subtitle" data-i18n="about.intro">Je m'appelle Dhafer Bouthelja. Je suis responsable qualité logicielle, avec dix-huit ans dans l'électronique automobile et industrielle — des lignes de production et des audits clients jusqu'à la conformité ASPICE, ISO 26262 et ISO/SAE 21434 sur des programmes de logiciel embarqué.</p>
-    <p class="subtitle" data-i18n="about.own">qualitycrew.fr est mon projet personnel. Je l'ai construit, je l'héberge, je l'exploite.</p>
+  <main>
+  <!-- ===== Qui ===== -->
+  <section class="h-panel a-hero">
+    <div class="a-hero-copy">
+      <span class="h-chip" data-i18n="about.h1">À propos</span>
+      <h1>Dhafer <em>Bouthelja</em></h1>
+      <p class="h-lead" data-i18n="about.intro">Je m'appelle Dhafer Bouthelja. Je suis responsable qualité logicielle, avec dix-huit ans dans l'électronique automobile et industrielle — des lignes de production et des audits clients jusqu'à la conformité ASPICE, ISO 26262 et ISO/SAE 21434 sur des programmes de logiciel embarqué.</p>
+      <p class="h-lead a-own" data-i18n="about.own">qualitycrew.fr est mon projet personnel. Je l'ai construit, je l'héberge, je l'exploite.</p>
+      <div class="h-actions">
+        <a class="h-btn h-solid" href="https://www.linkedin.com/in/bouthelja-dhafer" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>LinkedIn</a>
+        <a class="h-btn h-round" href="https://github.com/Dhafer84/CrewAI" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg><span class="h-sr" data-i18n="home.hero.github">Code source sur GitHub</span></a>
+        <a class="h-btn h-ghost" href="/#outils" data-i18n="home.hero.cta">Voir les outils</a>
+      </div>
+    </div>
+    <!-- Deux repères, tirés de la présentation et du parti pris de l'accueil.
+         ⚠️ « 5/6 » est un DÉCOMPTE : test_the_catalogue_links_to_every_tool le
+         vérifie ici aussi. -->
+    <div class="a-card">
+      <p class="a-fact"><b data-i18n="about.fact.years">+18 ans</b><span data-i18n="about.fact.years.text">dans l'électronique automobile et industrielle</span></p>
+      <p class="a-fact"><b>5/6</b><span data-i18n="home.stat.noai">outils rendent leur résultat sans IA</span></p>
+    </div>
   </section>
 
-  <h2 class="section-label" data-i18n="about.why">Pourquoi ces outils</h2>
-  <div class="prose">
-    <p data-i18n="about.why.1">Dans l'ingénierie critique, le travail de conformité est lent d'une manière très particulière : les référentiels sont longs, les preuves sont dispersées entre les outils, et celui qui revoit un livrable passe plus de temps à chercher l'information qu'à la juger. C'est exactement l'écart où se situe mon métier, et c'est à cela que répondent ces outils.</p>
-    <p data-i18n="about.why.2">Chaque outil est né d'un problème que j'ai réellement rencontré : une revue qui prend trois jours quand la lecture en prend trois heures, une évolution normative que personne ne voit passer avant l'audit, une analyse de cause racine qui tourne en rond parce que les questions ont été posées dans le mauvais ordre.</p>
-  </div>
-
-  <h2 class="section-label" data-i18n="about.doctrine">La doctrine : l'IA ne décide jamais</h2>
-  <div class="prose prose-card">
-    <p data-i18n="about.doctrine.rule">C'est la règle sur laquelle toute la plateforme est construite. Ce n'est pas une clause de style.</p>
-    <p data-i18n="about.doctrine.scope">Ici, l'IA ne cote jamais et ne décide jamais de ce qui est retenu. <strong>Cinq outils sur six rendent leur résultat sans elle</strong> ; le seul qui en dépend, QualityCrew, fait rédiger son audit par des agents.</p>
-    <p data-i18n="about.doctrine.human">La décision revient à une personne qualifiée, qui en reste responsable : c'est ce qu'exigent la sûreté de fonctionnement et le management de la qualité, et aucune montée en puissance des modèles n'y change quoi que ce soit.</p>
-    <p data-i18n="about.doctrine.lead">Concrètement, cela tient en trois points :</p>
-    <ul>
-      <li data-i18n="about.doctrine.trace"><strong>Toute sortie est traçable.</strong> Un agent qui cite une exigence pointe l'exigence. Un agent qui lève un constat montre ce qu'il a lu pour y arriver.</li>
-      <li data-i18n="about.doctrine.draft"><strong>Toute sortie est un brouillon.</strong> Les outils produisent de la matière pour un relecteur, jamais une conclusion signée.</li>
-      <li data-i18n="about.doctrine.doubt"><strong>L'incertitude est affichée, pas lissée.</strong> Un agent qui n'a pas la preuve le dit, au lieu de produire un paragraphe qui sonne juste.</li>
-    </ul>
-    <p data-i18n="about.doctrine.close">Je préfère livrer un outil qui admet ce qu'il ignore plutôt qu'un outil qui a l'air sûr de lui et se trompe de temps en temps. Dans ce domaine, le second est pire que pas d'outil du tout.</p>
-  </div>
-
-  <h2 class="section-label" data-i18n="about.tools">Les outils</h2>
-  <div class="prose">
-    <ul class="about-tools">
-      <li><a href="/qualitycrew"><strong>QualityCrew</strong></a> — <span data-i18n="about.tools.qc">audit de conformité multi-agents sur ASPICE et ISO 26262.</span></li>
-      <li><a href="/regwatch"><strong>RegWatch</strong></a> — <span data-i18n="about.tools.rw">veille normative et réglementaire.</span></li>
-      <li><a href="/8d"><strong>CauseTrace</strong></a> — <span data-i18n="about.tools.ct">analyse de cause racine 8D : 5 Pourquoi, Ishikawa 5M, questionnement est / n'est pas.</span></li>
-      <li><a href="/hara"><strong>SafetyScope</strong></a> — <span data-i18n="about.tools.hara">analyse de risques HARA et détermination du niveau ASIL (ISO 26262).</span></li>
-      <li><a href="/tara"><strong>ThreatScope</strong></a> — <span data-i18n="about.tools.tara">analyse de menaces TARA, jusqu'aux objectifs de cybersécurité (ISO/SAE 21434, UN R155).</span></li>
-      <li><a href="/sentinelscan"><strong>SentinelScan</strong></a> — <span data-i18n="about.tools.ss">veille de fuite d'information sur les dépôts GitHub publics, classée par criticité.</span></li>
-    </ul>
-  </div>
-
-  <h2 class="section-label" data-i18n="about.built">Comment c'est construit</h2>
-  <div class="prose">
-    <p data-i18n="about.built.1">Une architecture en Python, hébergée sur un serveur que j'administre, conçue, développée, déployée et exploitée de bout en bout par moi. Les agents interviennent là où un modèle apporte vraiment quelque chose, avec un périmètre défini. Ailleurs, ce sont des règles écrites et testées.</p>
-  </div>
-
-  <h2 class="section-label" data-i18n="about.scope">Périmètre</h2>
-  <div class="prose">
-    <p data-i18n="about.scope.1">qualitycrew.fr est un projet personnel. Il ne contient aucune donnée d'entreprise, aucune donnée client, aucun élément confidentiel. Les référentiels sont cités, jamais reproduits ; les exemples sont les miens.</p>
-  </div>
-
-  <h2 class="section-label">Contact</h2>
-  <div class="prose">
-    <p><strong>LinkedIn</strong> — <a href="https://www.linkedin.com/in/bouthelja-dhafer" target="_blank" rel="noopener">linkedin.com/in/bouthelja-dhafer</a></p>
-  </div>
-
-  <footer>
-    <div class="footer-inner">
-      <span class="footer-text" data-i18n="footer.index">Données 100 % fictives</span>
-      <a class="nav-link footer-text" href="https://github.com/Dhafer84/CrewAI" target="_blank" rel="noopener" data-i18n="nav.source">Code source</a>
+  <!-- ===== Pourquoi ===== -->
+  <section class="h-section" aria-labelledby="a-why">
+    <div class="h-notch">
+      <div class="h-tab"><h2 class="h-chip" id="a-why" data-i18n="about.why">Pourquoi ces outils</h2></div>
+      <svg class="h-step" viewBox="0 0 72 64" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0C38 0 34 64 72 64H0Z" fill="currentColor"/></svg>
+      <div class="h-band"></div>
     </div>
+    <div class="h-panel a-prose">
+      <div class="a-cols">
+        <p data-i18n="about.why.1">Dans l'ingénierie critique, le travail de conformité est lent d'une manière très particulière : les référentiels sont longs, les preuves sont dispersées entre les outils, et celui qui revoit un livrable passe plus de temps à chercher l'information qu'à la juger. C'est exactement l'écart où se situe mon métier, et c'est à cela que répondent ces outils.</p>
+        <p data-i18n="about.why.2">Chaque outil est né d'un problème que j'ai réellement rencontré : une revue qui prend trois jours quand la lecture en prend trois heures, une évolution normative que personne ne voit passer avant l'audit, une analyse de cause racine qui tourne en rond parce que les questions ont été posées dans le mauvais ordre.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== La doctrine (cran inversé) ===== -->
+  <section class="h-section" aria-labelledby="a-doctrine">
+    <div class="h-notch is-mirrored">
+      <div class="h-tab"><span class="h-chip" data-i18n="about.doctrine">La doctrine</span></div>
+      <svg class="h-step" viewBox="0 0 72 64" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0C38 0 34 64 72 64H0Z" fill="currentColor"/></svg>
+      <div class="h-band"><span class="h-band-note" data-i18n="home.stance.note">Ce qui ne se devine pas</span></div>
+    </div>
+    <div class="h-panel is-mirrored a-doctrine">
+      <h2 class="h-title" id="a-doctrine" data-i18n="about.doctrine.title">L'IA <em>ne décide jamais</em></h2>
+      <div class="a-lede">
+        <p data-i18n="about.doctrine.rule">C'est la règle sur laquelle toute la plateforme est construite. Ce n'est pas une clause de style.</p>
+        <p data-i18n="about.doctrine.scope">Ici, l'IA ne cote jamais et ne décide jamais de ce qui est retenu. <strong>Cinq outils sur six rendent leur résultat sans elle</strong> ; le seul qui en dépend, QualityCrew, fait rédiger son audit par des agents.</p>
+        <p data-i18n="about.doctrine.human">La décision revient à une personne qualifiée, qui en reste responsable : c'est ce qu'exigent la sûreté de fonctionnement et le management de la qualité, et aucune montée en puissance des modèles n'y change quoi que ce soit.</p>
+        <p data-i18n="about.doctrine.lead">Concrètement, cela tient en trois points :</p>
+      </div>
+      <ol class="a-points">
+        <li class="a-point"><span class="a-num" aria-hidden="true">01</span><p data-i18n="about.doctrine.trace"><strong>Toute sortie est traçable.</strong> Un agent qui cite une exigence pointe l'exigence. Un agent qui lève un constat montre ce qu'il a lu pour y arriver.</p></li>
+        <li class="a-point"><span class="a-num" aria-hidden="true">02</span><p data-i18n="about.doctrine.draft"><strong>Toute sortie est un brouillon.</strong> Les outils produisent de la matière pour un relecteur, jamais une conclusion signée.</p></li>
+        <li class="a-point"><span class="a-num" aria-hidden="true">03</span><p data-i18n="about.doctrine.doubt"><strong>L'incertitude est affichée, pas lissée.</strong> Un agent qui n'a pas la preuve le dit, au lieu de produire un paragraphe qui sonne juste.</p></li>
+      </ol>
+      <p class="a-close" data-i18n="about.doctrine.close">Je préfère livrer un outil qui admet ce qu'il ignore plutôt qu'un outil qui a l'air sûr de lui et se trompe de temps en temps. Dans ce domaine, le second est pire que pas d'outil du tout.</p>
+    </div>
+  </section>
+
+  <!-- ===== Les outils =====
+       Une grille et non une rangée : ici on fait l'inventaire, on ne feuillette
+       pas. ⚠️ `<ul class="about-tools">` est un contrat de test — la liste doit
+       lier exactement les outils de la page de garde. -->
+  <section class="h-section" aria-labelledby="a-tools">
+    <div class="h-notch">
+      <div class="h-tab"><h2 class="h-chip" id="a-tools" data-i18n="about.tools">Les outils</h2></div>
+      <svg class="h-step" viewBox="0 0 72 64" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0C38 0 34 64 72 64H0Z" fill="currentColor"/></svg>
+      <div class="h-band"></div>
+    </div>
+    <div class="h-panel a-tools">
+      <ul class="about-tools">
+        <li><a class="a-tool" href="/qualitycrew" style="--tile:var(--h-t1);--rot:12deg;--ms:150px"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span><strong class="a-tool-name">QualityCrew</strong><span class="a-desc" data-i18n="about.tools.qc">audit de conformité multi-agents sur ASPICE et ISO 26262.</span></a></li>
+        <li><a class="a-tool" href="/regwatch" style="--tile:var(--h-t2);--rot:-18deg;--ms:180px"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3a9 9 0 0 1 9 9M12 7a5 5 0 0 1 5 5M3 21l6-6"/></svg></span><strong class="a-tool-name">RegWatch</strong><span class="a-desc" data-i18n="about.tools.rw">veille normative et réglementaire.</span></a></li>
+        <li><a class="a-tool" href="/8d" style="--tile:var(--h-t3);--rot:30deg;--ms:140px"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12h20M7 12 4 7M12 12 9 7M7 12l-3 5M12 12l-3 5"/></svg></span><strong class="a-tool-name">CauseTrace</strong><span class="a-desc" data-i18n="about.tools.ct">analyse de cause racine 8D : 5 Pourquoi, Ishikawa 5M, questionnement est / n'est pas.</span></a></li>
+        <li><a class="a-tool" href="/hara" style="--tile:var(--h-t4);--rot:-6deg;--ms:170px"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg></span><strong class="a-tool-name">SafetyScope</strong><span class="a-desc" data-i18n="about.tools.hara">analyse de risques HARA et détermination du niveau ASIL (ISO 26262).</span></a></li>
+        <li><a class="a-tool" href="/tara" style="--tile:var(--h-t5);--rot:45deg;--ms:150px"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2 4 6v6c0 5 3.4 9.4 8 10 4.6-.6 8-5 8-10V6z"/><path d="M12 8v4M12 16h.01"/></svg></span><strong class="a-tool-name">ThreatScope</strong><span class="a-desc" data-i18n="about.tools.tara">analyse de menaces TARA, jusqu'aux objectifs de cybersécurité (ISO/SAE 21434, UN R155).</span></a></li>
+        <li><a class="a-tool" href="/sentinelscan" style="--tile:var(--h-t6);--rot:-28deg;--ms:190px"><span class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M11 8v3l2 2"/></svg></span><strong class="a-tool-name">SentinelScan</strong><span class="a-desc" data-i18n="about.tools.ss">veille de fuite d'information sur les dépôts GitHub publics, classée par criticité.</span></a></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===== Le projet ===== -->
+  <section class="h-section" aria-labelledby="a-project">
+    <div class="h-notch is-mirrored">
+      <div class="h-tab"><h2 class="h-chip" id="a-project" data-i18n="about.project">Le projet</h2></div>
+      <svg class="h-step" viewBox="0 0 72 64" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0C38 0 34 64 72 64H0Z" fill="currentColor"/></svg>
+      <div class="h-band"></div>
+    </div>
+    <div class="h-panel is-mirrored a-duo">
+      <div><h3 data-i18n="about.built">Comment c'est construit</h3><p data-i18n="about.built.1">Une architecture en Python, hébergée sur un serveur que j'administre, conçue, développée, déployée et exploitée de bout en bout par moi. Les agents interviennent là où un modèle apporte vraiment quelque chose, avec un périmètre défini. Ailleurs, ce sont des règles écrites et testées.</p></div>
+      <div><h3 data-i18n="about.scope">Périmètre</h3><p data-i18n="about.scope.1">qualitycrew.fr est un projet personnel. Il ne contient aucune donnée d'entreprise, aucune donnée client, aucun élément confidentiel. Les référentiels sont cités, jamais reproduits ; les exemples sont les miens.</p></div>
+    </div>
+  </section>
+
+  <!-- ===== Contact — LinkedIn seul, aucune adresse e-mail publiée (choix de l'auteur) ===== -->
+  <section class="h-section" aria-labelledby="a-contact">
+    <div class="h-notch">
+      <div class="h-tab"><h2 class="h-chip" id="a-contact">Contact</h2></div>
+      <svg class="h-step" viewBox="0 0 72 64" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0C38 0 34 64 72 64H0Z" fill="currentColor"/></svg>
+      <div class="h-band"></div>
+    </div>
+    <div class="h-panel a-contact">
+      <p class="h-title">linkedin.com/<em>in/bouthelja-dhafer</em></p>
+      <div class="h-actions">
+        <a class="h-btn h-solid" href="https://www.linkedin.com/in/bouthelja-dhafer" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>LinkedIn</a>
+      </div>
+    </div>
+  </section>
+  </main>
+
+  <footer class="h-footer">
+    <span class="footer-text" data-i18n="footer.index">Données 100 % fictives</span>
+    <a class="footer-text" href="https://github.com/Dhafer84/CrewAI" target="_blank" rel="noopener" data-i18n="nav.source">Code source</a>
   </footer>
 
 </div>

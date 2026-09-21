@@ -1,7 +1,9 @@
 /* ============================================================
-   PAGE DE GARDE — « cadre à crans », indigo, sombre seulement.
-   Chargée par site/index.html SEUL : les pages d'outils ne reçoivent pas une
-   ligne d'ici, elles gardent style.css et le vert.
+   PAGES VITRINE — « cadre à crans », indigo, sombre seulement.
+   Chargée par site/index.html et site/about.html SEULS : les pages d'outils ne
+   reçoivent pas une ligne d'ici, elles gardent style.css et le vert. (Le nom
+   « home » date de l'accueil, première page refaite ; À propos a suivi le
+   21/09/2026. Les règles propres à À propos portent le préfixe a-.)
 
    Maquette de référence : .claude/prototypes/cadre.html (gitignoré). Palette
    générée par gen.py — même recette de luminosité (OKLCH) que le vert, seule
@@ -209,6 +211,60 @@ body.home{background:var(--h-frame);color:var(--h-ink)}
 .home .footer-text{font-size:13px;color:var(--h-frame-dim)}
 .home a.footer-text{color:var(--h-frame-ink)}
 
+/* ---------- À propos (préfixe a-) ----------
+   Même cadre que l'accueil. Prototype validé : .claude/prototypes/about.html. */
+.home a.logo{color:#fff}
+.home a.logo:hover{text-decoration:none}
+.a-hero{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:30px;padding:36px 28px 32px 46px}
+.a-hero-copy{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:10px 0 12px}
+.a-hero .h-lead{max-width:60ch}
+.a-hero .h-lead + .h-lead{margin-top:14px}
+.a-hero .h-lead.a-own{color:var(--h-ink)}
+.a-card{position:relative;border-radius:22px;background:var(--h-visual);overflow:hidden;isolation:isolate;padding:26px;
+  display:flex;flex-direction:column;justify-content:center;gap:14px}
+.a-card::before{content:"";position:absolute;inset:-25%;z-index:-1;background:var(--h-accent);filter:brightness(.42);
+  -webkit-mask:var(--h-traces) 0 0/230px 230px repeat;mask:var(--h-traces) 0 0/230px 230px repeat;transform:rotate(-8deg)}
+.a-fact{background:var(--h-chip);border:1px solid var(--h-line);border-radius:16px;padding:16px 18px}
+.a-fact b{display:block;font-family:var(--h-display);font-stretch:125%;font-weight:600;text-transform:uppercase;
+  font-size:30px;line-height:1;color:var(--h-accent-ink);letter-spacing:-.02em}
+.a-fact span{display:block;margin-top:8px;font-size:14px;line-height:1.45;color:var(--h-ink)}
+.a-prose{padding:34px 46px 36px}
+.a-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px 40px}
+.a-prose p{font-size:15.5px;line-height:1.75;color:var(--h-ink-2)}
+.a-doctrine{padding:38px 46px 40px}
+.a-doctrine .h-title{margin-bottom:22px}
+.a-lede{max-width:72ch}
+.a-lede p{font-size:16px;line-height:1.7;color:var(--h-ink-2);margin-bottom:12px}
+.a-lede p:first-child{font-size:18px;color:var(--h-ink)}
+.a-lede p:last-child{margin-bottom:0;color:var(--h-ink)}
+.a-lede strong{color:var(--h-ink)}
+.a-points{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:20px 0 24px;list-style:none}
+.a-point{border-top:1px solid var(--h-line);padding-top:16px}
+.a-num{display:block;font-family:var(--h-display);font-stretch:125%;font-weight:600;font-size:44px;line-height:.9;color:var(--h-accent-ink)}
+.a-point p{margin-top:12px;font-size:14.5px;line-height:1.6;color:var(--h-ink-2)}
+.a-point p strong{display:block;margin-bottom:6px;font-size:16px;color:var(--h-ink)}
+.a-doctrine .a-close{border-top:1px solid var(--h-line);padding-top:22px;max-width:72ch;font-size:17px;line-height:1.6;color:var(--h-ink)}
+/* Les outils : une grille et non une rangée — ici on fait l'inventaire. */
+.a-tools{padding:30px 30px 30px 46px}
+.about-tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;list-style:none}
+.a-tool{position:relative;overflow:hidden;isolation:isolate;border-radius:18px;background:var(--tile);color:var(--h-tile-ink);
+  padding:16px 18px 18px;display:flex;flex-direction:column;gap:12px;min-height:170px;height:100%}
+.a-tool:hover{text-decoration:none}
+.a-tool::before{content:"";position:absolute;inset:-40%;z-index:-1;background:var(--h-accent);filter:brightness(.34);
+  -webkit-mask:var(--h-traces) 0 0/var(--ms) var(--ms) repeat;mask:var(--h-traces) 0 0/var(--ms) var(--ms) repeat;
+  transform:rotate(var(--rot));transition:transform .7s var(--h-ease)}
+.a-tool:hover::before{transform:rotate(calc(var(--rot) + 6deg)) scale(1.08)}
+.a-tool .tool-icon{width:40px;height:40px}
+.a-tool .tool-icon svg{width:19px;height:19px}
+.a-tool-name{font-family:var(--h-display);font-stretch:112%;font-weight:600;text-transform:uppercase;font-size:19px;line-height:1.05;letter-spacing:-.01em}
+.a-desc{font-size:13.5px;line-height:1.5;color:var(--h-tile-dim)}
+.a-duo{display:grid;grid-template-columns:1fr 1fr;gap:26px 44px;padding:34px 46px 36px}
+.a-duo h3{font-family:var(--h-display);font-stretch:112%;font-weight:600;text-transform:uppercase;font-size:18px;color:var(--h-ink);margin-bottom:12px;letter-spacing:-.01em}
+.a-duo p{font-size:15px;line-height:1.75;color:var(--h-ink-2)}
+.a-contact{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:18px 30px;padding:30px 46px}
+.a-contact .h-title{margin:0;overflow-wrap:anywhere}
+.a-contact .h-actions{margin:0}
+
 /* ---------- Écrans étroits ---------- */
 /* Entre 1024 et 1200 px, la colonne de texte du catalogue (4/12) ne tenait plus
    « CINQ SANS IA. » sur une ligne : le titre passait à trois lignes. */
@@ -216,6 +272,11 @@ body.home{background:var(--h-frame);color:var(--h-ink)}
   .h-catalog{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
 }
 @media (max-width:1023px){
+  .a-hero{grid-template-columns:1fr;padding:30px 24px 24px 30px}
+  .a-prose,.a-doctrine,.a-duo,.a-contact{padding:30px}
+  .a-tools{padding:24px 24px 24px 30px}
+  .a-points{grid-template-columns:1fr}
+  .about-tools{grid-template-columns:repeat(2,minmax(0,1fr))}
   .h-hero{grid-template-columns:1fr;padding:30px 24px 24px 30px;min-height:0}
   .h-visual{min-height:420px}
   .h-catalog{grid-template-columns:1fr;padding:30px 24px 24px 30px}
@@ -223,6 +284,11 @@ body.home{background:var(--h-frame);color:var(--h-ink)}
   .h-caps{padding:26px 30px}
 }
 @media (max-width:640px){
+  .a-hero{padding:24px 18px 18px 20px}
+  .a-prose,.a-doctrine,.a-duo,.a-contact{padding:24px 20px}
+  .a-tools{padding:20px}
+  .a-cols,.a-duo,.about-tools{grid-template-columns:1fr}
+  .a-contact .h-title{font-size:22px}
   :root{--h-r:22px;--h-band:58px;--h-gut:8px;--h-step:44px}
   .h-tab{padding:0 4px 0 20px}
   .h-notch.is-mirrored .h-tab{padding:0 20px 0 4px}
@@ -251,5 +317,5 @@ body.home{background:var(--h-frame);color:var(--h-ink)}
 }
 @media (prefers-reduced-motion:reduce){
   .h-ring{animation:none}
-  .home .tool-card::before,.tool-cta svg{transition:none}
+  .home .tool-card::before,.tool-cta svg,.a-tool::before{transition:none}
 }
