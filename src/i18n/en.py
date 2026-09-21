@@ -448,33 +448,50 @@ CATALOGUE: dict[str, str] = {
     "err.report.gone.scan": "Report expired or not found. Run a scan again.",
     "err.timeout": "Timed out.",
     # --- Home page ---
-    "home.ss.desc":
-        "Information leak watch on public repositories. Enter your search terms, the tool identifies exposures and produces a downloadable report ranked by criticality.",
     "home.title": "Quality &amp; Safety Tools — Automotive industry",
-    "home.hara.desc":
-        "Risk analysis and ASIL determination. Rating is a decision table: the answer is exact and immediate. AI steps in only as an option, to suggest hazardous events — never to rate them.",
-    "home.tara.desc":
-        "Cybersecurity threat and risk analysis. Attack feasibility is rated on five criteria, and the risk follows immediately. The chain runs all the way to cybersecurity goals — a TARA produces requirements, not a number.",
     "home.stance.pair":
         "<strong>SafetyScope and ThreatScope talk to each other.</strong> The severity of a hazardous event becomes the « safety of persons » impact of a damage scenario. Exposure and controllability, for their part, do not cross: an attacker picks their moment, and can neutralise the driver's recourse.",
-    "home.rw.desc":
-        "Watch on public signals around standards: revisions under way, publications, timetables. Attaching a signal to a standard is deterministic — no AI decides what comes up. Every source shows what it is worth.",
     "home.subtitle":
         "A collection of demonstration tools around standards compliance and information security. Each one really runs — nothing is simulated.",
     "home.stance.qc":
         "<strong>Only one really depends on it: QualityCrew</strong>, where four agents write the audit — that is its whole purpose. Everywhere else AI stays optional: it sweeps guide words to prime a line of thought, or sums up in one sentence why a signal deserves attention. <strong>Never does it rate, never does it decide what is kept.</strong> Knowing when not to use an LLM is part of the craft.",
     "home.stance.rw":
         "<strong>RegWatch never republishes the content of a standard.</strong> These documents are paid-for and protected: the tool reports only the title, the date and the link to the source — the body of the pages is not even downloaded. And because not all sources are equal, every signal shows its own tier: an ISO committee is not a consultancy blog.",
-    "home.qc.desc":
-        "Compliance audit by AI agents. Four agents analyse a documentation set in real time — requirements quality, test coverage, safety risks — and produce a structured report.",
     "home.stance.noai":
         "<strong>Five of these six tools produce their result with no artificial intelligence at all.</strong> Determining an ASIL or a risk value are decision tables: the answer is exact and instantaneous. Refusing to close an 8D whose escape root cause is missing is a set of ordered rules. Attaching a watch signal to a standard is a written rule, reproducible and tested offline. Looking for an exposure on public repositories is an API and criticality criteria. Dropping a language model in would add nothing but latency and uncertainty.",
-    "home.rw.tag.public": "Public sources",
     "home.h1": "Quality &amp; <em>Safety</em> tools",
-    "home.rw.tag.watch": "Standards watch",
-    "home.ss.tag.osint": "Passive OSINT",
-    "home.hara.tag.instant": "No waiting",
     "home.section.stance": "Where we stand",
+
+    # --- Home page, "notched frame" layout (21/09/2026) ----------------------
+    "home.hero.kicker": "Automotive &amp; embedded",
+    "home.hero.cta": "See the tools",
+    "home.hero.github": "Source code on GitHub",
+    "home.hero.linkedin": "LinkedIn profile",
+    "home.hero.ring": "EVERY TOOL REALLY RUNS · NOTHING IS SIMULATED ·",
+    "home.vis.potential": "Potential 6 / 50",
+    "home.vis.risk": "Risk 5",
+    "home.vis.chain": "The chain of whys stops at a person.",
+    "home.vis.redo": "Needs rework",
+    "home.cat.title": "Six tools. <em>Five without AI.</em>",
+    "home.cat.lead":
+        "An ASIL, a risk value, an 8D that is refused closure: these are rules. AI is only essential to the QualityCrew audit.",
+    "home.cat.stance": "Where we stand",
+    "home.cat.prev": "Previous tools",
+    "home.cat.next": "Next tools",
+    "home.ai.required": "AI required",
+    "home.ai.none": "No AI",
+    "home.ai.optional": "Optional AI",
+    "home.qc.short": "ASPICE / ISO 26262 audit written by four agents.",
+    "home.ss.short": "Information leaks in public repositories.",
+    "home.hara.short": "HARA and ASIL level, with no waiting.",
+    "home.tara.short": "TARA all the way to cybersecurity goals.",
+    "home.rw.short": "Public signals around the standards.",
+    "home.ct.short": "8D complaints and root-cause analysis.",
+    "home.stance.note": "What you can't guess",
+    "home.stat.noai": "tools deliver their result without AI",
+    "home.stat.optional":
+        "tools where AI is optional: it proposes or summarises, it never rates or decides",
+    "home.stat.bridge": "only severity crosses the HARA → TARA bridge",
     "home.section.tools": "Tools",
     # --- Home page — labels next to an icon ---
     "home.qc.cta": "Run the demo",
@@ -1122,12 +1139,6 @@ CATALOGUE: dict[str, str] = {
     "err.fail.propose":
         "The suggestion failed. Your entries are untouched and the verdict still stands.",
     # --- CauseTrace on the catalogue page (step 7) ---
-    "home.ct.desc":
-        "Customer complaint resolution following the 8D method. This tool does not fill in "
-        "eight boxes: it refuses to call a case resolved when it is not, and says where it "
-        "falls short — a missing cause, a why-chain that stops at an operator, a claimed "
-        "closure.",
-    "home.ct.tag.public": "Public-domain methods",
     "home.ct.pair": "Requires the escape root cause, not just the occurrence one",
     "home.ct.cta": "Open an 8D",
     "home.stance.ct":
@@ -1138,7 +1149,6 @@ CATALOGUE: dict[str, str] = {
         "Ishikawa lead taken up arrives <strong>unqualified</strong>: it is the engineer who "
         "says what it is.",
     "home.status.live": "Online",
-    "home.ct.tag.why": "8D · 5 Whys",
     "ct.lock.missing": " — missing: {items}",
     "ct.lock.blocking": " — to settle first: {items}",
 

@@ -41,7 +41,7 @@ from starlette.testclient import TestClient  # noqa: E402
 from api.main import app  # noqa: E402
 
 PAGES = {
-    "/": "tools-grid",
+    "/": "tool-rail",
     "/qualitycrew": "QualityCrew",
     "/sentinelscan": "SentinelScan",
     "/hara": "/hara/matrix",
@@ -181,6 +181,19 @@ def test_the_catalogue_links_to_every_tool():
         "le nombre d'outils a changé — recompter le bloc « Parti pris »"
     assert "Cinq de ces six outils" in accueil, \
         "le décompte du bloc « Parti pris » ne correspond plus à la réalité"
+    # Les mêmes décomptes, sous deux autres formes depuis la refonte du
+    # 21/09/2026 : le titre du catalogue et les chiffres du parti pris. Le « 4 »
+    # compte les outils à IA FACULTATIVE — SafetyScope, ThreatScope, RegWatch,
+    # CauseTrace — c'est-à-dire les cinq sans IA requise, moins SentinelScan
+    # qui n'en a aucune.
+    assert "Six outils. <em>Cinq sans IA.</em>" in accueil, \
+        "le titre du catalogue ne correspond plus au décompte"
+    assert '<span class="h-stat-num">5/6</span>' in accueil, \
+        "le chiffre « 5/6 » du parti pris ne correspond plus au décompte"
+    assert '<span class="h-stat-num">4</span>' in accueil, \
+        "le nombre d'outils à IA facultative a changé — recompter"
+    assert accueil.count('data-i18n="home.ai.optional"') == 4, \
+        "les cartes ne marquent plus quatre outils à IA facultative"
     assert "QualityCrew</strong>" in accueil, \
         "le seul outil qui dépend vraiment de l'IA doit être nommé"
     assert "ne republie jamais le contenu" in accueil, \
@@ -190,11 +203,13 @@ def test_the_catalogue_links_to_every_tool():
 
 
 def test_stylesheet_is_reachable_at_the_path_pages_use():
-    """Les pages demandent /static/style.css — le montage doit y répondre."""
+    """Les pages demandent /static/style.css (et l'accueil /static/home.css)."""
     with client() as c:
-        resp = c.get("/static/style.css")
-        assert resp.status_code == 200
-        assert ".tools-grid" in resp.text
+        for chemin, marqueur in (("/static/style.css", ".nav-menu"),
+                                 ("/static/home.css", ".tool-rail")):
+            resp = c.get(chemin)
+            assert resp.status_code == 200, f"{chemin} → {resp.status_code}"
+            assert marqueur in resp.text, f"{chemin} ne contient pas {marqueur}"
 
 
 def test_hara_matrix_keeps_its_contract():
@@ -1854,6 +1869,7 @@ def test_every_page_declares_its_canonical_url():
 
 
 _STYLE = _ROOT / "site" / "style.css"
+_HOME = _ROOT / "site" / "home.css"
 
 # Fond des cartes verrouillées de /8d — extrait du CSS, jamais recopié ici :
 # éclaircir ce fond doit faire tomber le test, pas passer inaperçu.
@@ -2041,32 +2057,35 @@ def test_every_declared_colour_pair_clears_the_floor():
     qui ne connaît que les jetons de texte sur les jetons de fond : il ne voit
     pas une règle qui apparie un accent à un fond teinté.
     """
-    css = _STYLE.read_text(encoding="utf-8")
-    sans = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
-
-    def resoudre(valeur: str):
-        valeur = valeur.strip()
-        jeton = re.fullmatch(r"var\(--([a-z-]+)\)", valeur)
-        if jeton:
-            return _token(css, jeton.group(1)) if f"--{jeton.group(1)}:" in css else None
-        litteral = re.match(r"(#[0-9a-fA-F]{3,8})", valeur)
-        return litteral.group(1) if litteral else None
-
     fautes = []
-    for selecteur, corps in re.findall(r"([^{}]+)\{([^{}]*)\}", sans):
-        selecteur = " ".join(selecteur.split())
-        if selecteur.startswith("@") or selecteur == ":root":
-            continue
-        texte = re.search(r"(?:^|;)\s*color\s*:\s*([^;]+)", corps)
-        fond = re.search(r"(?:^|;)\s*background(?:-color)?\s*:\s*([^;]+)", corps)
-        if not (texte and fond):
-            continue
-        avant, arriere = resoudre(texte.group(1)), resoudre(fond.group(1))
-        if not avant or not arriere:
-            continue
-        ratio = _contrast(avant, arriere)
-        if ratio < 4.5:
-            fautes.append(f"{selecteur} : {avant} sur {arriere} = {ratio:.2f}:1")
+    # Les deux feuilles : style.css (tout le site) et home.css (l'accueil seul,
+    # qui déclare ses propres jetons --h-*).
+    for feuille in (_STYLE, _HOME):
+        css = feuille.read_text(encoding="utf-8")
+        sans = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+
+        def resoudre(valeur: str, css=css):
+            valeur = valeur.strip()
+            jeton = re.fullmatch(r"var\(--([a-z0-9-]+)\)", valeur)
+            if jeton:
+                return _token(css, jeton.group(1)) if f"--{jeton.group(1)}:" in css else None
+            litteral = re.match(r"(#[0-9a-fA-F]{3,8})", valeur)
+            return litteral.group(1) if litteral else None
+
+        for selecteur, corps in re.findall(r"([^{}]+)\{([^{}]*)\}", sans):
+            selecteur = " ".join(selecteur.split())
+            if selecteur.startswith("@") or selecteur == ":root":
+                continue
+            texte = re.search(r"(?:^|;)\s*color\s*:\s*([^;]+)", corps)
+            fond = re.search(r"(?:^|;)\s*background(?:-color)?\s*:\s*([^;]+)", corps)
+            if not (texte and fond):
+                continue
+            avant, arriere = resoudre(texte.group(1)), resoudre(fond.group(1))
+            if not avant or not arriere:
+                continue
+            ratio = _contrast(avant, arriere)
+            if ratio < 4.5:
+                fautes.append(f"{feuille.name} · {selecteur} : {avant} sur {arriere} = {ratio:.2f}:1")
 
     assert not fautes, "paires couleur/fond sous le plancher : " + " · ".join(fautes)
 
@@ -2124,21 +2143,22 @@ def test_no_opacity_fades_readable_text():
     Un garde-fou qui force une décision vaut mieux qu'un analyseur CSS
     approximatif qui aurait l'air de vérifier.
     """
-    css = _STYLE.read_text(encoding="utf-8")
-    sans_commentaires = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
-
     inconnues = []
-    for selecteur, corps in re.findall(r"([^{}]+)\{([^{}]*)\}", sans_commentaires):
-        if not re.search(r"(?:^|;)\s*opacity\s*:", corps):
-            continue
-        for part in selecteur.split(","):
-            part = " ".join(part.split())
-            # Les étapes d'une animation (`0%`, `50%`, `from`…) ne sont pas des
-            # sélecteurs : elles décrivent une image-clé, pas un élément.
-            if not part or re.fullmatch(r"(\d+%|from|to)", part) or part.startswith("@"):
+    for feuille in (_STYLE, _HOME):
+        css = feuille.read_text(encoding="utf-8")
+        sans_commentaires = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+
+        for selecteur, corps in re.findall(r"([^{}]+)\{([^{}]*)\}", sans_commentaires):
+            if not re.search(r"(?:^|;)\s*opacity\s*:", corps):
                 continue
-            if part not in _OPACITES_ADMISES:
-                inconnues.append((part, corps.strip()))
+            for part in selecteur.split(","):
+                part = " ".join(part.split())
+                # Les étapes d'une animation (`0%`, `50%`, `from`…) ne sont pas des
+                # sélecteurs : elles décrivent une image-clé, pas un élément.
+                if not part or re.fullmatch(r"(\d+%|from|to)", part) or part.startswith("@"):
+                    continue
+                if part not in _OPACITES_ADMISES:
+                    inconnues.append((f"{feuille.name} · {part}", corps.strip()))
 
     assert not inconnues, (
         "opacité non justifiée — si le sélecteur porte du texte lisible, faites-le "
@@ -2416,6 +2436,130 @@ def test_the_menu_works_without_a_mouse():
     assert "e.key === 'Escape'" in source and "toggle.focus();" in source, \
         "Échap doit fermer le menu et rendre le focus au bouton"
     assert "e.key !== 'Tab'" in source, "le focus doit rester dans la carte ouverte"
+
+
+# --------------------------------------------------------------------------
+# Page de garde — cadre à crans, indigo (21/09/2026)
+# --------------------------------------------------------------------------
+
+# Les paires RÉELLEMENT posées par home.css : (texte, fond, où). Les jetons sont
+# lus dans le fichier, jamais recopiés ici — éclaircir un fond doit faire tomber
+# le test, pas passer inaperçu.
+_PAIRES_ACCUEIL = [
+    ("h-ink", "h-panel", "texte des panneaux"),
+    ("h-ink-2", "h-panel", "texte secondaire"),
+    ("h-accent-ink", "h-panel", "mots mis en avant, chiffres du parti pris"),
+    ("h-ink-2", "h-visual", "légendes du visuel"),
+    ("h-ink", "h-chip", "cartouches du visuel"),
+    ("h-ink-2", "h-chip", "surtitres des cartouches"),
+    ("h-frame-ink", "h-frame", "pied de page"),
+    ("h-frame-dim", "h-frame", "notes de la bande, sélecteur de langue"),
+    ("h-on-accent", "h-accent", "bouton principal"),
+    ("h-on-accent", "h-accent-hover", "bouton principal au survol"),
+    ("h-pill-btn-ink", "h-pill-btn", "bouton du menu"),
+    ("h-m-ink", "h-m-bg", "liens du menu"),
+    ("h-m-dim", "h-m-bg", "liens du menu estompés au survol"),
+    ("h-accent", "h-m-bg", "page courante dans le menu"),
+] + [(texte, f"h-t{i}", f"carte d'outil n° {i}")
+     for i in range(1, 7) for texte in ("h-tile-ink", "h-tile-dim", "h-status")]
+
+
+def test_the_home_palette_clears_the_contrast_floor():
+    """Chaque texte de l'accueil franchit 4,5:1 sur le fond où il est posé.
+
+    Complément de `test_every_declared_colour_pair_clears_the_floor` : une carte
+    d'outil reçoit son fond par une variable posée dans le HTML (`--tile`), que
+    l'analyse des règles ne peut pas résoudre. Les six fonds sont donc vérifiés
+    ici, un par un, avec les trois couleurs qui s'y posent — dont le vert du
+    statut « En ligne », qui reste le vert des statuts sur un accueil indigo.
+    """
+    css = _HOME.read_text(encoding="utf-8")
+    fautes = []
+    for texte, fond, ou in _PAIRES_ACCUEIL:
+        ratio = _contrast(_token(css, texte), _token(css, fond))
+        if ratio < 4.5:
+            fautes.append(f"--{texte} sur --{fond} ({ou}) = {ratio:.2f}:1")
+    assert not fautes, "paires de l'accueil sous le plancher : " + " · ".join(fautes)
+
+
+def test_home_css_is_loaded_by_the_home_page_only():
+    """Les pages d'outils ne reçoivent pas une ligne d'indigo.
+
+    La refonte de l'accueil ne devait rien toucher d'autre. Une page d'outil
+    qui chargerait home.css par copier-coller hériterait de ses règles non
+    préfixées (`.tool-head`, `.status-live`…) sans que rien ne le signale.
+    """
+    for page in sorted((_ROOT / "site").glob("*.html")):
+        charge = "/static/home.css" in page.read_text(encoding="utf-8")
+        assert charge == (page.name == "index.html"), (
+            f"{page.name} {'charge' if charge else 'ne charge pas'} home.css")
+
+
+# Textes identiques sur `/` et `/en` parce qu'ils ne se traduisent pas : noms
+# propres, normes, cotations, chiffres. Toute autre coïncidence est un oubli
+# d'annotation.
+_NEUTRES_ACCUEIL = {
+    "Dhafer", "Bouthelja", "Menu", "GitHub", "LinkedIn",
+    "QualityCrew", "SentinelScan", "SafetyScope", "ThreatScope", "RegWatch", "CauseTrace",
+    "Audit", "HARA", "TARA", "8D", "S", "4", "5/6", "S3", "E4", "C3", "ASIL D",
+    "SafetyScope · HARA", "ThreatScope · TARA", "CauseTrace · D4",
+    "ASPICE · ISO 26262", "ISO/IEC 27001", "ISO 26262 · HARA",
+    "ISO/SAE 21434 · UN R155", "ISO · ASPICE · UN R155", "8D · Ishikawa",
+}
+
+
+def test_the_english_home_page_shares_only_neutral_text():
+    """⚠️ Le détecteur lexical ne voit pas les libellés courts.
+
+    « Sans IA », « IA requise » ou « IA facultative » n'ont ni accent ni
+    mot-outil : oubliés à l'annotation, ils survivraient en français sur `/en`
+    sans que `test_no_french_survives_in_an_english_page` ne bronche — c'est
+    exactement ce qui est arrivé à « En ligne » le 25/08/2026.
+
+    Ce test ne dépend d'aucun lexique : tout texte identique dans les deux
+    langues doit être dans `_NEUTRES_ACCUEIL`. Un oubli d'annotation le fait
+    tomber, quelle que soit la forme du libellé.
+    """
+    def textes(html: str) -> set[str]:
+        html = re.sub(r"<(script|style|head)[^>]*>.*?</\1>", "", html, flags=re.S)
+        html = re.sub(r"<!--.*?-->", "", html, flags=re.S)
+        return {t.strip() for t in re.split(r"<[^>]+>", html) if t.strip()}
+
+    with client() as c:
+        communs = textes(c.get("/").text) & textes(c.get("/en").text)
+    suspects = sorted(communs - _NEUTRES_ACCUEIL)
+    assert not suspects, f"textes identiques sur / et /en — annotation oubliée ? {suspects}"
+
+
+def test_the_home_font_is_served_by_the_site_itself():
+    """Archivo vient du site, jamais de Google.
+
+    ⚠️ Une police chargée depuis fonts.googleapis.com envoie à Google l'adresse
+    IP du visiteur et la page visitée, à chaque visite. La servir soi-même
+    supprime le problème ; la licence SIL OFL l'autorise, à condition que le
+    texte de la licence accompagne le fichier.
+    """
+    css = _HOME.read_text(encoding="utf-8")
+    source = re.search(r'@font-face\{[^}]*src:url\("(/static/fonts/[\w.-]+\.woff2)"\)', css)
+    assert source, "home.css ne déclare plus sa police auto-hébergée"
+    fichier = _ROOT / "site" / source.group(1).removeprefix("/static/")
+    assert fichier.exists(), f"{fichier.name} est absent de site/fonts/"
+    assert fichier.read_bytes()[:4] == b"wOF2", f"{fichier.name} n'est pas un WOFF2"
+
+    licence = _ROOT / "site" / "fonts" / "OFL.txt"
+    assert licence.exists() and "SIL OPEN FONT LICENSE" in licence.read_text(encoding="utf-8"), \
+        "la licence OFL doit accompagner le fichier de police"
+
+    for page in (_ROOT / "site").rglob("*"):
+        if page.suffix in (".html", ".css", ".js"):
+            texte = page.read_text(encoding="utf-8")
+            assert "fonts.googleapis.com" not in texte and "fonts.gstatic.com" not in texte, \
+                f"{page.name} charge une police depuis Google"
+
+    with client() as c:
+        resp = c.get(source.group(1))
+    assert resp.status_code == 200 and resp.headers["content-type"] == "font/woff2", \
+        f"la police n'est pas servie correctement : {resp.status_code} {resp.headers.get('content-type')}"
 
 
 def main() -> int:

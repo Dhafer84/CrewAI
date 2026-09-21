@@ -466,33 +466,53 @@ CATALOGUE: dict[str, str] = {
     "err.report.gone.scan": "Rapport expiré ou introuvable. Relancez un scan.",
     "err.timeout": "Délai dépassé.",
     # --- Page de garde ---
-    "home.ss.desc":
-        "Veille de fuite d'information sur les dépôts publics. Saisissez vos termes de recherche, l'outil identifie les expositions et produit un rapport téléchargeable classé par criticité.",
     "home.title": "Outils Qualité &amp; Sécurité — Industrie automobile",
-    "home.hara.desc":
-        "Analyse de risques et détermination du niveau ASIL. La cotation est une table de décision : la réponse est exacte et immédiate. L'IA n'intervient qu'en option, pour proposer les événements redoutés — jamais pour les coter.",
-    "home.tara.desc":
-        "Analyse de menaces et de risques cybersécurité. La faisabilité d'une attaque se cote sur cinq critères, le risque en découle immédiatement. La chaîne va jusqu'aux objectifs de cybersécurité — une TARA produit des exigences, pas un chiffre.",
     "home.stance.pair":
         "<strong>SafetyScope et ThreatScope se parlent.</strong> La sévérité d'un événement redouté devient l'impact « sécurité des personnes » d'un scénario de dommage. L'exposition et la contrôlabilité, elles, ne traversent pas : un attaquant choisit son moment, et peut neutraliser le recours du conducteur.",
-    "home.rw.desc":
-        "Veille de signaux publics autour des normes : révisions en cours, publications, calendriers. Le rattachement à un référentiel est déterministe — aucune IA ne décide de ce qui remonte. Chaque source affiche ce qu'elle vaut.",
     "home.subtitle":
         "Une collection d'outils de démonstration autour de la conformité normative et de la sécurité de l'information. Chacun tourne réellement — rien n'est simulé.",
     "home.stance.qc":
         "<strong>Un seul en dépend réellement : QualityCrew</strong>, où quatre agents rédigent l'audit — c'est sa raison d'être. Partout ailleurs l'IA reste facultative : elle balaie des mots-guides pour amorcer une réflexion, ou résume en une phrase pourquoi un signal mérite l'attention. <strong>Jamais elle ne cote, jamais elle ne décide de ce qui est retenu.</strong> Savoir quand ne pas utiliser un LLM fait partie du métier.",
     "home.stance.rw":
         "<strong>RegWatch ne republie jamais le contenu d'une norme.</strong> Ces documents sont payants et protégés : l'outil ne remonte que le titre, la date et le lien vers la source — le corps des pages n'est même pas téléchargé. Et parce que toutes les sources ne se valent pas, chaque signal affiche le palier de la sienne : un comité ISO n'est pas un blog de conseil.",
-    "home.qc.desc":
-        "Audit de conformité par agents IA. Quatre agents analysent un dossier documentaire en temps réel — qualité des exigences, couverture de test, risques sûreté — et produisent un rapport structuré.",
     "home.stance.noai":
         "<strong>Cinq de ces six outils produisent leur résultat sans aucune intelligence artificielle.</strong> Déterminer un ASIL ou une valeur de risque, ce sont des tables de décision : la réponse est exacte et instantanée. Refuser de clore un 8D dont la cause de non-détection manque, c'est un jeu de règles ordonnées. Rattacher un signal de veille à une norme, c'est une règle écrite, reproductible et testée hors ligne. Chercher une exposition sur des dépôts publics, c'est une API et des critères de criticité. Y glisser un modèle de langage n'ajouterait qu'une latence et une incertitude.",
-    "home.rw.tag.public": "Sources publiques",
     "home.h1": "Outils <em>Qualité &amp; Sécurité</em>",
-    "home.rw.tag.watch": "Veille normative",
-    "home.ss.tag.osint": "OSINT passif",
-    "home.hara.tag.instant": "Sans attente",
     "home.section.stance": "Parti pris",
+
+    # --- Page de garde en « cadre à crans » (21/09/2026) ---------------------
+    # Noms d'outils, normes (« ISO 26262 · HARA »…), « S3 », « ASIL D » et les
+    # chiffres du parti pris s'écrivent pareil dans les deux langues.
+    "home.hero.kicker": "Automobile &amp; embarqué",
+    "home.hero.cta": "Voir les outils",
+    "home.hero.github": "Code source sur GitHub",
+    "home.hero.linkedin": "Profil LinkedIn",
+    # Majuscules dans le texte même : c'est un tracé SVG, pas un bloc de CSS.
+    "home.hero.ring": "CHACUN TOURNE RÉELLEMENT · RIEN N'EST SIMULÉ ·",
+    "home.vis.potential": "Potentiel 6 / 50",
+    "home.vis.risk": "Risque 5",
+    "home.vis.chain": "La chaîne de pourquoi s'arrête sur une personne.",
+    "home.vis.redo": "À reprendre",
+    "home.cat.title": "Six outils. <em>Cinq sans IA.</em>",
+    "home.cat.lead":
+        "Un ASIL, une valeur de risque, un 8D qu'on refuse de clore : ce sont des règles. L'IA n'est indispensable qu'à l'audit QualityCrew.",
+    "home.cat.stance": "Le parti pris",
+    "home.cat.prev": "Outils précédents",
+    "home.cat.next": "Outils suivants",
+    "home.ai.required": "IA requise",
+    "home.ai.none": "Sans IA",
+    "home.ai.optional": "IA facultative",
+    "home.qc.short": "Audit ASPICE / ISO 26262 rédigé par quatre agents.",
+    "home.ss.short": "Fuites d'information sur les dépôts publics.",
+    "home.hara.short": "HARA et niveau ASIL, sans attente.",
+    "home.tara.short": "TARA jusqu'aux objectifs de cybersécurité.",
+    "home.rw.short": "Signaux publics autour des normes.",
+    "home.ct.short": "Réclamation 8D et analyse causale.",
+    "home.stance.note": "Ce qui ne se devine pas",
+    "home.stat.noai": "outils rendent leur résultat sans IA",
+    "home.stat.optional":
+        "outils où l'IA est facultative : elle propose ou résume, jamais elle ne cote ni ne décide",
+    "home.stat.bridge": "seule la sévérité traverse le pont HARA → TARA",
     "home.section.tools": "Outils",
     # --- Page de garde — libellés accompagnés d'une icône ---
     "home.qc.cta": "Lancer la démo",
@@ -1172,12 +1192,6 @@ CATALOGUE: dict[str, str] = {
     "err.fail.propose":
         "La proposition a échoué. Votre saisie est intacte et le verdict reste valable.",
     # --- CauseTrace sur la page de garde (étape 7) ---
-    "home.ct.desc":
-        "Résolution de réclamation client selon la démarche 8D. L'outil ne remplit pas "
-        "huit cases : il refuse d'appeler « résolu » un dossier qui ne l'est pas, et dit "
-        "où il pèche — cause manquante, chaîne de pourquoi qui s'arrête sur un opérateur, "
-        "clôture prétendue.",
-    "home.ct.tag.public": "Méthodes du domaine public",
     "home.ct.pair": "Exige la cause de non-détection, pas seulement celle d'occurrence",
     "home.ct.cta": "Ouvrir un 8D",
     "home.stance.ct":
@@ -1188,7 +1202,6 @@ CATALOGUE: dict[str, str] = {
         "posée, jamais une valeur. Une piste d'Ishikawa reprise arrive <strong>non "
         "qualifiée</strong> : c'est l'ingénieur qui dit ce qu'elle est.",
     "home.status.live": "En ligne",
-    "home.ct.tag.why": "8D · 5 Pourquoi",
     "ct.lock.missing": " — il manque : {items}",
     "ct.lock.blocking": " — à régler d'abord : {items}",
 

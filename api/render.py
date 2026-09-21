@@ -35,7 +35,7 @@ _ATTR_KEY = re.compile(r'data-i18n-content="([^"]+)"')
 # celle qui le CALCULE (`api.main._asset_version`) doivent être la même. Elles
 # ont divergé le 25/08/2026 : `aistatus.js` n'avait été ajouté qu'ici, et un
 # visiteur qui revenait gardait l'ancien script en cache indéfiniment.
-VERSIONED_ASSETS = ("style.css", "i18n.js", "aistatus.js", "menu.js",
+VERSIONED_ASSETS = ("style.css", "home.css", "i18n.js", "aistatus.js", "menu.js",
                     "og-fr.png", "og-en.png")
 
 # Repère que chaque page pose dans son <nav> : `render` y injecte le menu

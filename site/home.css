@@ -1,0 +1,255 @@
+/* ============================================================
+   PAGE DE GARDE — « cadre à crans », indigo, sombre seulement.
+   Chargée par site/index.html SEUL : les pages d'outils ne reçoivent pas une
+   ligne d'ici, elles gardent style.css et le vert.
+
+   Maquette de référence : .claude/prototypes/cadre.html (gitignoré). Palette
+   générée par gen.py — même recette de luminosité (OKLCH) que le vert, seule
+   la teinte change. Les jetons sont préfixés --h- pour ne jamais masquer ceux
+   de style.css : le vert reste le vert des STATUTS (« En ligne », IA
+   disponible), l'indigo est la couleur de la page.
+
+   ⚠️ Aucune `opacity` : ce qui doit reculer recule par sa couleur ou son fond
+   (voir `test_no_opacity_fades_readable_text`, qui balaie aussi ce fichier).
+   ============================================================ */
+
+/* Archivo — licence SIL OFL 1.1 (site/fonts/OFL.txt), servie par le site
+   lui-même : aucune requête vers Google, donc ni l'adresse IP ni la page
+   visitée ne partent chez un tiers. Sous-ensemble « latin » seulement, qui
+   couvre tout le français (accents, œ, « », tirets, apostrophes). */
+@font-face{
+  font-family:"Archivo";
+  src:url("/static/fonts/archivo.woff2") format("woff2");
+  font-weight:500 700;
+  font-stretch:100% 125%;
+  font-display:swap;
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+:root{
+  --h-frame:#21294a;
+  --h-frame-ink:#e1e6f8;
+  --h-frame-dim:#a0add6;
+  --h-panel:#0e1017;
+  --h-ink:#e8ebf6;
+  --h-ink-2:#a2a9c2;
+  --h-line:#282c3a;
+  --h-accent:#9eacfe;
+  --h-accent-hover:#b3bffe;
+  --h-on-accent:#0f111b;
+  --h-accent-ink:#aab7ff;
+  --h-visual:#171b2c;
+  --h-chip:#0f111a;
+  --h-m-bg:#13172a;
+  --h-m-ink:#f0f3fc;
+  --h-m-dim:#98a1c1;
+  --h-m-line:#2b3150;
+  --h-pill-btn:#f5f6fa;
+  --h-pill-btn-ink:#1c223d;
+  --h-tile-ink:#e8ebf6;
+  --h-tile-dim:#acb5d3;
+  --h-status:#5dcaa5;
+  --h-linkedin:#70b5f9;
+  --h-off:#4b5170;
+  --h-t1:#1b2034;
+  --h-t2:#222843;
+  --h-t3:#171c2d;
+  --h-t4:#242b46;
+  --h-t5:#1d233a;
+  --h-t6:#21273f;
+  --h-r:28px;
+  --h-band:64px;
+  --h-gut:14px;
+  --h-step:72px;
+  --h-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --h-ease:cubic-bezier(.22,1,.36,1);
+  /* Tracés de circuit imprimé, en masque : la couleur vient de l'élément. */
+  --h-traces:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M0 36H58L78 56H150L170 36H220'/><path d='M0 132H40L62 110H104'/><rect x='104' y='98' width='30' height='24' rx='3'/><path d='M134 110H164L186 132H220'/><path d='M119 122V150L135 166H176'/><circle cx='180' cy='166' r='4'/><path d='M96 0V14'/><circle cx='96' cy='18' r='4'/><path d='M96 220V196L80 180H40'/><circle cx='36' cy='180' r='4'/><path d='M190 0V8'/><circle cx='190' cy='12' r='4'/><path d='M190 220V202'/><circle cx='190' cy='198' r='4'/><path d='M20 70V96'/><circle cx='20' cy='66' r='3'/><circle cx='20' cy='100' r='3'/><circle cx='150' cy='80' r='2'/><circle cx='160' cy='80' r='2'/><circle cx='170' cy='80' r='2'/></svg>");
+}
+
+body.home{background:var(--h-frame);color:var(--h-ink)}
+.home :focus-visible{outline:2px solid var(--h-accent);outline-offset:3px}
+.h-shell{max-width:1320px;margin:0 auto;padding:var(--h-gut) var(--h-gut) 40px}
+.h-section{margin-top:var(--h-gut)}
+.h-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- Le cran : onglet + marche + bande ---------- */
+.h-notch{display:flex;align-items:flex-end;height:var(--h-band);position:relative;z-index:2;margin-bottom:-1px}
+.home nav.h-notch{justify-content:flex-start;padding:0;border:0;z-index:10}
+.h-tab{background:var(--h-panel);height:var(--h-band);border-radius:var(--h-r) 0 0 0;display:flex;align-items:center;padding:0 6px 0 30px;flex:none}
+.h-step{flex:none;width:var(--h-step);height:var(--h-band);color:var(--h-panel);margin-left:-1px;display:block}
+.h-band{flex:1;min-width:0;height:var(--h-band);align-self:flex-start;display:flex;align-items:center;justify-content:flex-end;padding-left:14px}
+.h-notch.is-mirrored{flex-direction:row-reverse}
+.h-notch.is-mirrored .h-tab{border-radius:0 var(--h-r) 0 0;padding:0 30px 0 6px}
+.h-notch.is-mirrored .h-step{transform:scaleX(-1);margin-left:0;margin-right:-1px}
+.h-notch.is-mirrored .h-band{justify-content:flex-start;padding:0 14px 0 0}
+.h-band-note{font-size:13px;color:var(--h-frame-dim);white-space:nowrap}
+.h-panel{background:var(--h-panel);border-radius:0 var(--h-r) var(--h-r) var(--h-r);position:relative;z-index:1}
+.h-panel.is-mirrored{border-radius:var(--h-r) 0 var(--h-r) var(--h-r)}
+
+.home .logo{white-space:nowrap}
+.home .logo em{color:var(--h-accent-ink)}
+.home .nav-lang{color:var(--h-frame-dim);border-color:var(--h-m-line)}
+.home .nav-lang:hover{color:var(--h-frame-ink);border-color:var(--h-frame-dim)}
+
+/* Le menu partagé prend l'indigo ICI seulement (balisage : partials/menu.html). */
+.home .nav-morph{background:var(--h-m-bg);border-color:var(--h-m-line)}
+.home .nav-toggle{background:var(--h-pill-btn);color:var(--h-pill-btn-ink)}
+.home .nav-kicker,.home .nav-tag,.home .nav-more .nav-ext{color:var(--h-m-dim)}
+.home .nav-tools a,.home .nav-more a{color:var(--h-m-ink)}
+.home .nav-tools:is(:hover,:has(a:focus-visible)) a:not(:hover):not(:focus-visible){color:var(--h-m-dim)}
+.home .nav-tools a[aria-current="page"],.home .nav-more a[aria-current="page"]{color:var(--h-accent)}
+.home .nav-sep{background:var(--h-m-line)}
+
+/* ---------- Pastilles, boutons ---------- */
+.h-chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--h-line);border-radius:999px;padding:5px 13px;
+  font-size:11.5px;font-weight:500;letter-spacing:.09em;text-transform:uppercase;color:var(--h-ink-2);white-space:nowrap;line-height:1.3}
+.h-chip::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--h-accent-ink)}
+.h-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:30px}
+.h-btn{display:inline-flex;align-items:center;gap:10px;height:48px;padding:0 24px;border-radius:999px;font-family:inherit;font-size:15px;font-weight:500;
+  border:1px solid transparent;cursor:pointer;background:none;transition:background-color .2s,border-color .2s,color .2s}
+.h-btn:hover{text-decoration:none}
+.h-btn svg{width:18px;height:18px;flex:none}
+.h-solid{background:var(--h-accent);color:var(--h-on-accent)}
+.h-solid:hover{background:var(--h-accent-hover)}
+.h-ghost{border-color:var(--h-line);color:var(--h-ink)}
+.h-ghost:hover{border-color:var(--h-ink-2)}
+.h-round{width:48px;padding:0;justify-content:center;border-color:var(--h-line);color:var(--h-ink)}
+.h-round:hover{border-color:var(--h-ink-2)}
+.h-round:disabled{cursor:default;color:var(--h-off);border-color:var(--h-line)}
+.h-linkedin{color:var(--h-linkedin)}
+
+.home h1,.h-title,.h-stat-num,.home .tool-name,.h-vchip b{font-family:var(--h-display);font-stretch:125%;font-weight:600;text-transform:uppercase;letter-spacing:-.015em}
+/* Équilibre les lignes des grands titres : sans ça, « CINQ SANS / IA. » laissait un mot seul à 1024 px. */
+.home h1,.h-title{text-wrap:balance}
+.home h1{font-size:clamp(34px,5.2vw,74px);line-height:.95;margin:22px 0 20px;color:var(--h-ink)}
+.home h1 em,.h-title em{font-style:normal;color:var(--h-accent-ink)}
+.h-title{font-size:clamp(28px,3.3vw,46px);line-height:.98;margin:0 0 16px;color:var(--h-ink)}
+.h-lead{max-width:46ch;color:var(--h-ink-2);font-size:16px;line-height:1.6}
+
+/* ---------- Héros ---------- */
+.h-hero{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:30px;padding:36px 28px 28px 46px;min-height:560px}
+.h-hero-copy{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:12px 0 20px}
+.h-visual{position:relative;border-radius:22px;background:var(--h-visual);overflow:hidden;isolation:isolate;min-height:500px}
+.h-visual::before{content:"";position:absolute;inset:-25%;z-index:-1;background:var(--h-accent);
+  -webkit-mask:var(--h-traces) 0 0/230px 230px repeat;mask:var(--h-traces) 0 0/230px 230px repeat;transform:rotate(-8deg);
+  filter:brightness(.42)}
+.h-visual::after{content:"";position:absolute;inset:0;z-index:-1;
+  background:radial-gradient(55% 45% at 72% 28%,rgba(158,172,254,.16),transparent 70%)}
+.h-vchip{position:absolute;background:var(--h-chip);border:1px solid var(--h-line);border-radius:16px;padding:14px 16px;min-width:190px;
+  box-shadow:0 14px 34px rgba(0,0,0,.3);color:var(--h-ink)}
+.h-vchip small{display:block;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--h-ink-2)}
+.h-keys{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.h-key{font-size:12px;border:1px solid var(--h-line);border-radius:6px;padding:2px 7px;font-variant-numeric:tabular-nums;color:var(--h-ink)}
+.h-vchip b{display:block;margin-top:8px;font-size:26px;line-height:1}
+.h-vchip p{margin-top:8px;font-size:13.5px;line-height:1.4;max-width:24ch;color:var(--h-ink)}
+.h-warn{display:inline-flex;align-items:center;gap:6px;margin-top:9px;font-size:12px;font-weight:500;color:var(--h-ink)}
+.h-warn::before{content:"!";display:grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--h-ink);color:var(--h-panel);font-size:11px;font-weight:700}
+.h-v1{top:26px;left:26px}
+.h-v2{top:44%;right:26px}
+.h-v3{bottom:26px;left:26px}
+.h-badge{position:absolute;top:18px;right:18px;width:132px;height:132px;color:var(--h-ink)}
+.h-badge .h-disc{position:absolute;inset:0;border-radius:50%;background:var(--h-chip);z-index:-1}
+.h-ring{width:100%;height:100%;animation:h-spin 28s linear infinite}
+.h-ring text{font-size:9.2px;font-weight:600;letter-spacing:.08em;fill:currentColor}
+.h-core{position:absolute;inset:42px;border-radius:50%;background:var(--h-accent);color:var(--h-on-accent);display:grid;place-items:center}
+.h-core svg{width:20px;height:20px}
+@keyframes h-spin{to{transform:rotate(360deg)}}
+
+/* ---------- Catalogue : la rangée d'outils ----------
+   Une rangée qui défile (arbitré le 21/09/2026, contre une grille 3 × 2). Elle
+   absorbe n'importe quel nombre d'outils : ajouter un outil ne touche pas ce
+   fichier. Les classes tool-card / tool-name / tool-status sont des CONTRATS
+   de test, pas des noms à rafraîchir. */
+.h-catalog{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr);gap:30px;padding:34px 28px 28px 46px}
+.h-catalog-copy{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:8px 0}
+.tool-rail{display:grid;grid-auto-flow:column;grid-auto-columns:240px;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;
+  scroll-padding-left:2px;padding:2px 2px 12px;scrollbar-width:thin;scrollbar-color:var(--h-line) transparent}
+.home .tool-card{position:relative;overflow:hidden;isolation:isolate;min-height:380px;border-radius:20px;background:var(--tile);
+  color:var(--h-tile-ink);padding:16px 18px 18px;display:flex;flex-direction:column;justify-content:space-between;gap:18px;scroll-snap-align:start}
+.home .tool-card:hover{text-decoration:none}
+.home .tool-card::before{content:"";position:absolute;inset:-35%;z-index:-1;background:var(--h-accent);
+  -webkit-mask:var(--h-traces) 0 0/var(--ms) var(--ms) repeat;mask:var(--h-traces) 0 0/var(--ms) var(--ms) repeat;
+  transform:rotate(var(--rot));filter:brightness(.34);transition:transform .7s var(--h-ease)}
+.home .tool-card::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(to top,rgba(0,0,0,.32),transparent 62%)}
+.home .tool-card:hover::before{transform:rotate(calc(var(--rot) + 6deg)) scale(1.08)}
+.tool-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.tool-icon{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:var(--h-tile-ink)}
+.tool-icon svg{width:21px;height:21px}
+.tool-status{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;white-space:nowrap;padding-top:4px}
+.status-live{color:var(--h-status)}
+.status-soon{color:var(--amber)}
+.tool-body{display:flex;flex-direction:column}
+.tool-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-bottom:10px}
+.tool-norms{font-size:11px;letter-spacing:.04em;color:var(--h-tile-dim)}
+.tool-ai{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:2px 8px;color:var(--h-tile-dim);white-space:nowrap}
+.home .tool-name{font-size:20px;font-stretch:112%;line-height:1.05;color:var(--h-tile-ink);margin:0}
+.tool-desc{margin-top:7px;font-size:13.5px;line-height:1.45;color:var(--h-tile-dim)}
+.tool-pair{display:flex;align-items:flex-start;gap:6px;margin-top:10px;font-size:12px;line-height:1.4;color:var(--h-tile-dim)}
+.tool-pair svg{width:13px;height:13px;flex:none;margin-top:2px}
+.tool-cta{display:inline-flex;align-items:center;gap:6px;margin-top:14px;font-size:13px;font-weight:500;color:var(--h-tile-ink)}
+.tool-cta svg{width:15px;height:15px;transition:transform .3s var(--h-ease)}
+.home .tool-card:hover .tool-cta svg{transform:translateX(4px)}
+
+/* ---------- Parti pris (cran inversé) ---------- */
+.h-stance{padding:38px 46px 40px}
+.h-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(230px,100%),1fr));gap:18px 34px;margin-bottom:34px}
+.h-stat{border-top:1px solid var(--h-line);padding-top:18px}
+.h-stat-num{display:block;font-size:clamp(56px,6.6vw,92px);line-height:.9;color:var(--h-accent-ink);letter-spacing:-.03em}
+.h-stat p{margin-top:14px;font-size:15px;line-height:1.5;color:var(--h-ink)}
+.h-stance-text{max-width:78ch;border-top:1px solid var(--h-line);padding-top:26px}
+.h-stance-text p{font-size:15px;line-height:1.75;color:var(--h-ink-2);margin-bottom:16px}
+.h-stance-text p:last-child{margin-bottom:0}
+.h-stance-text strong{color:var(--h-ink);font-weight:600}
+
+/* ---------- Plafonds du jour (rendus par aistatus.js, styles de style.css) ---------- */
+.h-caps{padding:28px 46px 30px}
+
+.h-footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 24px;padding:22px 6px 0;border:0}
+.home .footer-text{font-size:13px;color:var(--h-frame-dim)}
+.home a.footer-text{color:var(--h-frame-ink)}
+
+/* ---------- Écrans étroits ---------- */
+/* Entre 1024 et 1200 px, la colonne de texte du catalogue (4/12) ne tenait plus
+   « CINQ SANS IA. » sur une ligne : le titre passait à trois lignes. */
+@media (max-width:1199px){
+  .h-catalog{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
+}
+@media (max-width:1023px){
+  .h-hero{grid-template-columns:1fr;padding:30px 24px 24px 30px;min-height:0}
+  .h-visual{min-height:420px}
+  .h-catalog{grid-template-columns:1fr;padding:30px 24px 24px 30px}
+  .h-stance{padding:32px 30px}
+  .h-caps{padding:26px 30px}
+}
+@media (max-width:640px){
+  :root{--h-r:22px;--h-band:58px;--h-gut:8px;--h-step:44px}
+  .h-tab{padding:0 4px 0 20px}
+  .h-notch.is-mirrored .h-tab{padding:0 20px 0 4px}
+  .h-hero,.h-catalog{padding:24px 18px 18px 20px}
+  .h-stance{padding:26px 20px 28px}
+  .h-caps{padding:22px 20px}
+  .h-band-note,.h-v2{display:none}
+  .h-visual{min-height:410px}
+  .h-badge{width:100px;height:100px;top:12px;right:12px}
+  .h-core{inset:32px}
+  .h-v1{top:126px;left:16px}
+  .h-v3{bottom:16px;left:16px;right:16px}
+  .h-vchip{min-width:0}
+  .tool-rail{grid-auto-columns:min(76vw,240px)}
+  .h-btn{height:46px;padding:0 20px}
+  .h-round{width:46px;padding:0}
+}
+/* ⚠️ Mesuré à 320 px : le nom, la marche, EN et la pastille « Menu » tiennent
+   sur la bande à condition de resserrer chaque morceau. */
+@media (max-width:400px){
+  :root{--h-step:32px}
+  .h-tab{padding:0 2px 0 16px}
+  .home .logo{font-size:14px}
+  .h-band{padding-left:6px}
+  .home .nav-end{gap:8px}
+}
+@media (prefers-reduced-motion:reduce){
+  .h-ring{animation:none}
+  .home .tool-card::before,.tool-cta svg{transition:none}
+}
