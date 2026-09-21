@@ -205,6 +205,9 @@ _PAGES = {
     "/about": "about.html",
 }
 
+# Le menu partagé des huit pages — injecté par `render`, voir api/render.py.
+_MENU = _SITE_DIR / "partials" / "menu.html"
+
 # Rendu mémorisé par (page, langue). Invalidé si le fichier change, pour
 # que l'édition d'une page reste immédiate en développement.
 _rendered: dict[tuple[str, str], tuple[tuple, str]] = {}
@@ -228,13 +231,21 @@ def _asset_version() -> str:
 def _page(path: str, lang: str) -> HTMLResponse:
     fichier = _SITE_DIR / _PAGES[path]
     version = _asset_version()
-    empreinte = (fichier.stat().st_mtime, version)
+    # Le menu partagé fait partie de chaque page : le modifier doit invalider
+    # le rendu mémorisé, comme si la page elle-même avait changé.
+    # ⚠️ Indulgent, comme `t()` : un menu absent (fichier oublié au commit)
+    # donne des pages sans menu, jamais un site entier en erreur 500. La
+    # sévérité est dans `test_every_page_carries_the_shared_menu`.
+    menu_present = _MENU.exists()
+    empreinte = (fichier.stat().st_mtime,
+                 _MENU.stat().st_mtime if menu_present else 0.0, version)
     cle = (path, lang)
 
     memorise = _rendered.get(cle)
     if memorise is None or memorise[0] != empreinte:
         html = render(fichier.read_text(encoding="utf-8"), lang, path,
-                      SITE_BASE_URL, version)
+                      SITE_BASE_URL, version,
+                      menu=_MENU.read_text(encoding="utf-8") if menu_present else "")
         _rendered[cle] = (empreinte, html)
 
     return HTMLResponse(_rendered[cle][1])

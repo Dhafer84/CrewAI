@@ -1,0 +1,50 @@
+<!--
+  MENU — une seule copie pour les huit pages.
+
+  `api/render.py` l'injecte à la place du repère posé dans le <nav> de chaque
+  page, AVANT la traduction : les `data-i18n` d'ici sont donc traduits, et les
+  liens préfixés en `/en/…`, exactement comme ceux d'une page. Il marque aussi
+  la page courante (`aria-current="page"`). Ce commentaire est retiré à
+  l'injection.
+
+  ⚠️ Ajouter un outil au catalogue, c'est aussi ajouter sa ligne ici :
+  `test_the_menu_lists_every_tool_of_the_catalogue` compare les deux listes.
+
+  ⚠️ Aucune `opacity` dans le CSS de ce menu, même pour l'animation : les
+  lignes entrent par un décalage, et la carte qui grandit les découvre.
+  C'est la doctrine de `test_no_opacity_fades_readable_text`.
+-->
+<div class="nav-menu" id="navMenu">
+  <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="navCard">
+    <span class="nav-toggle-open">Menu</span>
+    <span class="nav-toggle-close" data-i18n="nav.menu.close">Fermer</span>
+  </button>
+  <div class="nav-morph" id="navMorph">
+    <div class="nav-card" id="navCard" inert>
+      <p class="nav-kicker nav-in" style="--i:0" data-i18n="nav.menu.tools">Outils</p>
+      <ul class="nav-tools">
+        <li class="nav-in" style="--i:1"><a href="/qualitycrew"><span>QualityCrew</span><span class="nav-tag">Audit</span></a></li>
+        <li class="nav-in" style="--i:2"><a href="/sentinelscan"><span>SentinelScan</span><span class="nav-tag" data-i18n="nav.menu.tag.ss">Fuites</span></a></li>
+        <li class="nav-in" style="--i:3"><a href="/hara"><span>SafetyScope</span><span class="nav-tag">HARA</span></a></li>
+        <li class="nav-in" style="--i:4"><a href="/tara"><span>ThreatScope</span><span class="nav-tag">TARA</span></a></li>
+        <li class="nav-in" style="--i:5"><a href="/regwatch"><span>RegWatch</span><span class="nav-tag" data-i18n="nav.menu.tag.rw">Normes</span></a></li>
+        <li class="nav-in" style="--i:6"><a href="/8d"><span>CauseTrace</span><span class="nav-tag">8D</span></a></li>
+      </ul>
+      <div class="nav-sep nav-in" style="--i:7"></div>
+      <ul class="nav-more nav-in" style="--i:8">
+        <li><a href="/" data-i18n="nav.menu.home">Accueil</a></li>
+        <li><a href="/about" data-i18n="nav.about">À propos</a></li>
+        <li><a href="https://github.com/Dhafer84/CrewAI" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          <span data-i18n="nav.github">GitHub</span>
+          <svg class="nav-ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>
+        </a></li>
+        <li><a href="https://www.linkedin.com/in/bouthelja-dhafer" target="_blank" rel="noopener">
+          <svg class="nav-linkedin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+          LinkedIn
+          <svg class="nav-ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>
+        </a></li>
+      </ul>
+    </div>
+  </div>
+</div>

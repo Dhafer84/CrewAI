@@ -35,8 +35,15 @@ _ATTR_KEY = re.compile(r'data-i18n-content="([^"]+)"')
 # celle qui le CALCULE (`api.main._asset_version`) doivent être la même. Elles
 # ont divergé le 25/08/2026 : `aistatus.js` n'avait été ajouté qu'ici, et un
 # visiteur qui revenait gardait l'ancien script en cache indéfiniment.
-VERSIONED_ASSETS = ("style.css", "i18n.js", "aistatus.js",
+VERSIONED_ASSETS = ("style.css", "i18n.js", "aistatus.js", "menu.js",
                     "og-fr.png", "og-en.png")
+
+# Repère que chaque page pose dans son <nav> : `render` y injecte le menu
+# partagé (`site/partials/menu.html`). Une seule copie pour huit pages — un
+# balisage recopié huit fois finit toujours par diverger, et ajouter un outil
+# ne demande qu'une ligne au lieu de huit.
+MENU_SLOT = "<!-- menu -->"
+_COMMENT = re.compile(r"<!--.*?-->", re.S)
 
 # Image de partage, une par langue — ce que LinkedIn, Slack ou WhatsApp
 # affichent quand on colle un lien du site. Construite par
@@ -205,8 +212,21 @@ def social(html: str, lang: str, path: str, base_url: str,
     return "\n  ".join(balises)
 
 
+def menu_for(menu: str, path: str) -> str:
+    """Le menu partagé, prêt à injecter dans la page `path`.
+
+    Ses commentaires sont retirés — ils documentent le fichier source, pas la
+    page — et le lien de la page courante reçoit `aria-current="page"`. Le
+    marquage se fait sur le chemin FRANÇAIS, avant que le rendu ne préfixe
+    les liens en `/en/…`.
+    """
+    menu = _COMMENT.sub("", menu).strip()
+    cible = f'href="{path or "/"}"'
+    return menu.replace(cible, cible + ' aria-current="page"', 1)
+
+
 def render(html: str, lang: str, path: str, base_url: str,
-           asset_version: str = "") -> str:
+           asset_version: str = "", menu: str = "") -> str:
     """Rend une page dans la langue demandée.
 
     Args:
@@ -219,8 +239,12 @@ def render(html: str, lang: str, path: str, base_url: str,
             string. ⚠️ **Sans elle, un visiteur qui revient garde l'ancien
             CSS en cache et le nouveau HTML** : un élément introduit avec sa
             règle de style s'afficherait nu. C'est arrivé en test.
+        menu: le balisage du menu partagé. Injecté AVANT la traduction et le
+            préfixage des liens : il suit la langue de la page comme le reste.
     """
     lang = normalize(lang)
+    if menu:
+        html = html.replace(MENU_SLOT, menu_for(menu, path), 1)
     html = translate_markup(html, lang)
 
     html = html.replace('<html lang="fr">', f'<html lang="{lang}">', 1)
@@ -261,4 +285,4 @@ def catalogue_languages() -> tuple[str, ...]:
 
 
 __all__ = ["render", "translate_markup", "social", "catalogue_languages",
-           "DEFAULT_LANG"]
+           "menu_for", "MENU_SLOT", "DEFAULT_LANG"]

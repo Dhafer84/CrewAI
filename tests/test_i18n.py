@@ -226,6 +226,16 @@ def test_language_labels_are_normalised():
 # Cohérence entre le catalogue et le projet
 # --------------------------------------------------------------------------
 
+def _markup_files() -> list[Path]:
+    """Les pages ET les fragments injectés dans les pages.
+
+    ⚠️ Le menu partagé (`site/partials/menu.html`) n'est pas une page, mais son
+    texte finit dans les huit : ses clés doivent compter comme employées, et
+    son texte doit coller au catalogue comme celui d'une page.
+    """
+    return sorted([*SITE.glob("*.html"), *SITE.glob("partials/*.html")])
+
+
 def _keys_used() -> set[str]:
     """Toutes les clés réellement référencées dans le projet."""
     utilisees: set[str] = set()
@@ -237,7 +247,7 @@ def _keys_used() -> set[str]:
         familles.update(_KEY_FAMILY.findall(texte))
         familles.update(_KEY_FAMILY_JS.findall(texte))
 
-    for chemin in SITE.glob("*.html"):
+    for chemin in _markup_files():
         relever(chemin.read_text(encoding="utf-8"), (_KEY_IN_HTML, _KEY_IN_JS))
     # ⚠️ Les scripts partagés du site portent des clés eux aussi. Ne balayer
     # que le HTML faisait passer pour mortes toutes celles de `aistatus.js`.
@@ -305,7 +315,7 @@ def test_the_pages_match_their_catalogue():
     annote = re.compile(r'<([a-z][a-z0-9]*)([^>]*?)data-i18n="([^"]+)"([^>]*?)>(.*?)</\1>', re.S)
     verifies = 0
 
-    for chemin in sorted(SITE.glob("*.html")):
+    for chemin in _markup_files():
         texte = chemin.read_text(encoding="utf-8")
         for _balise, _av, cle, _ap, contenu in annote.findall(texte):
             inline = re.sub(r"\s+", " ", contenu).strip()

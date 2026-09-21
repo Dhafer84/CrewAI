@@ -11,6 +11,13 @@ CATALOGUE: dict[str, str] = {
     "nav.about": "About",
     "nav.source": "Source code",
 
+    # --- Expanding menu (site/partials/menu.html) ---------------------------
+    "nav.menu.close": "Close",
+    "nav.menu.tools": "Tools",
+    "nav.menu.home": "Home",
+    "nav.menu.tag.ss": "Leaks",
+    "nav.menu.tag.rw": "Standards",
+
     # --- Footers -----------------------------------------------------------
     "footer.tools": "All tools",
     "footer.index": "100% fictional data",

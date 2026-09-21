@@ -30,6 +30,7 @@
   --coral-bg:#2d1f1a;
   --purple:#a07ad8;
   --purple-bg:#26202e;
+  --linkedin:#70b5f9;
   --radius:8px;
   --radius-lg:12px;
 }
@@ -41,24 +42,63 @@ a{color:var(--green);text-decoration:none}
 a:hover{text-decoration:underline}
 
 /* NAV */
-nav{display:flex;justify-content:space-between;align-items:center;padding:20px 0;border-bottom:0.5px solid var(--border);margin-bottom:0}
+/* 16 px et non 20 : la pastille du menu (36 px) est plus haute que les liens
+   qu'elle remplace ; la barre garde ainsi sa hauteur d'avant, à 1 px près. */
+nav{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:0.5px solid var(--border);margin-bottom:0}
 .logo{font-size:15px;font-weight:600;letter-spacing:-0.3px;color:#fff}
 .logo em{color:var(--green);font-style:normal}
 .nav-link{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-muted)}
 .nav-link:hover{color:var(--text);text-decoration:none}
 .nav-link svg{width:16px;height:16px}
-/* « À propos » et GitHub groupés au centre : le menu garde ses trois blocs,
-   donc la même disposition qu'avant l'ajout du lien. */
-.nav-links{display:flex;align-items:center;gap:20px}
-.nav-link[aria-current="page"]{color:var(--text)}
-/* ⚠️ Mesuré à 320 px : avec « À propos », le menu français ne tient plus sur une
-   ligne — le lien se coupe en deux et les blocs se touchent. Sous 360 px, GitHub
-   ne garde que son icône ; son libellé est masqué VISUELLEMENT seulement, pour
-   rester le nom du lien au lecteur d'écran. */
 .nav-link,.nav-back{white-space:nowrap}
-@media(max-width:360px){
-  .nav-links{gap:14px}
-  .nav-links .nav-link span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.nav-end{display:flex;align-items:center;gap:12px}
+
+/* MENU QUI SE DÉPLOIE — balisage : site/partials/menu.html, logique : menu.js.
+   La pastille et la carte sont le MÊME élément (.nav-morph) : il grandit depuis
+   le bouton. Le bouton reste dans le flux, c'est lui qui donne sa taille à la
+   pastille fermée — sans JavaScript, le menu garde donc une forme juste.
+
+   ⚠️ Aucune `opacity`, même pour l'animation : les lignes entrent par un
+   décalage vertical et la carte qui grandit les découvre. Un libellé estompé
+   par opacité divise son contraste (voir `test_no_opacity_fades_readable_text`).
+   Au survol, les autres liens reculent par leur COULEUR (--text-dim). */
+.nav-menu{position:relative;z-index:100;padding:3px;flex:none}
+.nav-morph{position:absolute;top:0;right:0;width:100%;height:100%;overflow:hidden;background:var(--bg-card-hover);
+  border:1px solid var(--border);border-radius:18px;
+  transition:width .5s cubic-bezier(.22,1,.36,1),height .5s cubic-bezier(.22,1,.36,1),border-radius .5s cubic-bezier(.22,1,.36,1),box-shadow .5s}
+.nav-menu.is-open .nav-morph{border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.55)}
+.nav-toggle{position:relative;z-index:1;display:grid;place-items:center;height:30px;padding:0 14px;border:0;border-radius:15px;
+  background:var(--text);color:var(--bg);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer}
+.nav-toggle>span{grid-area:1/1;transition:transform .3s cubic-bezier(.22,1,.36,1),visibility .3s}
+.nav-toggle-close,.nav-menu.is-open .nav-toggle-open{visibility:hidden;transform:translateY(6px)}
+.nav-menu.is-open .nav-toggle-close{visibility:visible;transform:none}
+.nav-toggle:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+.nav-card{position:absolute;top:40px;right:0;padding:2px 24px 20px;visibility:hidden;transition:visibility 0s .5s}
+.nav-menu.is-open .nav-card{visibility:visible;transition-delay:0s}
+.nav-in{transform:translateY(10px);transition:transform .45s cubic-bezier(.22,1,.36,1)}
+.nav-menu.is-open .nav-in{transform:none;transition-delay:calc(.08s + var(--i,0) * .03s)}
+.nav-kicker{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin:6px 0}
+.nav-tools{list-style:none}
+.nav-tools a{display:flex;align-items:baseline;gap:10px;padding:2px 0;font-size:clamp(21px,6.4vw,25px);font-weight:500;
+  letter-spacing:-.02em;line-height:1.25;color:var(--text);transition:color .2s;border-radius:4px}
+.nav-tools a:hover{text-decoration:none}
+.nav-tools a::before{content:"";flex:none;align-self:center;width:0;height:2px;margin-right:-10px;background:currentColor;
+  transition:width .25s cubic-bezier(.22,1,.36,1),margin .25s cubic-bezier(.22,1,.36,1)}
+.nav-tools a:hover::before,.nav-tools a:focus-visible::before,.nav-tools a[aria-current="page"]::before{width:14px;margin-right:0}
+.nav-tools a[aria-current="page"]{color:var(--green)}
+.nav-tools:is(:hover,:has(a:focus-visible)) a:not(:hover):not(:focus-visible){color:var(--text-dim)}
+.nav-tag{margin-left:auto;font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+.nav-sep{height:1px;background:var(--border);margin:14px 0 10px}
+.nav-more{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:2px 16px}
+.nav-more a{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;color:var(--text);padding:3px 0}
+.nav-more a[aria-current="page"]{color:var(--green)}
+.nav-more svg{width:14px;height:14px;flex:none}
+.nav-more .nav-ext{width:11px;height:11px;color:var(--text-dim)}
+/* Bleu LinkedIn éclairci : l'officiel (#0a66c2) tombe à ~3,3:1 sur ce fond
+   sombre, et le trait fin de l'icône le ferait paraître terne. */
+.nav-more .nav-linkedin{color:var(--linkedin)}
+@media (prefers-reduced-motion:reduce){
+  .nav-morph,.nav-toggle>span,.nav-card,.nav-in,.nav-tools a::before{transition:none}
 }
 
 .nav-back{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-muted)}
@@ -699,7 +739,7 @@ a.signal-title:hover{color:var(--green)}
 .explain-bar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:20px}
 .explain-note{font-size:12px;color:var(--text-dim);line-height:1.55;flex:1;min-width:220px}
 
-/* Sélecteur de langue — discret, à côté du lien GitHub */
+/* Sélecteur de langue — discret, à côté du menu */
 .nav-lang{font-weight:600;letter-spacing:.5px;padding:3px 9px;border:1px solid var(--border);border-radius:6px}
 .nav-lang:hover{border-color:var(--text-muted);color:var(--text)}
 

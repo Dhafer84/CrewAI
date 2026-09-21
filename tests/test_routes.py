@@ -2335,6 +2335,89 @@ def test_no_grid_forces_a_column_wider_than_the_narrowest_screen():
         f"{_ECRAN_LE_PLUS_ETROIT} px — écrire minmax(min(Npx,100%),1fr) : {fautives}")
 
 
+# --------------------------------------------------------------------------
+# Menu qui se déploie — une seule copie, injectée dans les huit pages
+# --------------------------------------------------------------------------
+
+_MENU_SOURCE = _ROOT / "site" / "partials" / "menu.html"
+_MENU_JS = _ROOT / "site" / "menu.js"
+_OUTILS_DU_MENU = re.compile(r'<ul class="nav-tools">(.*?)</ul>', re.S)
+
+
+def test_every_page_carries_the_shared_menu():
+    """Le menu vit dans UN fichier ; chaque page n'en porte que le repère.
+
+    ⚠️ Huit copies d'un même balisage finissent toujours par diverger — la
+    leçon de `xlsxsafe` et des deux listes d'actifs versionnés. Ce test refuse
+    qu'une page embarque sa propre copie, et vérifie que l'injection a bien eu
+    lieu sur les seize adresses, commentaire de documentation retiré.
+    """
+    from api.render import MENU_SLOT
+
+    for source in sorted((_ROOT / "site").glob("*.html")):
+        texte = source.read_text(encoding="utf-8")
+        assert texte.count(MENU_SLOT) == 1, f"{source.name} : repère du menu absent ou doublé"
+        assert "nav-tools" not in texte, f"{source.name} embarque sa propre copie du menu"
+
+    with client() as c:
+        for chemin in PAGES_FR + PAGES_EN:
+            page = c.get(chemin).text
+            assert page.count('id="navToggle"') == 1, f"{chemin} : menu absent ou doublé"
+            assert MENU_SLOT not in page, f"{chemin} : le repère n'a pas été remplacé"
+            assert "une seule copie pour les huit pages" not in page, \
+                f"{chemin} : le commentaire du fichier source a fuité dans la page"
+            bouton = re.search(r'<button class="nav-toggle"[^>]*>', page).group(0)
+            assert 'aria-expanded="false"' in bouton and 'aria-controls="navCard"' in bouton, \
+                f"{chemin} : le bouton du menu n'annonce plus son état"
+            assert re.search(r'id="navCard" inert', page), \
+                f"{chemin} : la carte fermée doit être inerte (hors d'atteinte au clavier)"
+
+
+def test_the_menu_lists_every_tool_of_the_catalogue():
+    """Ajouter un outil, c'est aussi l'ajouter au menu.
+
+    Sans ce test, un septième outil aurait sa carte sur l'accueil et resterait
+    introuvable depuis les sept autres pages — personne ne le remarquerait
+    avant qu'un visiteur ne le cherche.
+    """
+    with client() as c:
+        accueil = c.get("/").text
+    cartes = re.findall(r'<a class="tool-card[^"]*" href="(/[^"]+)"', accueil)
+    menu = re.findall(r'href="(/[^"]+)"', _OUTILS_DU_MENU.search(accueil).group(1))
+    assert cartes, "aucune carte d'outil trouvée sur l'accueil"
+    assert menu == cartes, (
+        f"le menu et le catalogue ne listent pas les mêmes outils, dans le même "
+        f"ordre — catalogue : {cartes} · menu : {menu}")
+
+
+def test_the_menu_marks_the_current_page_in_its_language():
+    """Une seule entrée courante, la bonne, et dans la langue de la page."""
+    with client() as c:
+        for fr, en in zip(PAGES_FR, PAGES_EN):
+            for chemin, attendu in ((fr, fr), (en, en)):
+                page = c.get(chemin).text
+                courants = re.findall(r'<a href="([^"]+)" aria-current="page"', page)
+                assert courants == [attendu], (
+                    f"{chemin} : entrée courante du menu = {courants}, attendu [{attendu!r}]")
+
+
+def test_the_menu_works_without_a_mouse():
+    """⚠️ Un menu qui ne se pilote qu'à la souris n'est pas un menu.
+
+    Même famille que `test_a_locked_discipline_really_locks_its_fields` : une
+    suite Python ne peut pas exécuter le JavaScript, mais elle peut refuser que
+    les garde-fous disparaissent. Vérifiés dans le navigateur à l'intégration.
+    """
+    source = " ".join(_MENU_JS.read_text(encoding="utf-8").split())
+    assert "toggle.setAttribute('aria-expanded', String(etat));" in source, \
+        "le bouton doit annoncer l'état du menu"
+    assert "card.inert = !etat;" in source, \
+        "une carte fermée doit sortir de l'ordre de tabulation"
+    assert "e.key === 'Escape'" in source and "toggle.focus();" in source, \
+        "Échap doit fermer le menu et rendre le focus au bouton"
+    assert "e.key !== 'Tab'" in source, "le focus doit rester dans la carte ouverte"
+
+
 def main() -> int:
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failures = 0

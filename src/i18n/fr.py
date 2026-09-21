@@ -16,6 +16,15 @@ CATALOGUE: dict[str, str] = {
     "nav.about": "À propos",
     "nav.source": "Code source",
 
+    # --- Menu qui se déploie (site/partials/menu.html) ----------------------
+    # « Menu », les noms d'outils, « Audit », « HARA », « TARA », « 8D » et
+    # « LinkedIn » s'écrivent pareil dans les deux langues : non annotés.
+    "nav.menu.close": "Fermer",
+    "nav.menu.tools": "Outils",
+    "nav.menu.home": "Accueil",
+    "nav.menu.tag.ss": "Fuites",
+    "nav.menu.tag.rw": "Normes",
+
     # --- Pieds de page ----------------------------------------------------
     "footer.tools": "Tous les outils",
     "footer.index": "Données 100 % fictives",
