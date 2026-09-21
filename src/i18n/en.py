@@ -767,6 +767,7 @@ CATALOGUE: dict[str, str] = {
     # readers, and displayed when the image fails to load.
     "og.alt":
         "The six Quality & Safety tools of qualitycrew.fr: QualityCrew, SentinelScan, SafetyScope, ThreatScope, RegWatch and CauseTrace.",
+    "og.alt.tool": "{outil}, a Quality & Safety tool from qualitycrew.fr: {phrase}",
     "home.meta":
         "Quality and Safety demonstration tools for the automotive and embedded industry: compliance audit by AI agents, information leak watch, HARA / ASIL analysis, TARA threat analysis.",
     "rw.meta":

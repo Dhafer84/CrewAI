@@ -1772,14 +1772,57 @@ def test_the_sharing_image_follows_the_page_language():
     `test_no_french_survives_in_an_english_page` ne peut pas voir : le
     français y serait dans une image, pas dans le HTML.
     """
+    # Depuis le 21/09/2026 une page d'outil a SA carte (og-hara-fr.png…) : on
+    # vérifie la langue par le suffixe, pas un nom de fichier unique.
     with client() as c:
         for chemin in PAGES_FR:
-            assert "og-fr.png" in _social_tags(c.get(chemin).text)["image"], \
+            assert re.search(r"-fr\.png(\?|$)", _social_tags(c.get(chemin).text)["image"]), \
                 f"{chemin} partage une image qui n'est pas la française"
         for chemin in PAGES_EN:
-            assert "og-en.png" in _social_tags(c.get(chemin).text)["image"], \
+            assert re.search(r"-en\.png(\?|$)", _social_tags(c.get(chemin).text)["image"]), \
                 f"{chemin} partage une image qui n'est pas l'anglaise"
 
+
+def test_each_tool_page_shares_its_own_card():
+    """Un lien vers /hara partagé sur LinkedIn montre SafetyScope (21/09/2026).
+
+    La carte générale décrit le site ; celle d'un outil décrit l'outil — nom,
+    phrase courte, normes, place de l'IA. L'accueil et À propos gardent la
+    carte générale. Le texte alternatif doit décrire la carte RÉELLEMENT
+    montrée, sinon un lecteur d'écran annonce « les six outils » devant une
+    carte qui n'en montre qu'un.
+
+    ⚠️ Et la liste des cartes d'outil doit suivre le catalogue : un septième
+    outil sans sa carte partagerait la carte générale sans que rien ne le dise.
+    """
+    from api.render import OG_IMAGES, OG_TOOL_CARDS, VERSIONED_ASSETS
+
+    # Régénérer une carte doit changer l'empreinte `?v=` — sinon LinkedIn et
+    # les navigateurs garderaient l'ancienne image, sans que rien ne le signale.
+    hors_liste = sorted(set(OG_IMAGES) - set(VERSIONED_ASSETS))
+    assert not hors_liste, f"images de partage non versionnées : {hors_liste}"
+
+    with client() as c:
+        accueil = c.get("/").text
+        cartes = set(re.findall(r'<a class="tool-card[^"]*" href="(/[^"]+)"', accueil))
+        assert set(OG_TOOL_CARDS) == cartes, (
+            f"cartes de partage ≠ outils du catalogue : "
+            f"manque {sorted(cartes - set(OG_TOOL_CARDS))}, en trop {sorted(set(OG_TOOL_CARDS) - cartes)}")
+
+        for chemin, (nom, _cle) in OG_TOOL_CARDS.items():
+            for langue, prefixe in (("fr", ""), ("en", "/en")):
+                page = c.get(prefixe + chemin).text
+                image = _social_tags(page)["image"]
+                attendu = f"/static/og-{chemin.strip('/')}-{langue}.png"
+                assert attendu in image, f"{prefixe + chemin} partage {image}, pas {attendu}"
+                alt = re.search(r'<meta property="og:image:alt" content="([^"]*)"', page).group(1)
+                assert nom in alt and "six" not in alt.lower(), (
+                    f"{prefixe + chemin} : le texte alternatif ne décrit pas la carte de {nom} : {alt!r}")
+
+        for chemin, fichier in (("/", "og-fr.png"), ("/about", "og-fr.png"),
+                                ("/en", "og-en.png"), ("/en/about", "og-en.png")):
+            image = _social_tags(c.get(chemin).text)["image"]
+            assert f"/static/{fichier}" in image, f"{chemin} doit garder la carte générale, pas {image}"
 
 def test_the_sharing_tags_are_absolute():
     """⚠️ Une URL relative est purement et simplement IGNORÉE.
@@ -1842,9 +1885,9 @@ def test_the_sharing_images_exist_and_have_the_declared_size():
     Le format est lu à la main dans l'en-tête PNG — aucune dépendance ajoutée
     à la suite de tests pour vérifier deux entiers.
     """
-    from api.render import OG_IMAGE, OG_IMAGE_SIZE
+    from api.render import OG_IMAGE_SIZE, OG_IMAGES
 
-    for nom in OG_IMAGE.values():
+    for nom in OG_IMAGES:
         fichier = _ROOT / "site" / nom
         assert fichier.exists(), f"{nom} n'existe pas — lancer scripts/build_og_image.py"
         entete = fichier.read_bytes()[:24]
@@ -1862,10 +1905,10 @@ def test_the_sharing_image_is_actually_served():
     `site/aistatus.js` : oublié au commit, la route répond 404 et l'aperçu
     perd son image, sans la moindre erreur au démarrage du service.
     """
-    from api.render import OG_IMAGE
+    from api.render import OG_IMAGES
 
     with client() as c:
-        for nom in OG_IMAGE.values():
+        for nom in OG_IMAGES:
             resp = c.get(f"/static/{nom}")
             assert resp.status_code == 200, f"/static/{nom} → {resp.status_code}"
             assert resp.headers["content-type"] == "image/png"

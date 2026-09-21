@@ -795,6 +795,9 @@ CATALOGUE: dict[str, str] = {
     # réseaux sociaux, et affiché si l'image ne charge pas.
     "og.alt":
         "Les six outils Qualité & Sécurité de qualitycrew.fr : QualityCrew, SentinelScan, SafetyScope, ThreatScope, RegWatch et CauseTrace.",
+    # Carte de partage d'une page d'outil (21/09/2026) : {outil} est le nom,
+    # {phrase} la phrase courte de sa carte sur l'accueil.
+    "og.alt.tool": "{outil}, un outil Qualité & Sécurité de qualitycrew.fr : {phrase}",
     "home.meta":
         "Outils de démonstration Qualité et Sécurité pour l'industrie automobile et l'embarqué : audit de conformité par agents IA, veille de fuite d'information, analyse HARA / ASIL, analyse de menaces TARA.",
     "rw.meta":

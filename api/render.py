@@ -35,8 +35,9 @@ _ATTR_KEY = re.compile(r'data-i18n-content="([^"]+)"')
 # celle qui le CALCULE (`api.main._asset_version`) doivent être la même. Elles
 # ont divergé le 25/08/2026 : `aistatus.js` n'avait été ajouté qu'ici, et un
 # visiteur qui revenait gardait l'ancien script en cache indéfiniment.
-VERSIONED_ASSETS = ("style.css", "home.css", "i18n.js", "aistatus.js", "menu.js",
-                    "og-fr.png", "og-en.png")
+# (La liste est complétée plus bas par toutes les images de partage, dès
+# qu'elles sont définies : voir VERSIONED_ASSETS après OG_TOOL_CARDS.)
+_STATIC_ASSETS = ("style.css", "home.css", "i18n.js", "aistatus.js", "menu.js")
 
 # Repère que chaque page pose dans son <nav> : `render` y injecte le menu
 # partagé (`site/partials/menu.html`). Une seule copie pour huit pages — un
@@ -56,6 +57,46 @@ _COMMENT = re.compile(r"<!--.*?-->", re.S)
 # seul endroit qu'un visiteur voit *avant* d'avoir ouvert le site.
 OG_IMAGE = {"fr": "og-fr.png", "en": "og-en.png"}
 OG_IMAGE_SIZE = (1200, 630)
+
+# Une carte PAR OUTIL (21/09/2026) : un lien vers /hara partagé sur LinkedIn
+# montre SafetyScope, pas la carte générale du site. L'accueil et À propos
+# gardent la carte générale. Le nom et la clé de la phrase courte servent au
+# texte alternatif ; l'image, elle, est construite par build_og_image.py, qui
+# lit les cartes de la page de garde.
+OG_TOOL_CARDS = {
+    "/qualitycrew": ("QualityCrew", "home.qc.short"),
+    "/sentinelscan": ("SentinelScan", "home.ss.short"),
+    "/hara": ("SafetyScope", "home.hara.short"),
+    "/tara": ("ThreatScope", "home.tara.short"),
+    "/regwatch": ("RegWatch", "home.rw.short"),
+    "/8d": ("CauseTrace", "home.ct.short"),
+}
+
+
+def og_image_for(path: str, lang: str) -> str:
+    """Le fichier de l'image de partage d'une page, dans sa langue."""
+    lang = lang if lang in OG_IMAGE else DEFAULT_LANG
+    if path in OG_TOOL_CARDS:
+        return f"og-{path.strip('/')}-{lang}.png"
+    return OG_IMAGE[lang]
+
+
+def og_alt_for(path: str, lang: str) -> str:
+    """Le texte alternatif de cette image — il décrit la carte réellement montrée."""
+    if path in OG_TOOL_CARDS:
+        nom, cle = OG_TOOL_CARDS[path]
+        return t("og.alt.tool", lang, outil=nom, phrase=t(cle, lang))
+    return t("og.alt", lang)
+
+
+# Toutes les images de partage : les deux cartes générales et les douze cartes d'outil.
+OG_IMAGES = tuple(OG_IMAGE.values()) + tuple(
+    og_image_for(chemin, langue) for chemin in OG_TOOL_CARDS for langue in LANGUAGES)
+
+# ⚠️ Une seule liste — voir plus haut. Les images de partage y entrent toutes :
+# régénérer une carte d'outil doit changer l'empreinte, sinon LinkedIn et les
+# navigateurs garderaient l'ancienne.
+VERSIONED_ASSETS = _STATIC_ASSETS + OG_IMAGES
 
 # `og:site_name` — un nom propre, identique dans les deux langues.
 OG_SITE_NAME = "Dhafer Bouthelja"
@@ -175,7 +216,7 @@ def social(html: str, lang: str, path: str, base_url: str,
     canonique = fr if lang == DEFAULT_LANG else en
     autre = "en" if lang == DEFAULT_LANG else "fr"
 
-    image = base_url + "/static/" + OG_IMAGE.get(lang, OG_IMAGE[DEFAULT_LANG])
+    image = base_url + "/static/" + og_image_for(path, lang)
     if asset_version:
         image += f"?v={asset_version}"
 
@@ -205,9 +246,9 @@ def social(html: str, lang: str, path: str, base_url: str,
         f'<meta property="og:image:width" content="{largeur}">',
         f'<meta property="og:image:height" content="{hauteur}">',
         f'<meta property="og:image:type" content="image/png">',
-        f'<meta property="og:image:alt" content="{_attr(t("og.alt", lang))}">',
+        f'<meta property="og:image:alt" content="{_attr(og_alt_for(path, lang))}">',
         '<meta name="twitter:card" content="summary_large_image">',
-        f'<meta name="twitter:image:alt" content="{_attr(t("og.alt", lang))}">',
+        f'<meta name="twitter:image:alt" content="{_attr(og_alt_for(path, lang))}">',
     ]
     return "\n  ".join(balises)
 
@@ -289,4 +330,5 @@ def catalogue_languages() -> tuple[str, ...]:
 
 
 __all__ = ["render", "translate_markup", "social", "catalogue_languages",
-           "menu_for", "MENU_SLOT", "DEFAULT_LANG"]
+           "menu_for", "MENU_SLOT", "DEFAULT_LANG", "og_image_for", "og_alt_for",
+           "OG_IMAGES", "OG_TOOL_CARDS"]

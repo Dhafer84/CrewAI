@@ -6,12 +6,15 @@ carte française servie en `og:image` sur `/en` serait exactement cette faute,
 au seul endroit qu'un visiteur voit *avant* d'avoir ouvert le site.
 
 ⚠️ **Le gabarit ne recopie pas les couleurs du site, il les LIT.** Les valeurs
-viennent de `site/home.css`, la page de garde — indigo depuis le 21/09/2026,
-alors que les pages d'outils restent vertes : l'image montre l'accueil,
-puisque c'est lui que désigne un lien vers qualitycrew.fr. Une carte qui
-figerait une couleur en dur cesserait de ressembler au site au premier
-changement de thème, sans que rien ne le dise. Même motif que `/hara/matrix`, qui sert la table plutôt que de la
-laisser recopier.
+viennent de `site/home.css`, la feuille du cadre indigo de tout le site depuis
+le 21/09/2026. Une carte qui figerait une couleur en dur cesserait de
+ressembler au site au premier changement de thème, sans que rien ne le dise.
+Même motif que `/hara/matrix`, qui sert la table plutôt que de la laisser
+recopier.
+
+Deux familles de cartes : la carte GÉNÉRALE (accueil, À propos), une par
+langue, et une carte PAR OUTIL (depuis le 21/09/2026), qui lit tout ce qu'elle
+affiche sur la carte de l'outil dans la page de garde.
 
 Rendu par Chrome sans interface : le gabarit reste du HTML lisible, et le
 résultat est un PNG — LinkedIn, Slack et les autres n'acceptent pas de SVG.
@@ -78,9 +81,8 @@ def palette() -> dict[str, str]:
     """Les couleurs de la page de garde, lues dans `site/home.css`.
 
     ⚠️ Lire plutôt que recopier : c'est ce qui garantit que la carte partagée
-    reste la carte du site. Depuis le 21/09/2026, l'accueil est indigo et vit
-    dans home.css (jetons `--h-*`) : l'image suit l'accueil, pas les pages
-    d'outils restées vertes. Le préfixe est retiré à la lecture.
+    reste la carte du site. Depuis le 21/09/2026, le cadre indigo de tout le
+    site vit dans home.css (jetons `--h-*`). Le préfixe est retiré à la lecture.
     """
     css = (_SITE / "home.css").read_text(encoding="utf-8")
     bloc = css[css.index(":root{"):css.index("\n}", css.index(":root{"))]
@@ -209,11 +211,12 @@ def chrome() -> str:
         return trouve
     raise SystemExit("Aucun Chrome/Chromium trouvé — impossible de rendre le PNG.")
 
-def build(lang: str) -> Path:
-    sortie = _SITE / f"og-{lang}.png"
+
+def _capture(html: str, sortie: Path) -> Path:
+    """Rend une page HTML en PNG de 1200 × 630 avec Chrome sans interface."""
     with tempfile.TemporaryDirectory() as tmp:
-        source = Path(tmp) / f"card-{lang}.html"
-        source.write_text(template(lang), encoding="utf-8")
+        source = Path(tmp) / "carte.html"
+        source.write_text(html, encoding="utf-8")
         subprocess.run(
             [chrome(), "--headless", "--disable-gpu", "--hide-scrollbars",
              "--force-device-scale-factor=1",
@@ -225,11 +228,157 @@ def build(lang: str) -> Path:
     return sortie
 
 
+def build(lang: str) -> Path:
+    return _capture(template(lang), _SITE / f"og-{lang}.png")
+
+
+# --------------------------------------------------------------------------
+# Une carte PAR OUTIL (21/09/2026)
+# --------------------------------------------------------------------------
+# Un lien vers /hara partagé sur LinkedIn montre SafetyScope, pas la carte
+# générale. ⚠️ Tout ce qu'affiche la carte d'un outil est LU sur sa carte de la
+# page de garde — icône, nom, normes, place de l'IA, phrase courte, mention
+# d'enchaînement, bouton, teinte de la tuile. Recopier ces six fiches ici, ce
+# serait six occasions de laisser la carte partagée dire autre chose que le site.
+
+_CARTE = re.compile(
+    r'<a class="tool-card[^"]*" href="(?P<chemin>/[^"]+)" style="--tile:var\(--h-(?P<teinte>t\d)\)[^"]*">'
+    r'(?P<corps>.*?)</a>', re.S)
+
+
+def cartes_accueil() -> list[dict]:
+    """Les six cartes d'outil de la page de garde, dans leur ordre."""
+    accueil = (_SITE / "index.html").read_text(encoding="utf-8")
+    cartes = []
+    for m in _CARTE.finditer(accueil):
+        corps = m.group("corps")
+        def cle(motif: str) -> str | None:
+            trouve = re.search(motif, corps)
+            return trouve.group(1) if trouve else None
+        cartes.append({
+            "chemin": m.group("chemin"),
+            "teinte": m.group("teinte"),
+            "icone": re.search(r'<span class="tool-icon">(<svg.*?</svg>)', corps, re.S).group(1),
+            "nom": cle(r'<h3 class="tool-name">([^<]+)</h3>'),
+            "normes": cle(r'<span class="tool-norms">([^<]+)</span>'),
+            "ia": cle(r'<span class="tool-ai" data-i18n="([\w.]+)"'),
+            "phrase": cle(r'<span class="tool-desc" data-i18n="([\w.]+)"'),
+            "enchainement": cle(r'<span class="tool-pair"><svg.*?</svg><span data-i18n="([\w.]+)"'),
+            "bouton": cle(r'<span class="tool-cta"><span data-i18n="([\w.]+)"'),
+        })
+    manquants = [c["chemin"] for c in cartes if not all(c[k] for k in ("nom", "normes", "ia", "phrase", "bouton"))]
+    if len(cartes) != 6 or manquants:
+        raise SystemExit(f"La page de garde a changé de forme : {len(cartes)} cartes, incomplètes : {manquants}")
+    return cartes
+
+
+def tool_template(carte: dict, lang: str) -> str:
+    c = palette()
+    # « SafetyScope » → Safety + Scope : la seconde moitié prend l'accent, comme
+    # le titre de la page de l'outil.
+    debut, fin = re.match(r"([A-Z][a-z]+)(\w+)", carte["nom"]).groups()
+    enchainement = ""
+    if carte["enchainement"]:
+        enchainement = f'<div class="pair"><span class="arrow">→</span>{t(carte["enchainement"], lang)}</div>'
+    grande_icone = carte["icone"].replace('aria-hidden="true"', "")
+    etape = ('<svg class="step" viewBox="0 0 76 64" preserveAspectRatio="none">'
+             '<path d="M0 0C40 0 36 64 76 64H0Z" fill="currentColor"/></svg>')
+
+    return f'''<!DOCTYPE html>
+<html lang="{lang}"><head><meta charset="UTF-8"><style>
+{_font_face()}
+*{{margin:0;padding:0;box-sizing:border-box}}
+html,body{{width:{WIDTH}px;height:{HEIGHT}px}}
+body{{
+  background:{c['frame']};color:{c['ink']};
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+  padding:18px;display:flex;flex-direction:column;overflow:hidden;
+}}
+.notch{{display:flex;align-items:flex-end;height:64px;margin-bottom:-1px;position:relative;z-index:2}}
+.tab{{background:{c['panel']};height:64px;border-radius:26px 0 0 0;display:flex;align-items:center;padding:0 8px 0 36px}}
+.logo{{font-size:23px;font-weight:600;letter-spacing:-.4px;color:#fff}}
+.logo em{{color:{c['accent-ink']};font-style:normal}}
+.step{{width:76px;height:64px;color:{c['panel']};margin-left:-1px;display:block}}
+.band{{flex:1;height:64px;align-self:flex-start;display:flex;align-items:center;justify-content:flex-end;gap:22px;padding-right:8px}}
+.live{{display:flex;align-items:center;gap:9px;color:{c['status']};font-size:17px;font-weight:500}}
+.dot{{width:9px;height:9px;border-radius:50%;background:{c['status']}}}
+.url{{font-size:22px;font-weight:600;color:{c['frame-ink']};letter-spacing:-.3px}}
+.panel{{
+  flex:1;background:{c['panel']};border-radius:0 26px 26px 26px;position:relative;z-index:1;
+  display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:44px;padding:44px 40px 40px 52px;
+}}
+.left{{display:flex;flex-direction:column;justify-content:space-between}}
+.meta{{display:flex;flex-wrap:wrap;align-items:center;gap:10px}}
+.chip{{
+  display:inline-flex;align-items:center;gap:9px;border:1px solid {c['line']};border-radius:999px;
+  padding:6px 15px;font-size:15px;font-weight:500;letter-spacing:.06em;color:{c['ink-2']};
+}}
+.chip.norms::before{{content:'';width:7px;height:7px;border-radius:50%;background:{c['accent-ink']}}}
+.chip.ia{{text-transform:uppercase;font-size:13px;letter-spacing:.09em}}
+h1{{
+  font-family:"Archivo",sans-serif;font-weight:600;text-transform:uppercase;font-stretch:112%;
+  font-size:64px;line-height:.95;letter-spacing:-.015em;color:{c['ink']};margin-top:26px;white-space:nowrap;
+}}
+h1 em{{color:{c['accent-ink']};font-style:normal}}
+.phrase{{font-size:28px;line-height:1.3;color:{c['ink']};margin-top:20px;text-wrap:balance}}
+.pair{{display:flex;gap:10px;font-size:18px;color:{c['ink-2']};margin-top:16px}}
+.pair .arrow{{color:{c['accent-ink']}}}
+.cta{{
+  align-self:flex-start;display:inline-flex;align-items:center;gap:12px;background:{c['accent']};
+  color:{c['on-accent']};font-size:20px;font-weight:600;padding:14px 26px;border-radius:999px;
+}}
+.tile{{
+  position:relative;overflow:hidden;isolation:isolate;border-radius:22px;background:{c[carte['teinte']]};
+  display:grid;place-items:center;
+}}
+/* Les tracés de circuit imprimé de l'accueil, lus dans home.css. */
+.tile::before{{
+  content:'';position:absolute;inset:-40%;z-index:-1;background:{c['accent']};filter:brightness(.36);
+  -webkit-mask:{c['traces']} 0 0/180px 180px repeat;transform:rotate(-14deg);
+}}
+.big{{
+  width:188px;height:188px;border-radius:50%;display:grid;place-items:center;color:{c['tile-ink']};
+  background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.2);
+}}
+.big svg{{width:92px;height:92px;stroke-width:1.6}}
+</style></head><body>
+
+  <div class="notch">
+    <div class="tab"><div class="logo">Dhafer <em>Bouthelja</em></div></div>
+    {etape}
+    <div class="band">
+      <div class="live"><span class="dot"></span>{t("home.status.live", lang)}</div>
+      <div class="url">qualitycrew.fr</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="left">
+      <div>
+        <div class="meta"><span class="chip norms">{carte['normes']}</span><span class="chip ia">{t(carte['ia'], lang)}</span></div>
+        <h1>{debut}<em>{fin}</em></h1>
+        <div class="phrase">{t(carte['phrase'], lang)}</div>
+        {enchainement}
+      </div>
+      <div class="cta">{t(carte['bouton'], lang)} <span>→</span></div>
+    </div>
+    <div class="tile"><span class="big">{grande_icone}</span></div>
+  </div>
+
+</body></html>'''
+
+
+def build_tool(carte: dict, lang: str) -> Path:
+    # Même nom que celui que choisit api.render.og_image_for — le test
+    # test_each_tool_page_shares_its_own_card vérifie que les deux s'accordent.
+    return _capture(tool_template(carte, lang), _SITE / f"og-{carte['chemin'].strip('/')}-{lang}.png")
+
+
 def main() -> int:
-    for lang in ("fr", "en"):
-        fichier = build(lang)
-        taille = fichier.stat().st_size
-        print(f"{fichier.relative_to(_ROOT)} — {taille // 1024} Ko")
+    fichiers = [build(lang) for lang in ("fr", "en")]
+    fichiers += [build_tool(carte, lang) for carte in cartes_accueil() for lang in ("fr", "en")]
+    for fichier in fichiers:
+        print(f"{fichier.relative_to(_ROOT)} — {fichier.stat().st_size // 1024} Ko")
     return 0
 
 
