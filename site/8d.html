@@ -6,20 +6,31 @@
   <meta name="description" data-i18n-content="ct.meta" content="Résolution de réclamation 8D avec analyse causale : l'outil refuse d'appeler « résolu » un dossier qui ne l'est pas, et dit où il pèche.">
   <title data-i18n="ct.title">CauseTrace — Résolution de réclamation 8D</title>
   <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/home.css">
+  <link rel="preload" href="/static/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
 </head>
-<body>
-<div class="container">
+<body class="home tool-page">
+<div class="h-shell">
 
-  <nav>
-    <a class="nav-back" href="/">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-      <span data-i18n="nav.back">Tous les outils</span>
-    </a>
-    <div class="nav-end">
-      <a class="nav-link nav-lang" href="/en/8d" hreflang="en" title="English version">EN</a>
-      <!-- menu -->
+  <!-- Cadre à crans : l'onglet porte le retour aux outils, la bande la langue et le menu. -->
+  <nav class="h-notch">
+    <div class="h-tab">
+      <a class="nav-back" href="/">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span data-i18n="nav.back">Tous les outils</span>
+      </a>
+    </div>
+    <svg class="h-step" viewBox="0 0 72 64" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0C38 0 34 64 72 64H0Z" fill="currentColor"/></svg>
+    <div class="h-band">
+      <div class="nav-end">
+        <a class="nav-link nav-lang" href="/en/8d" hreflang="en" title="English version">EN</a>
+        <!-- menu -->
+      </div>
     </div>
   </nav>
+
+  <div class="h-panel t-panel">
+  <div class="container">
 
   <section class="hero">
     <div class="badge badge-blue">
@@ -79,6 +90,9 @@
       <a class="nav-link" href="/" data-i18n="footer.tools">Tous les outils</a>
     </div>
   </footer>
+  </div>
+  </div>
+
 </div>
 
 <script src="/i18n/fr.js"></script>

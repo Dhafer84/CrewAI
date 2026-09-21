@@ -2108,7 +2108,7 @@ def test_every_declared_colour_pair_clears_the_floor():
 # Accents employés comme couleur de TEXTE. `--bg` en est exclu : c'est une
 # couleur de réserve, posée sur un accent — sa paire est vérifiée par
 # `test_every_declared_colour_pair_clears_the_floor`, qui la voit vraiment.
-_ACCENTS = ("green", "amber", "red", "blue", "coral", "purple")
+_ACCENTS = ("accent", "green", "amber", "red", "blue", "coral", "purple")
 
 
 def test_accent_colours_are_readable_where_they_land():
@@ -2180,6 +2180,58 @@ def test_no_opacity_fades_readable_text():
         "reculer (fond plus sombre) plutôt que faner ; sinon inscrivez-le dans "
         f"_OPACITES_ADMISES avec sa raison : {inconnues}")
 
+
+# Les SEULS usages du vert : des statuts. Toute autre règle en --green* fait
+# échouer `test_green_means_status_only` — c'est le seul moyen d'obliger à se
+# demander si ce nouvel élément dit « c'est bon » ou s'il porte la couleur du site.
+_VERTS_ADMIS = {
+    ".stat-val.green",            # 12/12 défauts trouvés : un résultat atteint
+    ".caps-state",                # « IA disponible »
+    ".treatment-state.is-ok",     # traitement complet
+    ".bridge-yes .bridge-mark",   # « ✓ la sévérité traverse le pont »
+    ".dot-done", ".status-done",  # agent terminé
+    ".tier-officiel",             # source de palier officiel
+    ".sig-pub",                   # signal : publication
+    ".warn-box.is-ok",            # encadré « tout est en ordre »
+}
+
+
+def test_green_means_status_only():
+    """⚠️ Le vert a longtemps été AUSSI la couleur du site.
+
+    Liens, bouton principal, badges, pont HARA → TARA : tout était vert, comme
+    « terminé » et « conforme ». Un lien vert disait « c'est bon » là où il ne
+    disait rien. Depuis le 21/09/2026 la couleur du site est --accent (indigo),
+    et le vert ne marque plus que des statuts.
+
+    Même garde que `test_no_opacity_fades_readable_text` : il ne juge rien, il
+    oblige à inscrire toute nouvelle règle verte dans `_VERTS_ADMIS`, avec sa
+    raison — donc à se poser la question.
+    """
+    css = re.sub(r"/\*.*?\*/", "", _STYLE.read_text(encoding="utf-8"), flags=re.S)
+    intrus = []
+    for selecteur, corps in re.findall(r"([^{}]+)\{([^{}]*)\}", css):
+        if "var(--green" not in corps:
+            continue
+        for part in selecteur.split(","):
+            part = " ".join(part.split())
+            if part and not part.startswith("@") and part != ":root" and part not in _VERTS_ADMIS:
+                intrus.append(part)
+    assert not intrus, ("vert hors statut — couleur du site ? passer à --accent ; "
+                        f"vrai statut ? l'inscrire dans _VERTS_ADMIS : {intrus}")
+
+
+def test_a_why_row_wraps_on_a_narrow_screen():
+    """⚠️ Mesuré à 320 px, exemple 8D chargé : la ligne d'un pourquoi débordait.
+
+    Numéro, champ, nature et bouton de suppression ne tenaient pas sur une
+    ligne — le bouton sortait de 3 px de l'écran. Présent depuis la création
+    de la page : les contrôles à 320 px ne chargeaient pas l'exemple.
+    """
+    css = _STYLE.read_text(encoding="utf-8")
+    etroit = re.search(r"@media\s*\(max-width:\s*(\d+)px\)\s*\{[^{}]*\.why-row\{flex-wrap:wrap\}", css)
+    assert etroit, "la ligne d'un pourquoi doit pouvoir passer à la ligne sur petit écran"
+    assert int(etroit.group(1)) >= _ECRAN_LE_PLUS_ETROIT, "le seuil ne couvre pas 320 px"
 
 def test_a_locked_discipline_is_never_dimmed_by_opacity():
     """⚠️ `opacity` sur une carte multiplie le contraste de TOUT son contenu.
@@ -2502,21 +2554,32 @@ def test_the_home_palette_clears_the_contrast_floor():
     assert not fautes, "paires de l'accueil sous le plancher : " + " · ".join(fautes)
 
 
-# Les pages « vitrine » en cadre à crans : l'accueil, puis À propos (21/09/2026).
+# Les pages « vitrine » : accueil et À propos. Les six autres sont des outils.
 _PAGES_VITRINE = {"index.html", "about.html"}
 
 
-def test_home_css_is_loaded_by_the_showcase_pages_only():
-    """Les pages d'outils ne reçoivent pas une ligne d'indigo.
+def test_every_page_sits_in_the_frame():
+    """Les huit pages vivent dans le même cadre à crans (refonte du 21/09/2026).
 
-    La refonte ne devait toucher que les pages vitrine. Une page d'outil qui
-    chargerait home.css par copier-coller hériterait de ses règles non
-    préfixées (`.tool-head`, `.status-live`…) sans que rien ne le signale.
+    Accueil, puis À propos, puis les six outils : une page restée hors du cadre
+    serait la seule verte du site, et rien d'autre ne le signalerait. Les pages
+    d'outils portent en plus `tool-page` — les règles qui leur sont propres
+    (titre plus étroit, marge du panneau sur téléphone) en dépendent — et
+    gardent leur lien « ← Tous les outils », dans l'onglet.
     """
     for page in sorted((_ROOT / "site").glob("*.html")):
-        charge = "/static/home.css" in page.read_text(encoding="utf-8")
-        assert charge == (page.name in _PAGES_VITRINE), (
-            f"{page.name} {'charge' if charge else 'ne charge pas'} home.css")
+        texte = page.read_text(encoding="utf-8")
+        assert "/static/home.css" in texte, f"{page.name} ne charge pas le cadre (home.css)"
+        assert '<nav class="h-notch">' in texte, f"{page.name} : la barre n'est pas dans le cran"
+        assert "h-panel" in texte, f"{page.name} : aucun panneau"
+        corps = re.search(r'<body class="([^"]+)">', texte)
+        assert corps and "home" in corps.group(1).split(), f"{page.name} : classe de page absente"
+        outil = page.name not in _PAGES_VITRINE
+        assert ("tool-page" in corps.group(1).split()) == outil, (
+            f"{page.name} : `tool-page` {'manquante' if outil else 'en trop'}")
+        if outil:
+            assert re.search(r'<div class="h-tab">\s*<a class="nav-back"', texte), (
+                f"{page.name} : le retour aux outils doit rester, dans l'onglet")
 
 
 # Textes identiques sur `/` et `/en` parce qu'ils ne se traduisent pas : noms

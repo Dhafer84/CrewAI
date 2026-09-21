@@ -1,20 +1,34 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 :root{
-  --bg:#0f1117;
-  --bg-card:#161920;
-  --bg-card-hover:#1c1f28;
-  --border:#2a2d35;
-  --border-sub:#1e2128;
-  --text:#e8e9eb;
+  /* Neutres teintés indigo depuis le 21/09/2026 — le site entier est en cadre à
+     crans indigo ; --bg est le panneau des pages vitrine (--h-panel). */
+  --bg:#0e1017;
+  --bg-card:#151826;
+  --bg-card-hover:#1b1f31;
+  --border:#2a2f45;
+  --border-sub:#1e2233;
+  /* Fond « enfoncé » : champs, cellules vides, code. Était var(--bg-sunk) écrit en dur
+     onze fois ; en jeton, le test de contraste le couvre. */
+  --bg-sunk:#0b0d14;
+  --text:#e8ebf6;
   /* Contraste vérifié : ces deux tons franchissent 4,5:1 sur TOUS les fonds
      déclarés ici, y compris --green-bg qui est le plus clair de la palette.
      Les rabaisser rend illisible tout ce qui n'est pas une valeur saisie. */
-  --text-muted:#a0a6b0;
-  --text-dim:#8e939c;
+  --text-muted:#a2a9c2;
+  --text-dim:#9198b5;
+  /* ⚠️ Le vert est la couleur des STATUTS, et d'eux seuls : terminé, conforme,
+     disponible, source officielle, « ✓ traverse ». Il a longtemps servi AUSSI
+     de couleur du site ; depuis le 21/09/2026 c'est --accent, l'indigo. Un lien
+     ou un bouton en --green dirait « c'est bon » là où il ne dit rien. */
   --green:#5dcaa5;
   --green-bg:#1a2e24;
   --green-border:#1d9e75;
+  /* La couleur du site : liens, bouton principal, badges, pont HARA → TARA. */
+  --accent:#aab7ff;
+  --accent-bg:#1c2140;
+  --accent-border:#9eacfe;
+  --accent-hover:#b3bffe;
   --amber:#ef9f27;
   --amber-bg:#2a2010;
   /* Éclairci depuis #e24b4a : il tombait à 4,25:1 sur --red-bg (badges ASIL D et
@@ -38,7 +52,7 @@
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;line-height:1.6;min-height:100vh}
 
-a{color:var(--green);text-decoration:none}
+a{color:var(--accent);text-decoration:none}
 a:hover{text-decoration:underline}
 
 /* NAV */
@@ -46,7 +60,7 @@ a:hover{text-decoration:underline}
    qu'elle remplace ; la barre garde ainsi sa hauteur d'avant, à 1 px près. */
 nav{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:0.5px solid var(--border);margin-bottom:0}
 .logo{font-size:15px;font-weight:600;letter-spacing:-0.3px;color:#fff}
-.logo em{color:var(--green);font-style:normal}
+.logo em{color:var(--accent);font-style:normal}
 .nav-link{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-muted)}
 .nav-link:hover{color:var(--text);text-decoration:none}
 .nav-link svg{width:16px;height:16px}
@@ -72,7 +86,7 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:16px 0
 .nav-toggle>span{grid-area:1/1;transition:transform .3s cubic-bezier(.22,1,.36,1),visibility .3s}
 .nav-toggle-close,.nav-menu.is-open .nav-toggle-open{visibility:hidden;transform:translateY(6px)}
 .nav-menu.is-open .nav-toggle-close{visibility:visible;transform:none}
-.nav-toggle:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+.nav-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .nav-card{position:absolute;top:40px;right:0;padding:2px 24px 20px;visibility:hidden;transition:visibility 0s .5s}
 .nav-menu.is-open .nav-card{visibility:visible;transition-delay:0s}
 .nav-in{transform:translateY(10px);transition:transform .45s cubic-bezier(.22,1,.36,1)}
@@ -85,13 +99,13 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:16px 0
 .nav-tools a::before{content:"";flex:none;align-self:center;width:0;height:2px;margin-right:-10px;background:currentColor;
   transition:width .25s cubic-bezier(.22,1,.36,1),margin .25s cubic-bezier(.22,1,.36,1)}
 .nav-tools a:hover::before,.nav-tools a:focus-visible::before,.nav-tools a[aria-current="page"]::before{width:14px;margin-right:0}
-.nav-tools a[aria-current="page"]{color:var(--green)}
+.nav-tools a[aria-current="page"]{color:var(--accent)}
 .nav-tools:is(:hover,:has(a:focus-visible)) a:not(:hover):not(:focus-visible){color:var(--text-dim)}
 .nav-tag{margin-left:auto;font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
 .nav-sep{height:1px;background:var(--border);margin:14px 0 10px}
 .nav-more{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:2px 16px}
 .nav-more a{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;color:var(--text);padding:3px 0}
-.nav-more a[aria-current="page"]{color:var(--green)}
+.nav-more a[aria-current="page"]{color:var(--accent)}
 .nav-more svg{width:14px;height:14px;flex:none}
 .nav-more .nav-ext{width:11px;height:11px;color:var(--text-dim)}
 /* Bleu LinkedIn éclairci : l'officiel (#0a66c2) tombe à ~3,3:1 sur ce fond
@@ -110,21 +124,22 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:16px 0
 
 /* HERO */
 .hero{padding:64px 0 48px}
-.badge{display:inline-flex;align-items:center;gap:6px;background:var(--green-bg);border:0.5px solid var(--green-border);color:var(--green);font-size:12px;font-weight:500;padding:5px 12px;border-radius:20px;margin-bottom:24px}
+.badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent-bg);border:0.5px solid var(--accent-border);color:var(--accent);font-size:12px;font-weight:500;padding:5px 12px;border-radius:20px;margin-bottom:24px}
 .badge svg{width:13px;height:13px}
 h1{font-size:38px;font-weight:600;line-height:1.15;letter-spacing:-0.8px;color:#fff;margin-bottom:16px}
-h1 em{color:var(--green);font-style:normal}
+h1 em{color:var(--accent);font-style:normal}
 .subtitle{font-size:16px;color:var(--text-muted);line-height:1.65;max-width:560px;margin-bottom:32px}
 .hero-actions{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;padding:10px 20px;border-radius:var(--radius);border:none;cursor:pointer;transition:opacity .15s}
 .btn:disabled{opacity:.5;cursor:not-allowed}
-/* Texte SOMBRE sur le vert, pas blanc : #fff sur --green-border ne donnait que
-   3,39:1, et 2,53:1 au survol — le survol éclaircit le fond, donc dégradait un
-   contraste déjà insuffisant. En inversant, le survol l'améliore (5,57 -> 7,44). */
-.btn-primary{background:var(--green-border);color:var(--bg)}
-.btn-primary:hover:not(:disabled){background:#25b887}
+/* Texte SOMBRE sur l'accent, jamais blanc. Historique : #fff sur l'ancien vert ne
+   donnait que 3,39:1, et 2,53:1 au survol — le survol éclaircissait le fond, donc
+   dégradait un contraste déjà insuffisant. En indigo (21/09/2026) : 8,85:1 au
+   repos, 10,68:1 au survol, qui l'améliore toujours. */
+.btn-primary{background:var(--accent-border);color:var(--bg)}
+.btn-primary:hover:not(:disabled){background:var(--accent-hover)}
 .btn-ghost{background:transparent;color:var(--text-muted);border:0.5px solid var(--border)}
 .btn-ghost:hover:not(:disabled){color:var(--text);border-color:var(--text-dim)}
 .btn svg{width:16px;height:16px;flex-shrink:0}
@@ -162,7 +177,7 @@ h1 em{color:var(--green);font-style:normal}
 .scan-form{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 .kw-input{flex:1;min-width:220px;background:var(--bg-card);border:0.5px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:inherit;font-size:14px;padding:10px 14px}
 .kw-input::placeholder{color:var(--text-dim)}
-.kw-input:focus{outline:none;border-color:var(--green-border)}
+.kw-input:focus{outline:none;border-color:var(--accent-border)}
 .form-hint{font-size:12px;color:var(--text-dim);margin-bottom:44px;line-height:1.6}
 .form-hint.error{color:var(--red)}
 
@@ -213,15 +228,15 @@ h1 em{color:var(--green);font-style:normal}
 .event-rating{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end;margin-top:12px}
 .rating{display:flex;flex-direction:column;gap:5px;min-width:0}
 .rating-label{font-size:11.5px;font-weight:600;letter-spacing:.2px;color:var(--text-dim)}
-.rating-select{background:#0d1014;border:0.5px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit;font-size:12px;padding:7px 9px;width:100%;cursor:pointer}
+.rating-select{background:var(--bg-sunk);border:0.5px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit;font-size:12px;padding:7px 9px;width:100%;cursor:pointer}
 .rating-select:focus{outline:none;border-color:var(--purple)}
 .rating-result{display:flex;flex-direction:column;gap:5px;align-items:flex-start}
 
 /* Badges ASIL — échelle croissante de criticité */
 .asil-badge{display:inline-flex;align-items:center;justify-content:center;min-width:44px;padding:6px 12px;border-radius:6px;font-size:14px;font-weight:600;letter-spacing:.4px}
 .asil-badge.badge-sm{min-width:30px;padding:2px 7px;font-size:11px}
-.asil-none{background:#0d1014;border:0.5px solid var(--border);color:var(--text-dim)}
-.asil-qm{background:#1a1d24;border:0.5px solid var(--border);color:var(--text-muted)}
+.asil-none{background:var(--bg-sunk);border:0.5px solid var(--border);color:var(--text-dim)}
+.asil-qm{background:var(--bg-card-hover);border:0.5px solid var(--border);color:var(--text-muted)}
 .asil-a{background:var(--blue-bg);border:0.5px solid var(--blue);color:var(--blue)}
 .asil-b{background:var(--amber-bg);border:0.5px solid var(--amber);color:var(--amber)}
 .asil-c{background:var(--coral-bg);border:0.5px solid var(--coral);color:var(--coral)}
@@ -256,7 +271,7 @@ h1 em{color:var(--green);font-style:normal}
    .impact-proposal.is-applied. `has-value` reste la charnière, elle ne porte
    simplement plus d'opacité. */
 .spread-cell{display:flex;align-items:center;gap:6px}
-.spread-cell:not(.has-value) .badge-sm{background:#0d1014;border-color:var(--border);color:var(--text-dim)}
+.spread-cell:not(.has-value) .badge-sm{background:var(--bg-sunk);border-color:var(--border);color:var(--text-dim)}
 .spread-cell:not(.has-value) .spread-count{color:var(--text-dim)}
 .spread-count{font-size:14px;font-weight:600;color:var(--text)}
 
@@ -278,12 +293,12 @@ h1 em{color:var(--green);font-style:normal}
 .damage-num{font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--text-dim)}
 
 .impact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;align-items:end;margin-top:12px}
-.impact-badge{display:inline-flex;align-items:center;justify-content:center;min-width:92px;padding:6px 12px;border-radius:6px;font-size:12.5px;font-weight:600;background:#0d1014;border:0.5px solid var(--border);color:var(--text-dim);text-align:center}
+.impact-badge{display:inline-flex;align-items:center;justify-content:center;min-width:92px;padding:6px 12px;border-radius:6px;font-size:12.5px;font-weight:600;background:var(--bg-sunk);border:0.5px solid var(--border);color:var(--text-dim);text-align:center}
 .impact-badge.has-value{background:var(--purple-bg);border-color:var(--purple);color:var(--purple)}
 
 .threats{margin-top:18px;padding-left:14px;border-left:2px solid var(--border)}
 .threats-label{font-size:10.5px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px}
-.threat-card{background:#0d1014;border:0.5px solid var(--border-sub);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px}
+.threat-card{background:var(--bg-sunk);border:0.5px solid var(--border-sub);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px}
 .threat-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px}
 .threat-num{font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--text-dim)}
 /* Pleine largeur et empilés : .kw-input est en flex/inline-block, sans ça
@@ -298,8 +313,8 @@ h1 em{color:var(--green);font-style:normal}
 
 .risk-badge{display:inline-flex;align-items:center;justify-content:center;min-width:34px;padding:5px 11px;border-radius:6px;font-size:14px;font-weight:600;letter-spacing:.4px}
 .risk-badge.badge-sm{min-width:26px;padding:2px 7px;font-size:11px}
-.risk-none{background:#0d1014;border:0.5px solid var(--border);color:var(--text-dim)}
-.risk-1{background:#1a1d24;border:0.5px solid var(--border);color:var(--text-muted)}
+.risk-none{background:var(--bg-sunk);border:0.5px solid var(--border);color:var(--text-dim)}
+.risk-1{background:var(--bg-card-hover);border:0.5px solid var(--border);color:var(--text-muted)}
 .risk-2{background:var(--blue-bg);border:0.5px solid var(--blue);color:var(--blue)}
 .risk-3{background:var(--amber-bg);border:0.5px solid var(--amber);color:var(--amber)}
 .risk-4{background:var(--coral-bg);border:0.5px solid var(--coral);color:var(--coral)}
@@ -362,11 +377,11 @@ h1 em{color:var(--green);font-style:normal}
 .treatment-hint{font-size:11.5px;color:var(--text-dim);line-height:1.55;margin-top:7px}
 .treatment-input{width:100%;margin-top:8px;font-size:12.5px}
 .treatment-input[hidden]{display:none}
-.treatment-input.is-goal{border-color:var(--green-border)}
+.treatment-input.is-goal{border-color:var(--accent-border)}
 .threat-card .treatment.is-incomplete .treatment-head .rating-label{color:var(--amber)}
 
-.goal{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:baseline;background:var(--bg-card);border:0.5px solid var(--border);border-left:2px solid var(--green-border);border-radius:var(--radius);padding:11px 14px;margin-bottom:8px}
-.goal-ref{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;font-weight:600;color:var(--green)}
+.goal{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:baseline;background:var(--bg-card);border:0.5px solid var(--border);border-left:2px solid var(--accent-border);border-radius:var(--radius);padding:11px 14px;margin-bottom:8px}
+.goal-ref{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;font-weight:600;color:var(--accent)}
 .goal-text{font-size:13px;color:var(--text);line-height:1.55}
 .goal-src{font-size:11px;color:var(--text-dim);white-space:nowrap}
 .treatment-note.is-todo{color:var(--amber)}
@@ -382,9 +397,9 @@ h1 em{color:var(--green);font-style:normal}
    à l'endroit où elle s'applique. */
 
 /* Côté /hara : l'appel à poursuivre. Toujours visible, même sans cotation. */
-.handoff{display:flex;align-items:center;gap:20px;flex-wrap:wrap;background:var(--bg-card);border:0.5px solid var(--green-border);border-radius:var(--radius-lg);padding:20px 22px;margin-bottom:40px}
+.handoff{display:flex;align-items:center;gap:20px;flex-wrap:wrap;background:var(--bg-card);border:0.5px solid var(--accent-border);border-radius:var(--radius-lg);padding:20px 22px;margin-bottom:40px}
 .handoff-text{flex:1;min-width:260px}
-.handoff-title{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--green);margin-bottom:8px}
+.handoff-title{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--accent);margin-bottom:8px}
 .handoff-title svg{width:15px;height:15px}
 .handoff-text p{font-size:12.5px;color:var(--text-muted);line-height:1.65;margin-bottom:8px}
 .handoff-rule{color:var(--text-dim)!important}
@@ -392,9 +407,9 @@ h1 em{color:var(--green);font-style:normal}
 .handoff .btn-primary:disabled{opacity:.4;cursor:not-allowed}
 
 /* Côté /tara : le bandeau de reprise. */
-.bridge-banner{background:var(--green-bg);border:0.5px solid var(--green-border);border-radius:var(--radius-lg);padding:18px 22px;margin-bottom:20px}
+.bridge-banner{background:var(--accent-bg);border:0.5px solid var(--accent-border);border-radius:var(--radius-lg);padding:18px 22px;margin-bottom:20px}
 .bridge-banner[hidden]{display:none}
-.bridge-head{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:var(--green)}
+.bridge-head{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:var(--accent)}
 .bridge-head svg{width:15px;height:15px;flex-shrink:0}
 .bridge-sub{font-size:12.5px;color:var(--text-muted);line-height:1.65;margin-top:8px}
 .bridge-rule{margin-top:14px;padding-top:14px;border-top:0.5px solid rgba(29,158,117,.35)}
@@ -409,28 +424,28 @@ h1 em{color:var(--green);font-style:normal}
 .bridge-absent[hidden]{display:none}
 
 /* Bandeau de brouillon restauré (SafetyScope). */
-.draft-banner{background:var(--green-bg);border:0.5px solid var(--green-border);border-radius:var(--radius);padding:14px 18px;margin-bottom:24px;font-size:12.5px;color:var(--text-muted);line-height:1.65}
+.draft-banner{background:var(--accent-bg);border:0.5px solid var(--accent-border);border-radius:var(--radius);padding:14px 18px;margin-bottom:24px;font-size:12.5px;color:var(--text-muted);line-height:1.65}
 .draft-banner[hidden]{display:none}
 .draft-banner .bridge-clear{display:block;margin-top:8px}
 .bridge-absent{margin-bottom:32px}
 
 /* Une carte issue d'une reprise se distingue d'une saisie manuelle. */
-.damage-card.is-from-hara{border-left:2px solid var(--green-border)}
-.damage-origin{font-size:11px;color:var(--green);margin-bottom:10px}
-.impact-proposal{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;padding:9px 12px;background:var(--green-bg);border:0.5px solid rgba(29,158,117,.4);border-radius:6px;font-size:12px;color:var(--text-muted)}
+.damage-card.is-from-hara{border-left:2px solid var(--accent-border)}
+.damage-origin{font-size:11px;color:var(--accent);margin-bottom:10px}
+.impact-proposal{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;padding:9px 12px;background:var(--accent-bg);border:0.5px solid rgba(158,172,254,.4);border-radius:6px;font-size:12px;color:var(--text-muted)}
 /* Même règle que .d-card.is-locked : pas d'`opacity` sur un bloc qui porte du
    texte encore utile. Cette ligne dit d'où vient la sévérité (« S3 en HARA ») —
    une traçabilité qu'on lit APRÈS l'avoir appliquée. Elle perd son vert au lieu
    de sa lisibilité : 2,74:1 -> 5,41:1. */
 .impact-proposal.is-applied{background:var(--bg-card);border-color:var(--border-sub);color:var(--text-dim)}
-.btn-apply{background:var(--green-bg);border:0.5px solid var(--green-border);color:var(--green);border-radius:5px;font-family:inherit;font-size:11.5px;font-weight:500;padding:4px 11px;cursor:pointer;white-space:nowrap}
-.btn-apply:hover{background:#1d3b30}
+.btn-apply{background:var(--accent-bg);border:0.5px solid var(--accent-border);color:var(--accent);border-radius:5px;font-family:inherit;font-size:11.5px;font-weight:500;padding:4px 11px;cursor:pointer;white-space:nowrap}
+.btn-apply:hover{background:#242a4d}
 .impact-proposal.is-applied .btn-apply{cursor:default;background:transparent;border-color:var(--border-sub);color:var(--text-dim)}
 .impact-proposal.is-applied .btn-apply:hover{background:transparent}
 
 /* Téléchargement du rapport */
-.btn-download{display:inline-flex;align-items:center;gap:6px;margin-left:auto;font-size:12px;font-weight:500;color:var(--green);background:var(--green-bg);border:0.5px solid var(--green-border);border-radius:6px;padding:5px 11px;white-space:nowrap}
-.btn-download:hover{background:#1d3b30;text-decoration:none}
+.btn-download{display:inline-flex;align-items:center;gap:6px;margin-left:auto;font-size:12px;font-weight:500;color:var(--accent);background:var(--accent-bg);border:0.5px solid var(--accent-border);border-radius:6px;padding:5px 11px;white-space:nowrap}
+.btn-download:hover{background:#242a4d;text-decoration:none}
 .btn-download svg{width:14px;height:14px}
 .btn-download[hidden]{display:none}
 
@@ -461,7 +476,7 @@ h1 em{color:var(--green);font-style:normal}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
 
 /* TASK OUTPUT */
-.task-output{display:none;margin:0 20px 14px;padding:10px 14px;background:#0d1014;border-radius:6px;border-left:2px solid var(--border-sub);font-size:12px;color:var(--text-muted);line-height:1.6;max-height:220px;overflow-y:auto}
+.task-output{display:none;margin:0 20px 14px;padding:10px 14px;background:var(--bg-sunk);border-radius:6px;border-left:2px solid var(--border-sub);font-size:12px;color:var(--text-muted);line-height:1.6;max-height:220px;overflow-y:auto}
 .task-output.visible{display:block}
 .task-output p{margin-bottom:8px}
 .task-output p:last-child{margin-bottom:0}
@@ -474,7 +489,7 @@ h1 em{color:var(--green);font-style:normal}
 .task-output th{text-align:left;color:var(--text-dim);font-weight:500;padding:4px 6px;border-bottom:0.5px solid var(--border)}
 .task-output td{padding:5px 6px;border-bottom:0.5px solid var(--border-sub);vertical-align:top}
 .task-output tr:last-child td{border-bottom:none}
-.task-output code{font-family:monospace;font-size:10.5px;background:#000;color:var(--green);padding:1px 4px;border-radius:3px}
+.task-output code{font-family:monospace;font-size:10.5px;background:var(--bg-sunk);color:var(--accent);padding:1px 4px;border-radius:3px}
 
 /* ─── BONHOMMES ANIMÉS ─── */
 
@@ -581,7 +596,7 @@ h1 em{color:var(--green);font-style:normal}
 .report-body th{text-align:left;color:var(--text-dim);font-weight:500;padding:6px 10px;border-bottom:0.5px solid var(--border)}
 .report-body td{padding:8px 10px;border-bottom:0.5px solid var(--border-sub);color:var(--text-muted);vertical-align:top}
 .report-body tr:last-child td{border-bottom:none}
-.report-body code{font-family:monospace;font-size:11px;background:#0d1014;color:var(--green);padding:1px 5px;border-radius:3px}
+.report-body code{font-family:monospace;font-size:11px;background:var(--bg-sunk);color:var(--accent);padding:1px 5px;border-radius:3px}
 
 /* FOOTER */
 footer{border-top:0.5px solid var(--border);padding:24px 0;margin-top:0}
@@ -600,9 +615,9 @@ footer{border-top:0.5px solid var(--border);padding:24px 0;margin-top:0}
 .norm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:18px}
 .norm-card{background:var(--bg-card);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px 16px;cursor:pointer;display:block;transition:border-color .15s,background .15s}
 .norm-card:hover{background:var(--bg-card-hover)}
-.norm-card.is-on{border-color:var(--green-border);background:var(--green-bg)}
+.norm-card.is-on{border-color:var(--accent-border);background:var(--accent-bg)}
 .norm-head{display:flex;align-items:flex-start;gap:9px}
-.norm-head input{margin-top:3px;accent-color:var(--green);cursor:pointer;flex-shrink:0}
+.norm-head input{margin-top:3px;accent-color:var(--accent);cursor:pointer;flex-shrink:0}
 .norm-name{font-size:13.5px;font-weight:600;color:#fff;line-height:1.35}
 .norm-src{margin-top:9px;display:flex;flex-wrap:wrap;gap:5px}
 
@@ -626,7 +641,7 @@ footer{border-top:0.5px solid var(--border);padding:24px 0;margin-top:0}
 .filters{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px}
 .filter-chip{font-size:12px;color:var(--text-muted);background:var(--bg-card);border:0.5px solid var(--border);border-radius:20px;padding:5px 13px;cursor:pointer}
 .filter-chip:hover{color:var(--text)}
-.filter-chip.is-on{color:var(--bg);background:var(--green);border-color:var(--green);font-weight:600}
+.filter-chip.is-on{color:var(--bg);background:var(--accent);border-color:var(--accent);font-weight:600}
 
 /* Sections et lignes de signaux */
 .norm-section{margin-bottom:28px}
@@ -639,14 +654,14 @@ footer{border-top:0.5px solid var(--border);padding:24px 0;margin-top:0}
 .signal-date{font-size:11.5px;color:var(--text-dim);font-variant-numeric:tabular-nums;flex-shrink:0;padding-top:2px;width:78px}
 .signal-body{min-width:0;flex:1}
 .signal-title{font-size:13.5px;color:var(--text);line-height:1.5;display:block;word-break:break-word}
-a.signal-title:hover{color:var(--green)}
+a.signal-title:hover{color:var(--accent)}
 .signal-meta{margin-top:6px;display:flex;flex-wrap:wrap;gap:7px;align-items:center}
 .signal-src{font-size:11.5px;color:var(--text-dim)}
 .sig-badge{font-size:10.5px;font-weight:600;border-radius:4px;padding:2px 7px;white-space:nowrap}
 .sig-pub{color:var(--green);background:var(--green-bg)}
 .sig-draft{color:var(--amber);background:var(--amber-bg)}
 .sig-event{color:var(--blue);background:var(--blue-bg)}
-.sig-info{color:var(--text-muted);background:#0d1014}
+.sig-info{color:var(--text-muted);background:var(--bg-sunk)}
 
 /* Catalogue des sources, dépliant */
 .sources-box{border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:0;margin-bottom:40px;overflow:hidden}
@@ -680,17 +695,27 @@ a.signal-title:hover{color:var(--green)}
    compris les valeurs déjà saisies (une discipline peut être remplie puis
    re-verrouillée). La carte s'enfonce — un fond plus sombre dit « inerte » et
    *améliore* la lisibilité au lieu de la détruire. */
-.d-card.is-locked{background:#101319;border-color:var(--border-sub)}
-.d-card.is-locked .kw-input,.d-card.is-locked .rating-select{background:#0d1014;border-color:var(--border-sub)}
+.d-card.is-locked{background:#0f111a;border-color:var(--border-sub)}
+.d-card.is-locked .kw-input,.d-card.is-locked .rating-select{background:var(--bg-sunk);border-color:var(--border-sub)}
 /* Les champs, eux, sont readonly/disabled côté page : le curseur peut donc y
    entrer pour lire et copier. Seuls les boutons restent bloqués ici. */
 .d-card.is-locked button{pointer-events:none}
-.treatment-state.is-locked{background:#0d1014;border:0.5px solid var(--border);color:var(--text-dim)}
+.treatment-state.is-locked{background:var(--bg-sunk);border:0.5px solid var(--border);color:var(--text-dim)}
 .d-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:12px}
 .why-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
 .why-n{font-size:10.5px;font-weight:600;color:var(--text-dim);flex-shrink:0;width:14px}
 .why-row .kw-input{flex:1;min-width:0;font-size:12.5px}
 .why-row .rating-select{flex-shrink:0;max-width:190px;font-size:12px}
+/* ⚠️ Mesuré à 320 px, exemple chargé : le numéro, le champ, la nature et le
+   bouton de suppression ne tenaient pas sur une ligne — le bouton débordait de
+   3 px. Présent depuis la création de la page ; les contrôles à 320 px ne
+   chargeaient pas l'exemple. Sous 480 px, la nature et le bouton passent à la
+   ligne, alignés sous le champ. */
+@media (max-width:480px){
+  .why-row{flex-wrap:wrap}
+  .why-row .kw-input{flex:1 1 calc(100% - 22px)}
+  .why-row .rating-select{flex:1;max-width:none;margin-left:22px}
+}
 .d-gaps{list-style:none;padding:0;margin:12px 0 0;border-top:0.5px solid var(--border);padding-top:10px}
 .d-gaps li{font-size:12px;color:var(--amber);line-height:1.6;padding-left:14px;position:relative}
 .d-gaps li::before{content:"›";position:absolute;left:2px}
@@ -716,7 +741,7 @@ a.signal-title:hover{color:var(--green)}
 .prose ul:last-child{margin-bottom:0}
 .prose li{position:relative;padding-left:18px;margin-bottom:10px}
 .prose li:last-child{margin-bottom:0}
-.prose li::before{content:"›";position:absolute;left:2px;color:var(--green)}
+.prose li::before{content:"›";position:absolute;left:2px;color:var(--accent)}
 .prose-card{max-width:none;background:var(--bg-card);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:24px 26px}
 @media(max-width:600px){
   .prose-card{padding:18px}

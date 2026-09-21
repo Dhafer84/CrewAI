@@ -1,9 +1,10 @@
 /* ============================================================
-   PAGES VITRINE — « cadre à crans », indigo, sombre seulement.
-   Chargée par site/index.html et site/about.html SEULS : les pages d'outils ne
-   reçoivent pas une ligne d'ici, elles gardent style.css et le vert. (Le nom
-   « home » date de l'accueil, première page refaite ; À propos a suivi le
-   21/09/2026. Les règles propres à À propos portent le préfixe a-.)
+   LE CADRE À CRANS — indigo, sombre seulement, sur les HUIT pages.
+   Refonte en trois temps, le 21/09/2026 : l'accueil, puis À propos, puis les six
+   pages d'outils. Le nom « home » date de la première ; la feuille porte
+   aujourd'hui le cadre de tout le site, et les règles propres à chaque famille
+   de pages : accueil (sans préfixe), À propos (a-), pages d'outils (t-,
+   .tool-page). Les couleurs des outils eux-mêmes vivent dans style.css.
 
    Maquette de référence : .claude/prototypes/cadre.html (gitignoré). Palette
    générée par gen.py — même recette de luminosité (OKLCH) que le vert, seule
@@ -265,6 +266,20 @@ body.home{background:var(--h-frame);color:var(--h-ink)}
 .a-contact .h-title{margin:0;overflow-wrap:anywhere}
 .a-contact .h-actions{margin:0}
 
+/* ---------- Pages d'outils (classe tool-page, préfixe t-) ----------
+   L'onglet porte le retour aux outils, la bande la langue et le menu ; tout
+   l'outil vit dans UN panneau, sa colonne de lecture de 860 px intacte.
+   Prototype validé : .claude/prototypes/<outil>/ (build_tools.py). */
+.tool-page .h-tab .nav-back{color:var(--h-ink);font-size:14px;font-weight:500}
+.tool-page .h-tab .nav-back:hover{color:#fff}
+.t-panel{padding:6px 0 10px}
+.t-panel > .container{padding-bottom:30px}
+.tool-page .hero{padding:48px 0 40px}
+/* La capitale large de l'accueil, un cran plus étroite : les noms d'outils sont
+   longs (« SENTINELSCAN ») et doivent tenir à 320 px. body.tool-page pour
+   l'emporter sur `.home h1`, déclaré plus haut. */
+body.tool-page h1{font-stretch:112%;font-size:clamp(28px,4.6vw,54px);margin:14px 0 18px}
+
 /* ---------- Écrans étroits ---------- */
 /* Entre 1024 et 1200 px, la colonne de texte du catalogue (4/12) ne tenait plus
    « CINQ SANS IA. » sur une ligne : le titre passait à trois lignes. */
@@ -284,6 +299,10 @@ body.home{background:var(--h-frame);color:var(--h-ink)}
   .h-caps{padding:26px 30px}
 }
 @media (max-width:640px){
+  /* Le cadre prend 16 px de large sur téléphone : on les rend à l'outil en
+     resserrant sa marge intérieure — sa colonne utile reste de 272 px à 320 px
+     d'écran, comme avant la refonte. */
+  .t-panel > .container{padding-left:16px;padding-right:16px}
   .a-hero{padding:24px 18px 18px 20px}
   .a-prose,.a-doctrine,.a-duo,.a-contact{padding:24px 20px}
   .a-tools{padding:20px}
