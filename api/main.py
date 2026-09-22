@@ -174,6 +174,35 @@ _scan_semaphore = asyncio.Semaphore(1)
 _watch_semaphore = asyncio.Semaphore(1)
 
 
+async def _to_thread_to_the_end(fn, *args):
+    """`asyncio.to_thread`, mais qui ne rend la main qu'à la VRAIE fin du fil.
+
+    ⚠️ Trouvé à l'audit de sécurité du 22/09/2026. Quand le visiteur s'en va,
+    `_sse_response` annule la tâche ; l'annulation remonte jusqu'au
+    `async with _xxx_semaphore` et **libère le verrou** — alors qu'un fil
+    Python ne s'interrompt pas : le travail continue en arrière-plan. Ouvrir
+    puis fermer `/audit/stream` en boucle lançait donc des audits EN PARALLÈLE
+    malgré `Semaphore(1)`, et vidait le quota Groq du jour en quelques secondes
+    (démontré : quatre faux audits simultanés).
+
+    Ici, une annulation attend la fin du fil avant de se propager : le verrou
+    tenu par l'appelant n'est relâché qu'une fois le travail réellement fini.
+    Le résultat, lui, est perdu — personne ne l'attend plus.
+
+    À employer pour tout travail lancé SOUS un sémaphore. Les exports Excel,
+    courts et sans verrou, gardent `asyncio.to_thread`.
+    """
+    travail = asyncio.ensure_future(asyncio.to_thread(fn, *args))
+    try:
+        return await asyncio.shield(travail)
+    except asyncio.CancelledError:
+        try:
+            await travail
+        except Exception:  # noqa: BLE001 — le résultat n'intéresse plus personne
+            pass
+        raise
+
+
 # --------------------------------------------------------------------------
 # Pages
 # --------------------------------------------------------------------------
@@ -416,7 +445,7 @@ async def causetrace_review_stream(request: Request, t: str = ""):
                 require_llm_key()
 
                 await queue.put(json.dumps({"type": "start"}))
-                relecture = await asyncio.to_thread(
+                relecture = await _to_thread_to_the_end(
                     review_discipline,
                     build_dossier(payload["dossier"]),
                     payload["discipline"],
@@ -521,7 +550,7 @@ async def causetrace_propose_stream(request: Request, t: str = ""):
 
                 await queue.put(json.dumps({"type": "start"}))
                 kind = payload["kind"]
-                propositions = await asyncio.to_thread(
+                propositions = await _to_thread_to_the_end(
                     _PROPOSERS[kind],
                     build_dossier(payload["dossier"]),
                     task_callback,
@@ -637,14 +666,15 @@ async def ai_status(lang: str = DEFAULT_LANG):
     source de vérité unique. La page lit et affiche — elle ne réécrit ni les
     libellés ni les nombres, qui viennent des constantes `_MAX_*`.
 
-    ⚠️ **Les trois plafonds ne sont PAS trois plafonds d'IA.** Un seul l'est ;
-    les deux autres protègent un jeton GitHub partagé entre visiteurs et la
+    ⚠️ **Les plafonds ne sont PAS tous des plafonds d'IA.** Ceux de service
+    protègent un jeton GitHub partagé entre visiteurs et la
     courtoisie envers sept sites tiers. Les confondre contredirait le
     « Parti pris » de la page de garde, qui affirme que quatre outils sur cinq
     rendent leur résultat sans appeler la moindre IA.
 
-    ⚠️ L'audit n'a **aucun** plafond quotidien alors qu'il est le plus gros
-    consommateur. Le dire vaut mieux que le taire : `uncapped` existe pour ça.
+    Deux plafonds d'IA depuis le 22/09/2026 : les propositions (enveloppe
+    partagée par quatre outils) et l'audit QualityCrew, qui n'en avait aucun
+    — la clé `uncapped` qui le disait a disparu avec le défaut.
     """
     def plafond(cle: str, usage: dict, limite: int) -> dict:
         utilise = _daily_count(usage)
@@ -668,8 +698,11 @@ async def ai_status(lang: str = DEFAULT_LANG):
             {
                 "key": "ai",
                 "label": tr("status.group.ai", lang),
-                "caps": [plafond("suggestions", _suggest_daily_usage,
-                                 _MAX_SUGGESTIONS_PER_DAY)],
+                "caps": [
+                    plafond("suggestions", _suggest_daily_usage,
+                            _MAX_SUGGESTIONS_PER_DAY),
+                    plafond("audits", _audit_daily_usage, _MAX_AUDITS_PER_DAY),
+                ],
             },
             {
                 "key": "service",
@@ -680,10 +713,6 @@ async def ai_status(lang: str = DEFAULT_LANG):
                 ],
             },
         ],
-        "uncapped": [{
-            "key": "audit",
-            "label": tr("status.uncapped.audit", lang),
-        }],
     }
 
 
@@ -930,7 +959,7 @@ async def hara_suggest_stream(request: Request, t: str = ""):
                 require_llm_key()
 
                 await queue.put(json.dumps({"type": "start"}))
-                suggestions = await asyncio.to_thread(
+                suggestions = await _to_thread_to_the_end(
                     suggest_hazards, payload["item"], task_callback,
                     payload.get("lang", DEFAULT_LANG)
                 )
@@ -1039,7 +1068,7 @@ async def tara_suggest_stream(request: Request, t: str = ""):
                 require_llm_key()
 
                 await queue.put(json.dumps({"type": "start"}))
-                suggestions = await asyncio.to_thread(
+                suggestions = await _to_thread_to_the_end(
                     suggest_threats,
                     payload["item"], payload["asset"], payload["damage"], task_callback,
                     payload.get("lang", DEFAULT_LANG),
@@ -1135,8 +1164,49 @@ def _sse_response(
 # QualityCrew — audit
 # --------------------------------------------------------------------------
 
+# --------------------------------------------------------------------------
+# QualityCrew — cadence et plafond (22/09/2026)
+#
+# ⚠️ L'audit était le seul appel d'IA sans cadence ni plafond, alors qu'il est
+# de loin le plus gros consommateur : un audit complet pèse lourd dans le
+# quota Groq quotidien (TPD) — mesuré le 25/08/2026 : 7 audits dans la
+# journée sans échec de quota. Un script qui les enchaînait vidait l'enveloppe
+# pour tout le monde, et coupait avec elle les fonctions d'IA facultatives des
+# trois autres outils.
+#
+# Compteur PROPRE, et non `_suggest_daily_usage` : un audit ne pèse pas une
+# proposition, les compter pareil n'aurait aucun sens. Même rôles qu'ailleurs :
+# la cadence protège du martèlement par un visiteur, le plafond protège
+# l'enveloppe. Un refus ne consomme rien.
+# --------------------------------------------------------------------------
+_AUDIT_COOLDOWN_SECONDS = 300
+_MAX_AUDITS_PER_DAY = 10
+_last_audit_by_client: dict[str, float] = {}
+_audit_daily_usage = {"day": None, "count": 0}
+
+
+def _audit_refusal(client: str) -> str | None:
+    """Motif de refus d'un audit, ou None s'il peut démarrer."""
+    now = time.time()
+    if _daily_count(_audit_daily_usage) >= _MAX_AUDITS_PER_DAY:
+        return tr("err.quota.daily")
+    for key, stamp in list(_last_audit_by_client.items()):
+        if now - stamp > _AUDIT_COOLDOWN_SECONDS:
+            del _last_audit_by_client[key]
+    last = _last_audit_by_client.get(client)
+    if last is not None:
+        return tr("err.rate.audit", wait=int(_AUDIT_COOLDOWN_SECONDS - (now - last)))
+    return None
+
+
+def _register_audit(client: str) -> None:
+    _last_audit_by_client[client] = time.time()
+    _audit_daily_usage["count"] += 1
+
+
 @app.get("/audit/stream")
 async def audit_stream(request: Request, lang: str = DEFAULT_LANG):
+    client = _client_key(request)
     queue: asyncio.Queue[str | None] = asyncio.Queue()
     loop = asyncio.get_event_loop()
     task_index = [0]
@@ -1152,6 +1222,12 @@ async def audit_stream(request: Request, lang: str = DEFAULT_LANG):
         }))
 
     async def run():
+        refus = _audit_refusal(client)
+        if refus:
+            await queue.put(json.dumps({"type": "error", "message": refus}))
+            await queue.put(None)
+            return
+
         if _audit_semaphore.locked():
             await queue.put(json.dumps({
                 "type": "error",
@@ -1161,10 +1237,11 @@ async def audit_stream(request: Request, lang: str = DEFAULT_LANG):
             return
 
         async with _audit_semaphore:
+            _register_audit(client)
             try:
                 await queue.put(json.dumps({"type": "start"}))
                 require_llm_key()
-                report = await asyncio.to_thread(
+                report = await _to_thread_to_the_end(
                     run_audit, _DOCUMENTS_DIR, None, task_callback, lang
                 )
                 await queue.put(json.dumps({"type": "done", "report": report}))
@@ -1416,10 +1493,10 @@ async def scan_stream(request: Request, t: str = ""):
 
                 await queue.put(json.dumps({"type": "start", "keywords": keywords}))
                 langue = payload.get("lang", DEFAULT_LANG)
-                result = await asyncio.to_thread(
+                result = await _to_thread_to_the_end(
                     run_scan, keywords, progress_callback, langue)
 
-                excel = await asyncio.to_thread(build_excel, result, langue)
+                excel = await _to_thread_to_the_end(build_excel, result, langue)
                 report_id = _store_report(
                     client,
                     "scan",
@@ -1580,7 +1657,7 @@ async def watch_stream(request: Request, norms: str = "", lang: str = DEFAULT_LA
                     "type": "start",
                     "norms": [norm.key for norm in selection],
                 }))
-                result = await asyncio.to_thread(
+                result = await _to_thread_to_the_end(
                     run_watch, selection, progress_callback, None, lang
                 )
 
@@ -1730,7 +1807,7 @@ async def regwatch_explain_stream(request: Request, t: str = ""):
 
                 items = _rebuild_watch_items(payload["items"])
                 await queue.put(json.dumps({"type": "start", "items": len(items)}))
-                explique = await asyncio.to_thread(
+                explique = await _to_thread_to_the_end(
                     explain_items, items, task_callback,
                     payload.get("lang", DEFAULT_LANG))
 

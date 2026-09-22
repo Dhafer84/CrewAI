@@ -444,6 +444,7 @@ CATALOGUE: dict[str, str] = {
     "err.rate.suggest": "Une proposition par minute. Réessayez dans {wait} s.",
     "err.rate.scan": "Un scan toutes les 3 minutes. Réessayez dans {wait} s.",
     "err.rate.watch": "Une veille par minute. Réessayez dans {wait} s.",
+    "err.rate.audit": "Un audit toutes les 5 minutes. Réessayez dans {wait} s.",
     "err.session": "Session expirée. Relancez depuis la page.",
     "err.session.scan": "Session de scan expirée. Relancez depuis la page.",
     "err.busy.suggest": "Une proposition est déjà en cours. Réessayez dans un instant.",
@@ -667,6 +668,11 @@ CATALOGUE: dict[str, str] = {
     "ss.js.done": "Scan terminé. Chaque constat reste à qualifier.",
     "ss.js.unknown": "Erreur inconnue.",
     # --- Page RegWatch — messages JavaScript ---
+    # --- Messages de connexion communs aux flux (22/09/2026 : restaient en dur) ---
+    "js.connecting": "Connexion au moteur…",
+    "js.lost": "Connexion interrompue.",
+    "rw.js.lost.explain": "Connexion interrompue pendant l'explication.",
+    "rw.js.progress": "Source {n}/{total}…",
     "rw.js.hint":
         "Sélectionnez au moins un référentiel. Fenêtre de {n} jours, une dizaine de secondes.",
     "rw.js.catalogue.ko": "Catalogue des sources indisponible.",
@@ -926,7 +932,7 @@ CATALOGUE: dict[str, str] = {
     "status.cap.suggestions": "Propositions par IA",
     "status.cap.scans": "Scans SentinelScan",
     "status.cap.watches": "Veilles RegWatch",
-    "status.uncapped.audit": "Audit QualityCrew",
+    "status.cap.audits": "Audits QualityCrew",
     "status.outage":
         "Les fonctions IA sont indisponibles pour aujourd'hui : le quota quotidien du "
         "fournisseur est épuisé. Tout le reste du site fonctionne normalement.",
@@ -936,7 +942,6 @@ CATALOGUE: dict[str, str] = {
     "status.js.remaining.other": "{n} restantes sur {limit}",
     "status.js.resets": "Remise à zéro le {quand}.",
     "status.js.locale": "fr-FR",
-    "status.js.uncapped": "non plafonné",
     "status.js.failed": "Plafonds indisponibles pour le moment.",
     # --- CauseTrace — disciplines du 8D et constats de complétude ---
     # ⚠️ Espace de noms « ct. » et non « 8d. » : le scanner de clés de

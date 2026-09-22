@@ -531,6 +531,29 @@ def test_every_page_loads_the_catalogue_before_its_own_script():
                     f"{chemin.name} : le script de page s'exécute avant T()")
 
 
+def test_no_status_message_is_hard_coded():
+    """Les messages d'état des flux passent par le catalogue.
+
+    ⚠️ Trouvé le 22/09/2026 : dix messages — « Connexion au moteur… »,
+    « Connexion interrompue. » — étaient écrits en dur dans quatre pages, donc
+    en français sur `/en`. Aucun test ne le voyait : ils n'apparaissent
+    qu'APRÈS une action, là où `test_no_french_survives_in_an_english_page`,
+    qui lit le HTML rendu, ne regarde pas. On refuse donc tout texte littéral
+    passé à une fonction d'affichage d'état (`setHint`, `setSuggestHint`…).
+    """
+    fautes = []
+    for chemin in sorted(SITE.glob("*.html")) + sorted(SITE.glob("*.js")):
+        for numero, ligne in enumerate(chemin.read_text(encoding="utf-8").splitlines(), 1):
+            if re.search(r"\bset\w*Hint\(\s*['\"`]", ligne):
+                fautes.append(f"{chemin.name}:{numero}")
+    assert not fautes, f"message d'état écrit en dur (passer par T()) : {fautes}"
+    # Et la traduction existe VRAIMENT : un message laissé en français dans le
+    # catalogue anglais passerait tous les autres tests, pour la même raison.
+    fr, en = catalogue("fr"), catalogue("en")
+    for cle in ("js.connecting", "js.lost", "rw.js.lost.explain"):
+        assert fr[cle] != en[cle], f"« {cle} » est identique en français et en anglais"
+
+
 def test_no_catalogue_entry_strays_out_of_the_latin_script():
     """⚠️ Garde-fou contre un caractère qui se glisse sans se voir.
 

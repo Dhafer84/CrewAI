@@ -38,7 +38,7 @@ _ATTR_KEY = re.compile(r'data-i18n-content="([^"]+)"')
 # (La liste est complétée plus bas par toutes les images de partage, dès
 # qu'elles sont définies : voir VERSIONED_ASSETS après OG_TOOL_CARDS.)
 _STATIC_ASSETS = ("style.css", "home.css", "i18n.js", "aistatus.js", "menu.js",
-                  "stance.js", "intro.js")
+                  "stance.js", "intro.js", "safe-markdown.js")
 
 # Repère que chaque page pose dans son <nav> : `render` y injecte le menu
 # partagé (`site/partials/menu.html`). Une seule copie pour huit pages — un

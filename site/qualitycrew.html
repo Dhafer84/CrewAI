@@ -214,6 +214,8 @@
 <script src="/static/menu.js"></script>
 <script src="/static/aistatus.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<!-- Juste après marked : le HTML brut s'affiche en texte, les liens ne vont que vers http(s). -->
+<script src="/static/safe-markdown.js"></script>
 <script>
 (function() {
   const btn = document.getElementById('btn-launch');
@@ -319,7 +321,7 @@
   function showOutput(idx, text) {
     const out = document.getElementById('output-' + idx);
     if (!out) return;
-    out.innerHTML = marked.parse(truncateMarkdown(text));
+    out.innerHTML = safeMarkdown(truncateMarkdown(text));
     out.classList.add('visible');
   }
 
@@ -327,7 +329,7 @@
     const section = document.getElementById('report-section');
     const content = document.getElementById('report-content');
     const dateEl = document.getElementById('report-date');
-    content.innerHTML = marked.parse(markdown);
+    content.innerHTML = safeMarkdown(markdown);
     dateEl.textContent = '· ' + new Date().toLocaleDateString(T('qc.js.locale'), { day: 'numeric', month: 'long', year: 'numeric' });
     section.classList.add('visible');
     section.scrollIntoView({ behavior: 'smooth', block: 'start' });

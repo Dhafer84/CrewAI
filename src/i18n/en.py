@@ -427,6 +427,7 @@ CATALOGUE: dict[str, str] = {
     "err.rate.suggest": "One suggestion per minute. Try again in {wait} s.",
     "err.rate.scan": "One scan every 3 minutes. Try again in {wait} s.",
     "err.rate.watch": "One watch per minute. Try again in {wait} s.",
+    "err.rate.audit": "One audit every 5 minutes. Try again in {wait} s.",
     "err.session": "Session expired. Start again from the page.",
     "err.session.scan": "Scan session expired. Start again from the page.",
     "err.busy.suggest": "A suggestion is already running. Try again in a moment.",
@@ -644,6 +645,11 @@ CATALOGUE: dict[str, str] = {
     "ss.js.done": "Scan finished. Every finding remains to be qualified.",
     "ss.js.unknown": "Unknown error.",
     # --- RegWatch page — JavaScript messages ---
+    # --- Connection messages shared by the streams (22/09/2026: were hard-coded) ---
+    "js.connecting": "Connecting to the engine…",
+    "js.lost": "Connection interrupted.",
+    "rw.js.lost.explain": "Connection interrupted during the explanation.",
+    "rw.js.progress": "Source {n}/{total}…",
     "rw.js.hint": "Select at least one standard. {n}-day window, about ten seconds.",
     "rw.js.catalogue.ko": "Source catalogue unavailable.",
     "rw.js.cover.head": "Incomplete coverage — an absence of signal proves nothing",
@@ -890,7 +896,7 @@ CATALOGUE: dict[str, str] = {
     "status.cap.suggestions": "AI suggestions",
     "status.cap.scans": "SentinelScan scans",
     "status.cap.watches": "RegWatch runs",
-    "status.uncapped.audit": "QualityCrew audit",
+    "status.cap.audits": "QualityCrew audits",
     "status.outage":
         "AI features are unavailable for today: the provider's daily quota is exhausted. "
         "Everything else on the site works normally.",
@@ -900,7 +906,6 @@ CATALOGUE: dict[str, str] = {
     "status.js.remaining.other": "{n} left of {limit}",
     "status.js.resets": "Resets on {quand}.",
     "status.js.locale": "en-GB",
-    "status.js.uncapped": "no daily cap",
     "status.js.failed": "Caps unavailable right now.",
     # --- CauseTrace — 8D disciplines and completeness findings ---
     "ct.discipline.d1": "D1 — Team",

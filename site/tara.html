@@ -535,7 +535,7 @@
       }
 
       btn.disabled = true;
-      setHint('Connexion au moteur…');
+      setHint(T('js.connecting'));
 
       let token;
       try {
@@ -598,7 +598,7 @@
       };
 
       source.onerror = function() {
-        setHint('Connexion interrompue.', true);
+        setHint(T('js.lost'), true);
         close();
       };
     });

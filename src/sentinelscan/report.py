@@ -7,7 +7,10 @@ croit à tort qu'elle est exhaustive.
 
 from i18n import DEFAULT_LANG, t
 
+import html
+import re
 from io import BytesIO
+from urllib.parse import quote
 
 from xlsxsafe import harden
 
@@ -68,6 +71,43 @@ def homonym_warning(result: ScanResult, lang: str = DEFAULT_LANG) -> str | None:
              found=len(result.findings), owners=result.distinct_owners)
 
 
+# ⚠️ Texte de TIERS dans un rendu markdown — audit de sécurité du 22/09/2026.
+# Le chemin d'un fichier vient d'un dépôt public : n'importe qui le choisit, et
+# git y admet presque tout, accents graves et chevrons compris. Posé tel quel
+# entre deux accents graves, un fichier nommé  a`<img onerror=…>`.env  fermait
+# la balise de code et son HTML S'EXÉCUTAIT dans la page de qui lançait le scan
+# — une XSS stockée, reproduite avec la version de marked servie en production.
+# Même famille que le durcissement des classeurs (`xlsxsafe`) : ce qui vient
+# d'un tiers ne doit pouvoir que S'AFFICHER.
+_MD_PUNCT = re.compile(r"([\\`*_\[\]|~])")
+
+
+def md_text(value: object) -> str:
+    """Texte tiers rendu inerte pour le markdown ET pour le HTML.
+
+    Les chevrons et esperluettes deviennent des entités (le navigateur les
+    AFFICHE), la ponctuation qui structure le markdown est échappée — accent
+    grave et barre verticale compris : l'une fermait la balise de code, l'autre
+    découperait une cellule de tableau. Un saut de ligne casserait la ligne du
+    tableau : il devient une espace.
+    """
+    texte = html.escape(str(value), quote=True)
+    texte = _MD_PUNCT.sub(r"\\\1", texte)
+    return re.sub(r"[\r\n]+", " ", texte)
+
+
+def md_link(label: str, url: str) -> str:
+    """Un lien vers GitHub, et SEULEMENT vers GitHub.
+
+    L'adresse vient de l'API GitHub, mais un lien ne sort jamais de ce
+    rapport vers autre chose qu'une page `https://github.com/` : tout autre
+    schéma (`javascript:` compris) rend le libellé seul, sans lien.
+    """
+    if not url or not url.startswith("https://github.com/"):
+        return md_text(label)
+    return f"[{md_text(label)}]({quote(url, safe=':/?#@!$&*+,;=%~')})"
+
+
 def build_markdown(result: ScanResult, lang: str = DEFAULT_LANG) -> str:
     """Rapport de synthèse en markdown, destiné à l'affichage web."""
     counts = result.count_by_criticality()
@@ -75,7 +115,8 @@ def build_markdown(result: ScanResult, lang: str = DEFAULT_LANG) -> str:
 
     lines.append(t("md.scan.summary", lang))
     lines.append("")
-    lines.append(t("md.scan.keywords", lang, terms=", ".join(result.keywords)))
+    lines.append(t("md.scan.keywords", lang,
+                   terms=", ".join(md_text(k) for k in result.keywords)))
     lines.append("")
     lines.append(t("md.scan.counts", lang, found=len(result.findings),
                    run=result.queries_run,
@@ -107,10 +148,10 @@ def build_markdown(result: ScanResult, lang: str = DEFAULT_LANG) -> str:
         lines.append(t("md.scan.det.head", lang))
         lines.append("| --- | --- | --- | --- |")
         for finding in result.findings[:50]:
-            link = f"[{finding.repo}]({finding.url})" if finding.url else finding.repo
             lines.append(
                 f"| {criticality_label(finding.criticality, lang)} "
-                f"| {finding.detection} | {link} | `{finding.path}` |"
+                f"| {md_text(finding.detection)} | {md_link(finding.repo, finding.url)} "
+                f"| {md_text(finding.path)} |"
             )
         if len(result.findings) > 50:
             lines.append("")
@@ -141,7 +182,8 @@ def build_markdown(result: ScanResult, lang: str = DEFAULT_LANG) -> str:
         lines.append(t("md.scan.errors.note", lang))
         lines.append("")
         for error in result.errors:
-            lines.append(f"- {error}")
+            # Un message d'erreur recopie celui de l'API GitHub : texte tiers.
+            lines.append(f"- {md_text(error)}")
         lines.append("")
 
     return "\n".join(lines)

@@ -55,15 +55,6 @@
           c.label,
           T('status.js.remaining', { n: c.remaining, limit: c.limit })));
       });
-      // ⚠️ L'audit est une fonction IA — simplement sans plafond quotidien.
-      // Le rendre après les plafonds de service le ferait passer pour l'un
-      // d'eux, ce qui est faux : c'est le plus gros consommateur d'IA du site.
-      // Il reste dans `uncapped` côté contrat, il n'a pas de compteur.
-      if (g.key === 'ai') {
-        (d.uncapped || []).forEach(function (u) {
-          bloc.appendChild(ligne(u.label, T('status.js.uncapped')));
-        });
-      }
       boite.appendChild(bloc);
     });
     // ⚠️ La remise à zéro se lit dans la charge utile, elle ne se devine pas.

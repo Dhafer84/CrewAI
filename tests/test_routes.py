@@ -330,6 +330,144 @@ def test_the_menu_labels_never_overlap():
         "les deux libellés doivent sortir ET entrer hors du bouton, par des côtés opposés"
 
 
+def test_locked_work_holds_its_lock_until_the_thread_really_ends():
+    """⚠️ Audit de sécurité du 22/09/2026 — le verrou « un à la fois » se contournait.
+
+    Un visiteur qui s'en va fait annuler la tâche ; l'annulation libérait le
+    `Semaphore(1)` alors que le fil, lui, continuait. Ouvrir puis fermer
+    `/audit/stream` en boucle lançait des audits EN PARALLÈLE et vidait le
+    quota Groq du jour. On rejoue exactement ce scénario, sans réseau : un
+    faux travail d'1 s, quatre départs précipités.
+    """
+    import asyncio
+    import time as _time
+    from api.main import _to_thread_to_the_end
+
+    actifs, pic, refus = [], [0], []
+
+    def faux_travail(n):
+        actifs.append(n)
+        pic[0] = max(pic[0], len(actifs))
+        _time.sleep(0.6)
+        actifs.remove(n)
+
+    async def scenario():
+        verrou = asyncio.Semaphore(1)
+
+        async def route(n):
+            if verrou.locked():
+                refus.append(n)
+                return
+            async with verrou:
+                await _to_thread_to_the_end(faux_travail, n)
+
+        for n in range(1, 5):
+            tache = asyncio.create_task(route(n))
+            await asyncio.sleep(0.03)
+            tache.cancel()
+            await asyncio.sleep(0.01)
+        pris_pendant = verrou.locked()
+        await asyncio.sleep(0.9)
+        return pris_pendant, verrou.locked()
+
+    pris_pendant, pris_apres = asyncio.run(scenario())
+    assert pic[0] == 1, f"{pic[0]} travaux ont tourné en même temps malgré le verrou"
+    assert refus == [2, 3, 4], f"les départs suivants auraient dû être refusés : {refus}"
+    assert pris_pendant and not pris_apres, "le verrou doit tenir jusqu'à la vraie fin du fil"
+
+
+def test_no_locked_work_uses_a_plain_to_thread():
+    """Tout travail lancé SOUS un sémaphore passe par `_to_thread_to_the_end`.
+
+    Un `asyncio.to_thread` nu sous verrou rouvrirait la faille au prochain
+    outil ajouté. Les exports Excel, courts et sans verrou, en sont exemptés.
+    """
+    lignes = (_ROOT / "api" / "main.py").read_text(encoding="utf-8").split("\n")
+    fautes, profondeur = [], None
+    for numero, ligne in enumerate(lignes, 1):
+        entree = re.match(r"^(\s*)async with _\w+_semaphore:", ligne)
+        if entree:
+            profondeur = len(entree.group(1))
+            continue
+        if profondeur is not None:
+            if ligne.strip() and len(ligne) - len(ligne.lstrip()) <= profondeur:
+                profondeur = None
+            elif "asyncio.to_thread(" in ligne:
+                fautes.append(numero)
+    assert not fautes, f"to_thread nu sous un verrou, api/main.py lignes {fautes}"
+
+
+def test_the_audit_has_a_cadence_and_a_daily_cap():
+    """L'audit était le seul appel d'IA sans cadence ni plafond (audit du 22/09/2026).
+
+    ⚠️ Aucun appel au LLM : `run_audit` est remplacé par un faux qui ÉCHOUE
+    s'il est appelé — un refus qui laisserait passer lancerait sinon un vrai
+    audit, sur le quota partagé.
+    """
+    import api.main as m
+
+    lances = []
+    vrai_audit = m.run_audit
+    memoire = (dict(m._last_audit_by_client), dict(m._audit_daily_usage))
+    try:
+        m.run_audit = lambda *a, **k: lances.append(a) or "rapport"
+        m._last_audit_by_client.clear()
+        m._audit_daily_usage.update({"day": None, "count": 0})
+
+        # La cadence : un visiteur, deux audits d'affilée.
+        import hashlib
+        empreinte = lambda ip: hashlib.sha256(ip.encode("utf-8")).hexdigest()[:16]  # noqa: E731
+        a, b = empreinte("10.9.9.1"), empreinte("10.9.9.2")
+        assert m._audit_refusal(a) is None
+        m._register_audit(a)
+        refus = m._audit_refusal(a)
+        assert refus and "5 minutes" in refus, f"cadence absente : {refus}"
+        assert m._audit_refusal(b) is None, "la cadence d'un visiteur ne doit pas bloquer les autres"
+
+        # Par la vraie route : refusé, et rien n'est lancé.
+        with client("10.9.9.1") as c:
+            flux = c.get("/audit/stream").text
+        assert "5 minutes" in flux and not lances, "la route a lancé un audit malgré la cadence"
+
+        # Le plafond du jour, pour tout le monde.
+        m._audit_daily_usage["count"] = m._MAX_AUDITS_PER_DAY
+        assert m._audit_refusal(b) == m.tr("err.quota.daily"), "le plafond quotidien n'est pas tenu"
+        with client("10.9.9.3") as c:
+            assert "Quota quotidien" in c.get("/audit/stream").text and not lances
+    finally:
+        m.run_audit = vrai_audit
+        m._last_audit_by_client.clear()
+        m._last_audit_by_client.update(memoire[0])
+        m._audit_daily_usage.update(memoire[1])
+
+
+def test_markdown_is_never_rendered_raw():
+    """⚠️ `marked` ne nettoie rien : aucune page ne l'appelle directement.
+
+    Audit de sécurité du 22/09/2026 : du texte venu de dépôts GitHub publics
+    s'exécutait dans la page SentinelScan. Le serveur échappe désormais ce
+    texte (`test_sentinelscan_report.py`) ; la page, elle, ne passe plus que
+    par `safeMarkdown`, qui affiche le HTML brut en texte, ne fait de lien que
+    vers http(s), mailto ou le site, et ne charge aucune image.
+    """
+    helper = (_ROOT / "site" / "safe-markdown.js").read_text(encoding="utf-8")
+    code = re.sub(r"/\*.*?\*/|//[^\n]*", "", helper, flags=re.S)
+    assert "html:" in code and "esc(" in code, "le HTML brut doit ressortir échappé"
+    assert "link:" in code and "https?:" in code, "les liens doivent être limités à http(s)"
+    assert "javascript" not in code.lower(), "aucun schéma n'est à autoriser nommément"
+    assert "image:" in code, "une image ne doit jamais être chargée"
+
+    for page in sorted((_ROOT / "site").glob("*.html")):
+        html = page.read_text(encoding="utf-8")
+        assert "marked.parse(" not in html, f"{page.name} appelle marked.parse sans passer par safeMarkdown"
+        if "marked.min.js" in html:
+            m, h = html.index("marked.min.js"), html.find("/static/safe-markdown.js")
+            assert h > m, f"{page.name} : safe-markdown.js doit suivre marked"
+            premier_script_de_page = re.search(r"<script>\s*\n", html[m:])
+            assert premier_script_de_page and m + premier_script_de_page.start() > h, \
+                f"{page.name} : safe-markdown.js doit précéder le script de la page"
+
+
 def test_stylesheet_is_reachable_at_the_path_pages_use():
     """Les pages demandent /static/style.css (et l'accueil /static/home.css)."""
     with client() as c:
@@ -1203,37 +1341,39 @@ def test_the_ai_caps_match_the_declared_maximums():
     import api.main as m
 
     memoire = (m._MAX_SUGGESTIONS_PER_DAY, m._MAX_SCANS_PER_DAY,
-               m._MAX_WATCHES_PER_DAY)
+               m._MAX_WATCHES_PER_DAY, m._MAX_AUDITS_PER_DAY)
     try:
         m._MAX_SUGGESTIONS_PER_DAY = 7
         m._MAX_SCANS_PER_DAY = 5
         m._MAX_WATCHES_PER_DAY = 3
+        m._MAX_AUDITS_PER_DAY = 2
         with client() as c:
             charge = c.get("/ai/status").json()
         limites = {p["key"]: p["limit"]
                    for g in charge["groups"] for p in g["caps"]}
-        assert limites == {"suggestions": 7, "scans": 5, "watches": 3}, (
+        assert limites == {"suggestions": 7, "scans": 5, "watches": 3, "audits": 2}, (
             f"la route ne lit pas les constantes : {limites}")
         restes = {p["key"]: p["remaining"]
                   for g in charge["groups"] for p in g["caps"]}
         assert restes == limites, f"le reste à courir ne suit pas : {restes}"
     finally:
         (m._MAX_SUGGESTIONS_PER_DAY, m._MAX_SCANS_PER_DAY,
-         m._MAX_WATCHES_PER_DAY) = memoire
+         m._MAX_WATCHES_PER_DAY, m._MAX_AUDITS_PER_DAY) = memoire
 
 
-def test_only_one_of_the_caps_is_an_ai_cap():
+def test_no_service_cap_is_an_ai_cap():
     """⚠️ Le point le plus facile à casser en « simplifiant ».
 
-    Ranger les trois plafonds ensemble contredirait le « Parti pris » de la
+    Ranger tous les plafonds ensemble contredirait le « Parti pris » de la
     page de garde : SentinelScan et la veille RegWatch n'appellent aucune IA.
     Leurs plafonds protègent un jeton GitHub partagé et la courtoisie envers
-    des sites tiers — pas une enveloppe de jetons LLM.
+    des sites tiers — pas une enveloppe de jetons LLM. Depuis le 22/09/2026,
+    l'audit QualityCrew a SON plafond, et c'est bien un plafond d'IA.
     """
     with client() as c:
         charge = c.get("/ai/status").json()
     groupes = {g["key"]: [p["key"] for p in g["caps"]] for g in charge["groups"]}
-    assert groupes.get("ai") == ["suggestions"], groupes
+    assert groupes.get("ai") == ["suggestions", "audits"], groupes
     assert sorted(groupes.get("service", [])) == ["scans", "watches"], groupes
 
 

@@ -108,6 +108,8 @@
 <script src="/static/i18n.js"></script>
 <script src="/static/menu.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<!-- Juste après marked : le HTML brut s'affiche en texte, les liens ne vont que vers http(s). -->
+<script src="/static/safe-markdown.js"></script>
 <script>
 (function() {
   const accept   = document.getElementById('accept');
@@ -193,7 +195,7 @@
   btn.addEventListener('click', async function() {
     resetUI();
     btn.disabled = true;
-    setHint('Connexion au moteur…');
+    setHint(T('js.connecting'));
 
     let token;
     try {
@@ -235,7 +237,7 @@
 
       } else if (data.type === 'done') {
         showCounts(data.counts, data.findings, data.duration);
-        document.getElementById('scan-report').innerHTML = marked.parse(data.report || '');
+        document.getElementById('scan-report').innerHTML = safeMarkdown(data.report || '');
         if (data.report_id) {
           const dl = document.getElementById('dl-excel');
           dl.href = '/scan/report/' + encodeURIComponent(data.report_id) + '.xlsx';
@@ -261,7 +263,7 @@
     };
 
     es.onerror = function() {
-      setHint('Connexion interrompue.', true);
+      setHint(T('js.lost'), true);
       if (es) { es.close(); es = null; }
       refreshButton();
     };

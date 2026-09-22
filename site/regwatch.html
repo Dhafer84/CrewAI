@@ -612,7 +612,7 @@
       }
     };
     explainStream.onerror = function() {
-      setHint('Connexion interrompue pendant l\'explication.', true);
+      setHint(T('rw.js.lost.explain'), true);
       btnExplain.disabled = false;
       if (explainStream) { explainStream.close(); explainStream = null; }
     };
@@ -640,7 +640,7 @@
     activeNorm = null;
 
     btn.disabled = true;
-    setHint('Connexion au moteur…');
+    setHint(T('js.connecting'));
     progress.classList.add('visible');
 
     // Les référentiels surveillés sont un énumérable fermé et public : rien
@@ -660,7 +660,7 @@
       } else if (data.type === 'source_start') {
         const row = rowFor(data.index);
         row.querySelector('.q-label').textContent = data.source;
-        setHint('Source ' + (data.index + 1) + '/' + data.total + '…');
+        setHint(T('rw.js.progress', { n: data.index + 1, total: data.total }));
 
       } else if (data.type === 'source_done') {
         const row = rowFor(data.index);
@@ -706,7 +706,7 @@
     };
 
     es.onerror = function() {
-      setHint('Connexion interrompue.', true);
+      setHint(T('js.lost'), true);
       if (es) { es.close(); es = null; }
       refreshButton();
     };

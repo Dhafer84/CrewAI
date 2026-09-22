@@ -424,7 +424,7 @@
     }
 
     btnSuggest.disabled = true;
-    setSuggestHint('Connexion au moteur…');
+    setSuggestHint(T('js.connecting'));
 
     let token;
     try {
@@ -484,7 +484,7 @@
     };
 
     suggestEs.onerror = function() {
-      setSuggestHint('Connexion interrompue.', true);
+      setSuggestHint(T('js.lost'), true);
       if (suggestEs) { suggestEs.close(); suggestEs = null; }
       btnSuggest.disabled = false;
     };
