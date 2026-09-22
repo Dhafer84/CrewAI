@@ -18,10 +18,12 @@ data/sample_project/ ; le scan prend des mots-clés fournis par l'utilisateur.
 """
 
 import asyncio
+import base64
 import hashlib
 import json
 import logging
 import os
+import re
 import secrets
 import sys
 import time
@@ -88,8 +90,100 @@ from regwatch.sources import source_catalog  # noqa: E402
 _DOCUMENTS_DIR = _ROOT / "data" / "sample_project"
 _SITE_DIR = _ROOT / "site"
 
-app = FastAPI(docs_url=None, redoc_url=None)
+# ⚠️ `openapi_url=None` (audit de sécurité du 22/09/2026, point 5) : couper
+# `/docs` et `/redoc` laissait `/openapi.json` publier la description complète
+# de chaque route. Le code est public, mais une carte toute faite des points
+# d'entrée n'a rien à faire sur un site vitrine.
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/static", StaticFiles(directory=str(_SITE_DIR)), name="static")
+
+
+# --------------------------------------------------------------------------
+# En-têtes de sécurité (audit du 22/09/2026, point 3)
+#
+# Posés par l'APPLICATION et non par nginx : ils voyagent avec le code, sont
+# testés avec lui, et ne dépendent d'aucun réglage du VPS qu'on oublierait de
+# reporter. Middleware ASGI PUR, délibérément : `BaseHTTPMiddleware` tamponne
+# les réponses en flux et gêne la détection du départ du client — or les
+# flux SSE et l'annulation de leurs travaux reposent justement là-dessus.
+# --------------------------------------------------------------------------
+_MARKED_URL = "https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"
+
+_SECURITY_HEADERS = (
+    # HTTPS seulement, pendant un an. Ignoré par les navigateurs en HTTP simple :
+    # le serveur de développement n'en souffre pas.
+    # ⚠️ PAS de `includeSubDomains` : il imposerait HTTPS à TOUT sous-domaine
+    # pendant un an — le VPS héberge aussi CoachApp, qu'un sous-domaine sans
+    # certificat rendrait alors inaccessible. `www` n'en a pas besoin : il sert
+    # la même application, donc il pose son propre en-tête.
+    ("strict-transport-security", "max-age=31536000"),
+    ("x-content-type-options", "nosniff"),
+    # Le site ne s'affiche jamais dans le cadre d'un autre (clickjacking).
+    # Doublé par `frame-ancestors` dans la CSP, pour les navigateurs anciens.
+    ("x-frame-options", "DENY"),
+    # Aucune adresse de page ne part chez un tiers — ni vers GitHub depuis un
+    # rapport, ni vers le CDN de marked.
+    ("referrer-policy", "same-origin"),
+    ("permissions-policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()"),
+    ("cross-origin-opener-policy", "same-origin"),
+)
+# Réponses qui ne sont pas des pages (JSON, flux, fichiers) : rien à charger.
+_CSP_DEFAULT = "default-src 'none'; frame-ancestors 'none'"
+
+_INLINE_SCRIPT = re.compile(r"<script>(.*?)</script>", re.S)
+
+
+def _page_csp(html: str) -> str:
+    """CSP d'une page : ses scripts en ligne autorisés PAR EMPREINTE.
+
+    ⚠️ Jamais `'unsafe-inline'` pour les scripts : c'est précisément ce qui
+    laisserait passer un `<script>` injecté — la faille corrigée au point 1.
+    Les empreintes sont calculées sur le HTML RÉELLEMENT servi, après rendu
+    et traduction : rien à tenir à jour à la main, et une page modifiée
+    recalcule les siennes.
+
+    `'unsafe-inline'` reste permis pour les STYLES : les cartes posent leur
+    teinte en attribut (`style="--tile:…"`), et une injection de CSS ne fait
+    pas exécuter de code. Seul marked vient d'ailleurs — et seul CE fichier,
+    dans CETTE version, pas tout cdnjs.
+    """
+    empreintes = " ".join(
+        "'sha256-" + base64.b64encode(hashlib.sha256(corps.encode("utf-8")).digest()).decode() + "'"
+        for corps in _INLINE_SCRIPT.findall(html))
+    return ("default-src 'self'; "
+            f"script-src 'self' {_MARKED_URL} {empreintes}".rstrip() + "; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data:; font-src 'self'; connect-src 'self'; "
+            "object-src 'none'; base-uri 'none'; form-action 'self'; "
+            "frame-ancestors 'none'")
+
+
+class _SecurityHeaders:
+    """Ajoute les en-têtes de sécurité à TOUTE réponse, pages comme flux."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+
+        async def envoi(message):
+            if message["type"] == "http.response.start":
+                entetes = [(k, v) for k, v in message.get("headers", [])]
+                presents = {k.lower() for k, _ in entetes}
+                for nom, valeur in _SECURITY_HEADERS:
+                    if nom.encode() not in presents:
+                        entetes.append((nom.encode(), valeur.encode()))
+                if b"content-security-policy" not in presents:
+                    entetes.append((b"content-security-policy", _CSP_DEFAULT.encode()))
+                message = {**message, "headers": entetes}
+            await send(message)
+
+        return await self.app(scope, receive, envoi)
+
+
+app.add_middleware(_SecurityHeaders)
 
 
 class _RedactScanKeywords(logging.Filter):
@@ -275,9 +369,10 @@ def _page(path: str, lang: str) -> HTMLResponse:
         html = render(fichier.read_text(encoding="utf-8"), lang, path,
                       SITE_BASE_URL, version,
                       menu=_MENU.read_text(encoding="utf-8") if menu_present else "")
-        _rendered[cle] = (empreinte, html)
+        _rendered[cle] = (empreinte, html, _page_csp(html))
 
-    return HTMLResponse(_rendered[cle][1])
+    _, html, csp = _rendered[cle]
+    return HTMLResponse(html, headers={"Content-Security-Policy": csp})
 
 
 @app.get("/")
@@ -1273,11 +1368,28 @@ _last_scan_by_client: dict[str, float] = {}
 _daily_usage = {"day": None, "count": 0}
 
 
+# ⚠️ Qui a le droit de dire « voici l'adresse du visiteur » (audit du
+# 22/09/2026, point 6). Seul nginx, sur la même machine, pose `X-Real-IP` :
+# un en-tête reçu de N'IMPORTE QUI D'AUTRE est ignoré. Avant, `X-Real-IP` et
+# `X-Forwarded-For` étaient crus d'où qu'ils viennent ; ce n'était pas
+# exploitable — nginx écrase `X-Real-IP`, vérifié en production — mais toute
+# la protection tenait à cette seule ligne de configuration.
+#
+# Et `X-Forwarded-For` n'est plus lu du tout : sa PREMIÈRE entrée est celle
+# que le client a écrite. Si nginx cessait un jour de poser `X-Real-IP`, tous
+# les visiteurs partageraient l'empreinte du proxy — des limites PLUS strictes,
+# jamais contournables : l'échec se fait dans le bon sens.
+#
+# « testclient » est l'hôte que se donne le client de test de Starlette : ce
+# n'est pas une adresse, aucune connexion réseau ne peut s'en réclamer.
+_TRUSTED_PROXIES = frozenset({"127.0.0.1", "::1", "testclient"})
+
+
 def _client_key(request: Request) -> str:
-    header = request.headers.get("x-real-ip") or request.headers.get("x-forwarded-for")
-    raw = header.split(",")[0].strip() if header else (
-        request.client.host if request.client else "unknown"
-    )
+    pair = request.client.host if request.client else "unknown"
+    raw = pair
+    if pair in _TRUSTED_PROXIES:
+        raw = (request.headers.get("x-real-ip") or "").strip() or pair
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
 

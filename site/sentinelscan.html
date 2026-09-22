@@ -107,7 +107,12 @@
 <script src="/i18n/fr.js"></script>
 <script src="/static/i18n.js"></script>
 <script src="/static/menu.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<!-- ⚠️ SRI (audit de sécurité du 22/09/2026, point 4) : si le CDN servait un
+     jour un autre fichier, le navigateur refuserait de l'exécuter. Changer de
+     version = recalculer l'empreinte ET l'adresse autorisée par la CSP. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"
+        integrity="sha384-odPBjvtXVM/5hOYIr3A1dB+flh0c3wAT3bSesIOqEGmyUA4JoKf/YTWy0XKOYAY7"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- Juste après marked : le HTML brut s'affiche en texte, les liens ne vont que vers http(s). -->
 <script src="/static/safe-markdown.js"></script>
 <script>

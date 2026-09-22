@@ -468,6 +468,115 @@ def test_markdown_is_never_rendered_raw():
                 f"{page.name} : safe-markdown.js doit précéder le script de la page"
 
 
+_ENTETES_ATTENDUS = {
+    "strict-transport-security": "max-age=31536000",
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "DENY",
+    "referrer-policy": "same-origin",
+    "permissions-policy": "camera=()",
+    "content-security-policy": "frame-ancestors 'none'",
+}
+
+
+def test_every_response_carries_the_security_headers():
+    """Audit de sécurité du 22/09/2026, point 3 : AUCUN en-tête n'était posé.
+
+    Pages, JSON, catalogue, fichiers statiques, erreurs : tout ce que sert
+    l'application. Posés par elle et non par nginx — ils voyagent avec le code.
+    """
+    with client() as c:
+        for chemin in ("/", "/en/tara", "/about", "/hara/matrix", "/ai/status",
+                       "/i18n/en.js", "/static/style.css", "/static/intro.js",
+                       "/nexiste-pas"):
+            entetes = c.get(chemin).headers
+            for nom, fragment in _ENTETES_ATTENDUS.items():
+                assert fragment in entetes.get(nom, ""), f"{chemin} : {nom} absent ou faux"
+            assert "includesubdomains" not in entetes.get("strict-transport-security", "").lower(), \
+                "HSTS ne doit pas couvrir les sous-domaines : le VPS en héberge d'autres (CoachApp)"
+
+
+def test_each_page_allows_exactly_its_own_inline_scripts():
+    """⚠️ La CSP n'autorise AUCUN script en ligne qui ne soit pas celui de la page.
+
+    Jamais `'unsafe-inline'` pour les scripts : c'est ce qui laisserait passer
+    un `<script>` injecté. Chaque script en ligne est autorisé par son
+    empreinte, calculée sur le HTML réellement servi — une page dont un script
+    change recalcule la sienne, et un script ajouté par injection n'a pas
+    d'empreinte. Seul marked vient d'ailleurs, et seulement CE fichier.
+    """
+    import base64
+    import hashlib
+    with client() as c:
+        for chemin in PAGES:
+            resp = c.get(chemin)
+            csp = resp.headers.get("content-security-policy", "")
+            script_src = re.search(r"script-src ([^;]+)", csp)
+            assert script_src, f"{chemin} : pas de script-src"
+            sources = script_src.group(1).split()
+            assert "'unsafe-inline'" not in sources and "'unsafe-eval'" not in sources, \
+                f"{chemin} : script-src trop large : {sources}"
+            attendues = {
+                "'sha256-" + base64.b64encode(hashlib.sha256(corps.encode("utf-8")).digest()).decode() + "'"
+                for corps in re.findall(r"<script>(.*?)</script>", resp.text, re.S)}
+            servies = {src for src in sources if src.startswith("'sha256-")}
+            assert servies == attendues, f"{chemin} : empreintes {servies} ≠ scripts de la page {attendues}"
+            externes = [src for src in sources if src.startswith("http")]
+            assert all(src.endswith("/marked/9.1.6/marked.min.js") for src in externes), \
+                f"{chemin} : origine externe trop large : {externes}"
+            for directive in ("object-src 'none'", "base-uri 'none'", "frame-ancestors 'none'"):
+                assert directive in csp, f"{chemin} : {directive} absent"
+
+
+def test_external_scripts_carry_an_integrity_hash():
+    """Audit du 22/09/2026, point 4 : marked venait de cdnjs sans SRI.
+
+    Si le CDN servait un jour un autre fichier, il s'exécuterait sur le site.
+    Avec `integrity`, le navigateur le refuse. Tout script externe en porte une.
+    """
+    for page in sorted((_ROOT / "site").glob("*.html")):
+        for balise in re.findall(r"<script\b[^>]*\bsrc=\"https?://[^>]*>", page.read_text(encoding="utf-8")):
+            assert re.search(r'integrity="sha(384|512)-[A-Za-z0-9+/=]{40,}"', balise), \
+                f"{page.name} : script externe sans empreinte d'intégrité : {balise}"
+            assert 'crossorigin="anonymous"' in balise, f"{page.name} : SRI sans crossorigin"
+
+
+def test_the_api_description_is_not_published():
+    """Audit du 22/09/2026, point 5 : `/openapi.json` restait public."""
+    with client() as c:
+        for chemin in ("/openapi.json", "/docs", "/redoc"):
+            assert c.get(chemin).status_code == 404, f"{chemin} répond encore"
+
+
+def test_a_forged_client_address_is_ignored_unless_it_comes_from_the_proxy():
+    """Audit du 22/09/2026, point 6 : `X-Real-IP` n'est cru que venant de nginx.
+
+    Et `X-Forwarded-For` n'est plus lu du tout — sa première entrée est écrite
+    par le client. Si nginx cessait de poser `X-Real-IP`, tout le monde
+    partagerait l'empreinte du proxy : plus strict, jamais contournable.
+    """
+    import hashlib
+    from starlette.requests import Request
+    from api.main import _client_key
+
+    def requete(pair, entetes):
+        return Request({"type": "http", "method": "GET", "path": "/", "query_string": b"",
+                        "client": (pair, 50000),
+                        "headers": [(k.lower().encode(), v.encode()) for k, v in entetes.items()]})
+
+    def empreinte(ip):
+        return hashlib.sha256(ip.encode("utf-8")).hexdigest()[:16]
+
+    # Connexion directe : l'en-tête forgé ne compte pas.
+    direct = requete("198.51.100.20", {"X-Real-IP": "203.0.113.1", "X-Forwarded-For": "203.0.113.2"})
+    assert _client_key(direct) == empreinte("198.51.100.20"), "un X-Real-IP forgé a été cru"
+    # Via nginx : l'adresse qu'il pose fait foi.
+    via = requete("127.0.0.1", {"X-Real-IP": "192.0.2.7"})
+    assert _client_key(via) == empreinte("192.0.2.7")
+    # Via nginx, sans X-Real-IP : X-Forwarded-For est IGNORÉ, on retombe sur le proxy.
+    sans = requete("127.0.0.1", {"X-Forwarded-For": "203.0.113.2, 192.0.2.7"})
+    assert _client_key(sans) == empreinte("127.0.0.1"), "X-Forwarded-For ne doit plus être lu"
+
+
 def test_stylesheet_is_reachable_at_the_path_pages_use():
     """Les pages demandent /static/style.css (et l'accueil /static/home.css)."""
     with client() as c:
