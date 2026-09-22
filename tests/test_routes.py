@@ -547,12 +547,17 @@ def test_the_api_description_is_not_published():
             assert c.get(chemin).status_code == 404, f"{chemin} répond encore"
 
 
-def test_a_forged_client_address_is_ignored_unless_it_comes_from_the_proxy():
-    """Audit du 22/09/2026, point 6 : `X-Real-IP` n'est cru que venant de nginx.
+def test_the_client_address_comes_from_nginx_x_real_ip_only():
+    """L'empreinte d'un visiteur ne se choisit pas par un en-tête.
 
-    Et `X-Forwarded-For` n'est plus lu du tout — sa première entrée est écrite
-    par le client. Si nginx cessait de poser `X-Real-IP`, tout le monde
-    partagerait l'empreinte du proxy : plus strict, jamais contournable.
+    ⚠️ Régression trouvée en vérifiant la production le 22/09/2026. uvicorn
+    réécrit `request.client.host` d'après `X-Forwarded-For` dès que la
+    connexion vient de 127.0.0.1 — nginx, toujours —, et ce nginx ne pose pas
+    `X-Forwarded-For` : celui du visiteur arrive intact. Lire `client.host`
+    rendait donc l'empreinte choisissable, et les cadences contournables.
+
+    On reproduit la requête TELLE QUE l'application la reçoit en production :
+    `client` déjà réécrit en l'adresse forgée, `X-Real-IP` posé par nginx.
     """
     import hashlib
     from starlette.requests import Request
@@ -560,21 +565,23 @@ def test_a_forged_client_address_is_ignored_unless_it_comes_from_the_proxy():
 
     def requete(pair, entetes):
         return Request({"type": "http", "method": "GET", "path": "/", "query_string": b"",
-                        "client": (pair, 50000),
+                        "client": (pair, 0),
                         "headers": [(k.lower().encode(), v.encode()) for k, v in entetes.items()]})
 
     def empreinte(ip):
         return hashlib.sha256(ip.encode("utf-8")).hexdigest()[:16]
 
-    # Connexion directe : l'en-tête forgé ne compte pas.
-    direct = requete("198.51.100.20", {"X-Real-IP": "203.0.113.1", "X-Forwarded-For": "203.0.113.2"})
-    assert _client_key(direct) == empreinte("198.51.100.20"), "un X-Real-IP forgé a été cru"
-    # Via nginx : l'adresse qu'il pose fait foi.
-    via = requete("127.0.0.1", {"X-Real-IP": "192.0.2.7"})
-    assert _client_key(via) == empreinte("192.0.2.7")
-    # Via nginx, sans X-Real-IP : X-Forwarded-For est IGNORÉ, on retombe sur le proxy.
-    sans = requete("127.0.0.1", {"X-Forwarded-For": "203.0.113.2, 192.0.2.7"})
-    assert _client_key(sans) == empreinte("127.0.0.1"), "X-Forwarded-For ne doit plus être lu"
+    reel = "192.0.2.7"
+    for forge in ("198.51.100.9", "203.0.113.1"):
+        # uvicorn a déjà remplacé l'adresse par le X-Forwarded-For forgé.
+        recue = requete(forge, {"X-Real-IP": reel, "X-Forwarded-For": forge})
+        assert _client_key(recue) == empreinte(reel), \
+            f"l'empreinte suit l'adresse forgée {forge} au lieu de X-Real-IP"
+    # Sans X-Real-IP (connexion directe au port local), l'adresse de connexion.
+    assert _client_key(requete("127.0.0.1", {"X-Forwarded-For": "203.0.113.2"})) == empreinte("127.0.0.1")
+    # Et X-Forwarded-For n'est lu nulle part dans l'application.
+    code = re.sub(r"#[^\n]*", "", (_ROOT / "api" / "main.py").read_text(encoding="utf-8"))
+    assert "x-forwarded-for" not in code.lower(), "X-Forwarded-For est relu quelque part"
 
 
 def test_stylesheet_is_reachable_at_the_path_pages_use():

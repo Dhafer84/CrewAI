@@ -1368,28 +1368,30 @@ _last_scan_by_client: dict[str, float] = {}
 _daily_usage = {"day": None, "count": 0}
 
 
-# ⚠️ Qui a le droit de dire « voici l'adresse du visiteur » (audit du
-# 22/09/2026, point 6). Seul nginx, sur la même machine, pose `X-Real-IP` :
-# un en-tête reçu de N'IMPORTE QUI D'AUTRE est ignoré. Avant, `X-Real-IP` et
-# `X-Forwarded-For` étaient crus d'où qu'ils viennent ; ce n'était pas
-# exploitable — nginx écrase `X-Real-IP`, vérifié en production — mais toute
-# la protection tenait à cette seule ligne de configuration.
+# ⚠️ Qui dit « voici l'adresse du visiteur » ? (audit de sécurité du 22/09/2026,
+# point 6 — et sa RÉGRESSION, trouvée en vérifiant la production le jour même.)
 #
-# Et `X-Forwarded-For` n'est plus lu du tout : sa PREMIÈRE entrée est celle
-# que le client a écrite. Si nginx cessait un jour de poser `X-Real-IP`, tous
-# les visiteurs partageraient l'empreinte du proxy — des limites PLUS strictes,
-# jamais contournables : l'échec se fait dans le bon sens.
+# Seul `X-Real-IP` fait foi : nginx l'ÉCRASE à chaque requête avec l'adresse
+# réelle (`proxy_set_header X-Real-IP $remote_addr`) — vérifié en production,
+# un `X-Real-IP` forgé n'a aucun effet.
 #
-# « testclient » est l'hôte que se donne le client de test de Starlette : ce
-# n'est pas une adresse, aucune connexion réseau ne peut s'en réclamer.
-_TRUSTED_PROXIES = frozenset({"127.0.0.1", "::1", "testclient"})
-
-
+# ⚠️ Et SURTOUT PAS `request.client.host`. uvicorn, dont c'est le réglage par
+# défaut (`--proxy-headers`), le RÉÉCRIT d'après `X-Forwarded-For` dès que la
+# connexion vient de 127.0.0.1 — c'est-à-dire de nginx, toujours. Or ce nginx
+# ne pose pas `X-Forwarded-For` : celui du visiteur arrive intact, et uvicorn
+# en fait l'adresse du client. Une première correction lisait `client.host`
+# « pour ne croire X-Real-IP que venant du proxy » : elle rendait l'empreinte
+# CHOISISSABLE par un simple en-tête, donc les cadences par visiteur
+# contournables. Mesuré en production : rapport créé sous un X-Forwarded-For,
+# refusé sous un autre.
+#
+# `X-Forwarded-For` n'est donc lu NULLE PART dans l'application. Sans
+# `X-Real-IP` — connexion directe au port local, jamais exposé, ou client de
+# test —, l'adresse de connexion.
 def _client_key(request: Request) -> str:
-    pair = request.client.host if request.client else "unknown"
-    raw = pair
-    if pair in _TRUSTED_PROXIES:
-        raw = (request.headers.get("x-real-ip") or "").strip() or pair
+    raw = (request.headers.get("x-real-ip") or "").strip()
+    if not raw:
+        raw = request.client.host if request.client else "unknown"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
 
