@@ -522,10 +522,13 @@ def test_every_page_loads_the_catalogue_before_its_own_script():
         outil_pos = texte.find('/static/i18n.js')
         assert catalogue_pos > 0, f"{chemin.name} ne charge pas le catalogue"
         assert outil_pos > catalogue_pos, f"{chemin.name} : i18n.js avant le catalogue"
-        inline = re.search(r"<script>\s*\n", texte)
-        if inline:
-            assert outil_pos < inline.start(), (
-                f"{chemin.name} : le script de page s'exécute avant T()")
+        # Tout script en ligne qui TRADUIT doit venir après T(). Un script qui
+        # ne traduit rien peut précéder : c'est le cas de la décision de
+        # l'intro de l'accueil, qui doit vivre dans <head> (22/09/2026).
+        for inline in re.finditer(r"<script>\s*\n(.*?)</script>", texte, re.S):
+            if re.search(r"\bT\(", inline.group(1)):
+                assert outil_pos < inline.start(), (
+                    f"{chemin.name} : le script de page s'exécute avant T()")
 
 
 def test_no_catalogue_entry_strays_out_of_the_latin_script():

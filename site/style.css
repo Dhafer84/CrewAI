@@ -82,10 +82,22 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:16px 0
   transition:width .5s cubic-bezier(.22,1,.36,1),height .5s cubic-bezier(.22,1,.36,1),border-radius .5s cubic-bezier(.22,1,.36,1),box-shadow .5s}
 .nav-menu.is-open .nav-morph{border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.55)}
 .nav-toggle{position:relative;z-index:1;display:grid;place-items:center;height:30px;padding:0 14px;border:0;border-radius:15px;
-  background:var(--text);color:var(--bg);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer}
-.nav-toggle>span{grid-area:1/1;transition:transform .3s cubic-bezier(.22,1,.36,1),visibility .3s}
-.nav-toggle-close,.nav-menu.is-open .nav-toggle-open{visibility:hidden;transform:translateY(6px)}
-.nav-menu.is-open .nav-toggle-close{visibility:visible;transform:none}
+  background:var(--text);color:var(--bg);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;overflow:hidden}
+/* « Menu » ⇄ « Fermer » en ROULEAU : celui qui part sort par le haut, celui qui
+   arrive entre par le bas ; le bouton coupe ce qui déborde.
+   ⚠️ Les deux libellés partagent la même case. Une transition sur `visibility`
+   garde l'élément VISIBLE pendant toute sa durée quand il se cache : avec
+   `visibility .3s` et un décalage de 6 px, « Menu » et « Fermer » restaient
+   superposés 0,3 s (signalé le 22/09/2026). D'où deux règles : celui qui
+   arrive devient visible SANS délai, celui qui part n'est caché qu'une fois
+   sorti du cadre (délai .3s) — et jamais au même endroit entre-temps. */
+.nav-toggle>span{grid-area:1/1;transition:transform .3s cubic-bezier(.22,1,.36,1),visibility 0s}
+.nav-toggle-close{visibility:hidden;transform:translateY(200%);
+  transition:transform .3s cubic-bezier(.22,1,.36,1),visibility 0s .3s}
+.nav-menu.is-open .nav-toggle-open{visibility:hidden;transform:translateY(-200%);
+  transition:transform .3s cubic-bezier(.22,1,.36,1),visibility 0s .3s}
+.nav-menu.is-open .nav-toggle-close{visibility:visible;transform:none;
+  transition:transform .3s cubic-bezier(.22,1,.36,1),visibility 0s}
 .nav-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .nav-card{position:absolute;top:40px;right:0;padding:2px 24px 20px;visibility:hidden;transition:visibility 0s .5s}
 .nav-menu.is-open .nav-card{visibility:visible;transition-delay:0s}

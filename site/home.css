@@ -122,7 +122,7 @@ body.home{background:var(--h-frame);color:var(--h-ink)}
 .h-round:disabled{cursor:default;color:var(--h-off);border-color:var(--h-line)}
 .h-linkedin{color:var(--h-linkedin)}
 
-.home h1,.h-title,.h-stat-num,.home .tool-name,.h-vchip b{font-family:var(--h-display);font-stretch:125%;font-weight:600;text-transform:uppercase;letter-spacing:-.015em}
+.home h1,.h-title,.home .tool-name,.h-vchip b{font-family:var(--h-display);font-stretch:125%;font-weight:600;text-transform:uppercase;letter-spacing:-.015em}
 /* Équilibre les lignes des grands titres : sans ça, « CINQ SANS / IA. » laissait un mot seul à 1024 px. */
 .home h1,.h-title{text-wrap:balance}
 .home h1{font-size:clamp(34px,5.2vw,74px);line-height:.95;margin:22px 0 20px;color:var(--h-ink)}
@@ -196,14 +196,75 @@ body.home{background:var(--h-frame);color:var(--h-ink)}
 
 /* ---------- Parti pris (cran inversé) ---------- */
 .h-stance{padding:38px 46px 40px}
-.h-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(230px,100%),1fr));gap:18px 34px;margin-bottom:34px}
-.h-stat{border-top:1px solid var(--h-line);padding-top:18px}
-.h-stat-num{display:block;font-size:clamp(56px,6.6vw,92px);line-height:.9;color:var(--h-accent-ink);letter-spacing:-.03em}
-.h-stat p{margin-top:14px;font-size:15px;line-height:1.5;color:var(--h-ink)}
 .h-stance-text{max-width:78ch;border-top:1px solid var(--h-line);padding-top:26px}
 .h-stance-text p{font-size:15px;line-height:1.75;color:var(--h-ink-2);margin-bottom:16px}
 .h-stance-text p:last-child{margin-bottom:0}
 .h-stance-text strong{color:var(--h-ink);font-weight:600}
+
+/* ---------- Parti pris : les deux figures animées (site/stance.js) ----------
+   L'anneau 5/6 et le pont HARA → TARA remplacent les chiffres « 5/6 », « 4 »
+   et « S » (22/09/2026). Tout ce qui s'anime vit en SVG, dessiné par le
+   script ; les légendes restent du HTML, donc traduites et lues.
+   ⚠️ Rien ne s'efface par `opacity` : ce qui arrive s'allume par sa couleur,
+   ce qui part rétrécit. */
+.pp-pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:26px 44px;margin-bottom:34px}
+.pp-fig{border-top:1px solid var(--h-line);padding-top:18px;min-width:0}
+.pp-fig svg{display:block;width:100%;height:auto;overflow:visible}
+.pp-ring{max-width:440px}
+.pp-kicker{display:flex;justify-content:space-between;gap:10px;margin-bottom:12px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--h-ink-2)}
+.pp-tag{border:1px solid var(--h-line);border-radius:999px;padding:1px 8px;letter-spacing:.06em}
+.pp-caption{margin-top:14px;font-size:15px;line-height:1.5;color:var(--h-ink)}
+.pp-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px;font-size:12.5px;line-height:1.4;color:var(--h-ink-2)}
+.pp-legend > span{display:inline-flex;align-items:center;gap:7px}
+.pp-legend i{flex:none;width:18px;height:8px;border-radius:2px;background:var(--h-accent-ink)}
+.pp-legend i.is-opt{background:var(--h-panel);box-shadow:inset 0 0 0 3px var(--h-accent-ink)}
+.pp-legend i.is-req{background:none;border-top:2px dotted var(--h-off);height:0;border-radius:0}
+.pp-rules{margin-top:12px;display:grid;gap:4px;font-size:12.5px;line-height:1.45;color:var(--h-ink-2)}
+.pp-rules b{color:var(--h-ink);font-weight:600}
+
+/* Texte et tracés communs aux deux figures */
+.pp-fig .pp-head{font-family:var(--h-display);font-stretch:112%;font-weight:600;font-size:9.5px;letter-spacing:.08em;fill:var(--h-ink-2)}
+.pp-fig .pp-name{font-family:var(--h-display);font-stretch:112%;font-weight:600;font-size:11.5px;letter-spacing:.05em;fill:var(--h-ink-2)}
+.pp-fig .pp-rail{fill:none;stroke:var(--h-line);stroke-width:2;stroke-linecap:round}
+.pp-fig .pp-trail{fill:none;stroke:var(--h-accent-ink);stroke-width:2;stroke-linecap:round}
+.pp-fig .pp-trail.is-ai{stroke:var(--h-ink-2)}
+.pp-fig .pp-dot{fill:var(--h-accent-ink);transform-box:fill-box;transform-origin:center}
+.pp-fig .pp-dot.is-ai{fill:var(--h-ink-2)}
+.pp-fig .pp-dot.is-opt{fill:var(--h-panel);stroke:var(--h-accent-ink);stroke-width:2}
+.pp-fig .pp-gate{stroke:var(--h-ink-2);stroke-width:2;stroke-linecap:round}
+.pp-fig .pp-gate-label{font-family:var(--h-display);font-stretch:112%;font-weight:600;font-size:8.5px;letter-spacing:.08em;fill:var(--h-ink-2)}
+
+/* L'anneau : un cran par outil */
+.pp-ring .pp-slot{fill:none;stroke:var(--h-line);stroke-width:11}
+.pp-ring .pp-slot.is-ai{stroke:var(--h-off);stroke-dasharray:2 4}
+.pp-ring .pp-seg{fill:none;stroke:var(--h-accent-ink);stroke-width:11}
+.pp-ring .pp-seg-hole{fill:none;stroke:var(--h-panel);stroke-width:5}
+.pp-ring .pp-stub{stroke:var(--h-ink-2);stroke-width:1.2;stroke-dasharray:1.5 1.5}
+.pp-ring .pp-opt{fill:var(--h-panel);stroke:var(--h-ink-2);stroke-width:1}
+.pp-ring .pp-opt-label{font-family:var(--h-display);font-weight:600;font-size:7.5px;letter-spacing:.06em;fill:var(--h-ink)}
+.pp-ring .pp-count{font-family:var(--h-display);font-stretch:125%;font-weight:600;font-size:34px;letter-spacing:-.03em;fill:var(--h-accent-ink);transform-box:fill-box;transform-origin:center}
+.pp-ring .pp-sub{font-size:9px;letter-spacing:.06em;fill:var(--h-ink-2);text-transform:uppercase}
+
+/* Le pont */
+.pp-bridge .pp-letter{font-family:var(--h-display);font-stretch:125%;font-weight:600;font-size:14px;fill:var(--h-ink)}
+.pp-bridge .pp-cellbar{fill:var(--h-visual);stroke:var(--h-line);stroke-width:1}
+.pp-bridge .pp-cellbar.is-on{fill:var(--h-accent-ink);stroke:var(--h-accent-ink)}
+.pp-bridge .pp-val{font-family:var(--h-display);font-weight:600;font-size:10px;fill:var(--h-ink-2)}
+.pp-bridge .pp-val.is-on{fill:var(--h-ink)}
+.pp-bridge .pp-chip{fill:var(--h-panel);stroke:var(--h-line);stroke-width:1}
+.pp-bridge .pp-chip.is-on{stroke:var(--h-accent-ink)}
+.pp-bridge .pp-chip-text{font-family:var(--h-display);font-stretch:112%;font-weight:600;font-size:9.5px;letter-spacing:.06em;fill:var(--h-ink-2)}
+.pp-bridge .pp-chip-text.is-on{fill:var(--h-ink)}
+.pp-bridge .pp-wall{stroke:var(--h-ink-2);stroke-width:3;stroke-linecap:round}
+.pp-bridge .pp-wall.is-hit{stroke:var(--h-ink)}
+.pp-bridge .pp-cross{font-family:var(--h-display);font-weight:600;font-size:11px;fill:var(--h-ink)}
+.pp-bridge .pp-rowlab{font-size:10px;fill:var(--h-ink-2)}
+.pp-bridge .pp-rowlab.is-on{fill:var(--h-accent-ink);font-weight:600}
+.pp-bridge .pp-cell{fill:var(--h-visual);stroke:var(--h-visual);stroke-width:1.5}
+.pp-bridge .pp-cell.is-row,.pp-bridge .pp-cell.is-col{stroke:var(--h-accent)}
+.pp-bridge .pp-cell.is-hit{fill:var(--h-accent-ink);stroke:var(--h-accent-ink)}
+.pp-bridge .pp-num{font-size:9.5px;fill:var(--h-ink-2);transform-box:fill-box;transform-origin:center}
+.pp-bridge .pp-num.is-hit{fill:var(--h-on-accent);font-weight:700;font-size:12px}
 
 /* ---------- Plafonds du jour (rendus par aistatus.js, styles de style.css) ---------- */
 .h-caps{padding:28px 46px 30px}
@@ -338,3 +399,31 @@ body.tool-page h1{font-stretch:112%;font-size:clamp(28px,4.6vw,54px);margin:14px
   .h-ring{animation:none}
   .home .tool-card::before,.tool-cta svg,.a-tool::before{transition:none}
 }
+
+/* ============================================================
+   OUVERTURE DE L'ACCUEIL (site/intro.js) — 22/09/2026
+   Un calque posé par-dessus l'accueil, jamais une page à part : pas d'adresse
+   de plus, aperçus de partage et indexation inchangés. Un orbe de particules
+   forme le nom, qui s'envole se poser sur l'onglet pendant qu'un diaphragme
+   PERCE le calque — aucun fondu, donc aucune `opacity`.
+   `intro-on` est posé par le script de <head> avant le premier affichage.
+   ============================================================ */
+/* La place de la barre de défilement est RÉSERVÉE pendant l'intro : sans ça,
+   la page s'élargit d'une barre au retrait du calque, et le nom en particules
+   ne tomberait plus sur le vrai. */
+html.intro-on{overflow:hidden;scrollbar-gutter:stable}
+html:not(.intro-on) .intro{display:none}
+/* Fond plein tant que le canvas n'a rien peint : sinon l'accueil se verrait
+   une fraction de seconde. Le script le retire à la première image. */
+.intro{position:fixed;inset:0;z-index:1000;cursor:pointer;background:var(--h-panel)}
+.intro.is-drawn{background:none}
+.intro canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.intro-skip{position:absolute;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));
+  font:500 13px/1 system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:.02em;
+  padding:10px 16px;border-radius:999px;border:1px solid var(--h-m-line);
+  background:var(--h-m-bg);color:var(--h-m-ink);cursor:pointer}
+.intro-skip:hover{background:var(--h-frame)}
+.intro-skip:focus-visible{outline:2px solid var(--h-accent);outline-offset:3px}
+/* Pendant l'ouverture le bouton n'a plus d'objet : il sort par le bas. */
+.intro.is-opening .intro-skip{transform:translateY(80px);transition:transform .3s var(--h-ease)}
+

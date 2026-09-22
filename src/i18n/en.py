@@ -489,8 +489,32 @@ CATALOGUE: dict[str, str] = {
     "home.ct.short": "8D complaints and root-cause analysis.",
     "home.stance.note": "What you can't guess",
     "home.stat.noai": "tools deliver their result without AI",
-    "home.stat.optional":
-        "tools where AI is optional: it proposes or summarises, it never rates or decides",
+    # --- Stance: the two animated figures (22/09/2026) ---
+    "home.fig.tools": "The tools",
+    "home.fig.none": "no AI",
+    "home.fig.optional": "optional AI: proposes, never decides",
+    "home.fig.result": "result",
+    "home.fig.noai": "without AI",
+    "home.fig.ai": "AI",
+    "home.fig.bridge": "The HARA → TARA bridge",
+    "home.fig.example": "example",
+    "home.fig.wall": "do not cross",
+    "home.fig.feas": "feasibility",
+    "home.fig.dongle": "Dongle · 6 pts",
+    "home.fig.rule.s": "<b>S crosses</b>: harm does not depend on its cause.",
+    "home.fig.rule.ec":
+        "<b>E and C stop</b>: an attacker picks the moment, and can take away the driver's recourse.",
+    "home.fig.rule.f": "<b>Feasibility</b> comes from the attack, not from the HARA.",
+    "home.fig.sr.ring":
+        "Five of the six tools deliver their result without AI: SentinelScan uses none, "
+        "it is optional in four others, and only QualityCrew depends on it.",
+    "home.fig.sr.bridge":
+        "Example: a hazardous event rated S3, E4, C2 gives ASIL C. Only severity crosses "
+        "into the TARA, where it becomes a severe impact; exposure and controllability do "
+        "not cross. Combined with a high feasibility — a radio dongle, 6 points — it gives "
+        "a risk of 5.",
+    # --- Home page opening ---
+    "home.intro.skip": "Skip",
     "home.stat.bridge": "only severity crosses the HARA → TARA bridge",
     "home.section.tools": "Tools",
     # --- Home page — labels next to an icon ---

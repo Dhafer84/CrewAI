@@ -10,8 +10,25 @@
   <!-- Préchargée : sans elle, les grands titres s'affichent d'abord dans une
        police de repli, puis sautent quand Archivo arrive. -->
   <link rel="preload" href="/static/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
+  <!-- Ouverture de l'accueil : décidée ICI, avant le premier affichage — plus
+       tard, l'accueil clignoterait avant que le calque ne se pose. Une fois par
+       session, jamais pour qui demande moins d'animations. -->
+  <script>
+    (function () {
+      var vue = false;
+      try { vue = sessionStorage.getItem('qc.intro.seen') === '1'; } catch (e) {}
+      var calme = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!vue && !calme) document.documentElement.classList.add('intro-on');
+    })();
+  </script>
 </head>
 <body class="home">
+<!-- Le calque de l'ouverture (site/intro.js). Il PERCE pour découvrir la page,
+     il ne la remplace jamais : l'accueil est chargé et indexé dessous. -->
+<div class="intro" id="intro">
+  <canvas aria-hidden="true"></canvas>
+  <button type="button" class="intro-skip" data-i18n="home.intro.skip">Passer</button>
+</div>
 <div class="h-shell">
 
   <!-- En-tête : l'onglet porte le nom, la bande porte la langue et le menu. -->
@@ -179,7 +196,7 @@
 
   <!-- ===== Parti pris (cran inversé) =====
        Le positionnement ne se devine pas : il faut l'écrire. ⚠️ Les décomptes
-       (5/6, 4, « Cinq de ces six outils ») se périment à chaque outil ajouté —
+       (« Cinq outils sur six », « Cinq de ces six outils ») se périment à chaque outil ajouté —
        `test_the_catalogue_links_to_every_tool` les vérifie. -->
   <section class="h-section" id="parti-pris" aria-labelledby="h-stance-title">
     <div class="h-notch is-mirrored">
@@ -188,10 +205,34 @@
       <div class="h-band"><span class="h-band-note" data-i18n="home.stance.note">Ce qui ne se devine pas</span></div>
     </div>
     <div class="h-panel is-mirrored h-stance">
-      <div class="h-stats">
-        <div class="h-stat"><span class="h-stat-num">5/6</span><p data-i18n="home.stat.noai">outils rendent leur résultat sans IA</p></div>
-        <div class="h-stat"><span class="h-stat-num">4</span><p data-i18n="home.stat.optional">outils où l'IA est facultative : elle propose ou résume, jamais elle ne cote ni ne décide</p></div>
-        <div class="h-stat"><span class="h-stat-num">S</span><p data-i18n="home.stat.bridge">seule la sévérité traverse le pont HARA → TARA</p></div>
+      <!-- Deux figures animées (site/stance.js), qui remplacent les chiffres
+           « 5/6 », « 4 » et « S ». Elles ne recopient RIEN : les outils et leur
+           mode d'IA sont lus sur les cartes ci-dessus, l'ASIL et le risque dans
+           /hara/matrix et /tara/scales. Le texte pour lecteur d'écran, lui, est
+           un décompte : test_the_catalogue_links_to_every_tool le vérifie. -->
+      <div class="pp-pair" id="stance">
+        <figure class="pp-fig">
+          <div class="pp-kicker"><span data-i18n="home.fig.tools">Les outils</span></div>
+          <p class="h-sr" data-i18n="home.fig.sr.ring">Cinq outils sur six rendent leur résultat sans IA : SentinelScan n'en utilise aucune, elle est facultative dans quatre autres, et seul QualityCrew en dépend.</p>
+          <svg class="pp-ring" id="stanceRing" viewBox="0 0 392 196" aria-hidden="true"></svg>
+          <div class="pp-legend">
+            <span><i></i><span data-i18n="home.fig.none">aucune IA</span></span>
+            <span><i class="is-opt"></i><span data-i18n="home.fig.optional">IA facultative : propose, ne décide pas</span></span>
+            <span><i class="is-req"></i><span data-i18n="home.ai.required">IA requise</span></span>
+          </div>
+          <p class="pp-caption" data-i18n="home.stat.noai">outils rendent leur résultat sans IA</p>
+        </figure>
+        <figure class="pp-fig">
+          <div class="pp-kicker"><span data-i18n="home.fig.bridge">Le pont HARA → TARA</span><span class="pp-tag" data-i18n="home.fig.example">exemple</span></div>
+          <p class="h-sr" data-i18n="home.fig.sr.bridge">Exemple : un événement redouté coté S3, E4, C2 donne un ASIL C. Seule la sévérité passe en TARA, où elle devient un impact sévère ; l'exposition et la contrôlabilité ne traversent pas. Croisée avec une faisabilité élevée — un dongle radio, 6 points — elle donne un risque de 5.</p>
+          <svg class="pp-bridge" id="stanceBridge" viewBox="0 0 440 178" aria-hidden="true"></svg>
+          <div class="pp-rules">
+            <span data-i18n="home.fig.rule.s"><b>S traverse</b> : la gravité ne dépend pas de la cause.</span>
+            <span data-i18n="home.fig.rule.ec"><b>E et C s'arrêtent</b> : l'attaquant choisit son moment, et peut neutraliser le recours.</span>
+            <span data-i18n="home.fig.rule.f"><b>La faisabilité</b> vient de l'attaque, pas de la HARA.</span>
+          </div>
+          <p class="pp-caption" data-i18n="home.stat.bridge">seule la sévérité traverse le pont HARA → TARA</p>
+        </figure>
       </div>
       <div class="h-stance-text">
         <p data-i18n="home.stance.noai"><strong>Cinq de ces six outils produisent leur résultat sans aucune intelligence artificielle.</strong> Déterminer un ASIL ou une valeur de risque, ce sont des tables de décision : la réponse est exacte et instantanée. Refuser de clore un 8D dont la cause de non-détection manque, c'est un jeu de règles ordonnées. Rattacher un signal de veille à une norme, c'est une règle écrite, reproductible et testée hors ligne. Chercher une exposition sur des dépôts publics, c'est une API et des critères de criticité. Y glisser un modèle de langage n'ajouterait qu'une latence et une incertitude.</p>
@@ -224,6 +265,8 @@
 <script src="/static/i18n.js"></script>
 <script src="/static/menu.js"></script>
 <script src="/static/aistatus.js"></script>
+<script src="/static/stance.js"></script>
+<script src="/static/intro.js"></script>
 <script>
 // Rangée d'outils : les deux flèches font défiler de deux cartes, et se
 // désactivent aux extrémités. Le défilement à la main reste possible.

@@ -188,10 +188,13 @@ def test_the_catalogue_links_to_every_tool():
     # qui n'en a aucune.
     assert "Six outils. <em>Cinq sans IA.</em>" in accueil, \
         "le titre du catalogue ne correspond plus au décompte"
-    assert '<span class="h-stat-num">5/6</span>' in accueil, \
-        "le chiffre « 5/6 » du parti pris ne correspond plus au décompte"
-    assert '<span class="h-stat-num">4</span>' in accueil, \
-        "le nombre d'outils à IA facultative a changé — recompter"
+    # Depuis le 22/09/2026 les chiffres « 5/6 » et « 4 » sont une FIGURE
+    # (site/stance.js) qui compte les cartes elle-même. Reste un décompte écrit
+    # en toutes lettres : le texte pour lecteur d'écran de l'anneau.
+    assert "Cinq outils sur six rendent leur résultat sans IA" in accueil, \
+        "le texte de l'anneau 5/6 ne correspond plus au décompte"
+    assert "facultative dans quatre autres" in accueil, \
+        "le nombre d'outils à IA facultative a changé — recompter l'anneau"
     assert accueil.count('data-i18n="home.ai.optional"') == 4, \
         "les cartes ne marquent plus quatre outils à IA facultative"
     assert "QualityCrew</strong>" in accueil, \
@@ -200,6 +203,131 @@ def test_the_catalogue_links_to_every_tool():
         "le parti pris propre à RegWatch doit se lire dès la page de garde"
     assert "l'IA ne complète pas : elle réclame" in accueil, \
         "le parti pris propre à CauseTrace doit se lire dès la page de garde"
+
+
+def test_the_stance_figures_read_their_data():
+    """Les deux figures du parti pris ne recopient RIEN (22/09/2026).
+
+    L'anneau 5/6 lit les outils et leur mode d'IA sur les cartes de l'accueil ;
+    le pont HARA → TARA lit l'ASIL dans /hara/matrix, l'impact, la faisabilité
+    et le risque dans /tara/scales. Un nom d'outil ou une case de matrice
+    recopiés dans le script finiraient par mentir sans que rien ne tombe —
+    le motif de `xlsxsafe` et des deux listes d'actifs du 25/08/2026.
+    """
+    js = (_ROOT / "site" / "stance.js").read_text(encoding="utf-8")
+    code = re.sub(r"/\*.*?\*/|//[^\n]*", "", js, flags=re.S)
+    for nom in ("QualityCrew", "SentinelScan", "SafetyScope", "ThreatScope", "RegWatch", "CauseTrace"):
+        assert nom not in code, f"stance.js recopie le nom « {nom} » au lieu de le lire sur les cartes"
+    for recopie in ("[2, 3, 4, 5]", "'Sévère'", "'Severe'", "ASIL C'", "'D'"):
+        assert recopie not in code, f"stance.js recopie une valeur du moteur : {recopie}"
+    for lu in ("#toolRail .tool-card", ".tool-ai", "/hara/matrix?lang=", "/tara/scales?lang=",
+               "feasibilityByPotential", "severityToImpact", "impactOrder"):
+        assert lu in code, f"stance.js ne lit plus « {lu} »"
+    # L'exemple, lui, est choisi — et le texte pour lecteur d'écran le décrit.
+    assert "S: 3, E: 4, C: 2, potential: 6" in code, "l'exemple du pont a changé : réécrire son texte"
+    with client() as c:
+        accueil = c.get("/").text
+    assert "coté S3, E4, C2 donne un ASIL C" in accueil and "risque de 5" in accueil
+
+
+def test_the_stance_example_matches_the_engines():
+    """Le texte pour lecteur d'écran du pont dit ce que les moteurs répondent.
+
+    La figure calcule ses valeurs ; le texte, lui, est écrit. Ce test relie les
+    deux : si le barème ou la matrice changent, la phrase doit changer aussi.
+    """
+    import sys
+    sys.path.insert(0, str(_ROOT / "src"))
+    from safetyscope.asil import determine_asil
+    from threatscope.rating import determine_risk, full_scales
+    assert determine_asil(3, 4, 2) == "C", "S3 E4 C2 ne donne plus ASIL C — réécrire l'exemple"
+    faisabilite = full_scales()["feasibilityByPotential"][6]
+    assert faisabilite == 3, "un dongle à 6 points n'est plus en faisabilité élevée"
+    assert determine_risk(3, faisabilite) == 5, "sévère × élevée ne donne plus un risque de 5"
+
+
+def test_the_intro_opens_the_home_page_only():
+    """L'ouverture animée vit sur l'accueil, en français comme en anglais — nulle part ailleurs.
+
+    Un calque par-dessus la page, jamais une page à part : l'accueil est
+    chargé et indexé dessous, et les aperçus de partage ne changent pas.
+    """
+    with client() as c:
+        for chemin in ("/", "/en"):
+            html = c.get(chemin).text
+            assert 'id="intro"' in html and "/static/intro.js" in html, f"{chemin} : l'intro manque"
+            assert "<canvas" in html
+        assert ">Skip</button>" in c.get("/en").text, "« Passer » n'est pas traduit sur /en"
+        for chemin in ("/about", "/hara", "/tara", "/qualitycrew", "/sentinelscan", "/regwatch", "/8d"):
+            html = c.get(chemin).text
+            assert 'id="intro"' not in html and "intro.js" not in html, f"{chemin} porte l'intro"
+
+
+def test_the_intro_is_decided_before_the_first_paint():
+    """⚠️ La décision vit dans <head>, sinon l'accueil clignote sous le calque.
+
+    Et elle respecte les deux refus : une fois par session, et jamais pour qui
+    demande moins d'animations.
+    """
+    html = (_ROOT / "site" / "index.html").read_text(encoding="utf-8")
+    tete = html.split("</head>")[0]
+    assert "intro-on" in tete, "la classe intro-on doit être posée dans <head>"
+    assert "sessionStorage" in tete and "qc.intro.seen" in tete, "l'intro ne doit jouer qu'une fois par session"
+    assert "prefers-reduced-motion: reduce" in tete, "l'intro doit s'effacer devant « moins d'animations »"
+
+
+def test_the_intro_can_never_trap_the_page():
+    """Une intro ne doit jamais pouvoir bloquer le site.
+
+    ⚠️ Trouvé en test : un onglet bridé ne dessine aucune image, et le calque
+    restait posé indéfiniment sur l'accueil. D'où le garde-fou, la sortie par
+    Échap, et la page rendue au visiteur (plus d'`inert`) à la fin.
+    """
+    js = (_ROOT / "site" / "intro.js").read_text(encoding="utf-8")
+    garde = re.search(r"setTimeout\(finish,\s*(\d+)\)", js)
+    assert garde and int(garde.group(1)) <= 5000, "le garde-fou de fermeture a disparu ou dépasse 5 s"
+    assert "'Escape'" in js, "Échap doit passer l'intro"
+    assert "removeAttribute('inert')" in js, "la page doit être rendue au visiteur à la fin"
+    assert "sessionStorage.setItem('qc.intro.seen'" in js, "la fin de l'intro doit être mémorisée"
+    assert "freeze" not in js, "le paramètre de vérification du prototype ne doit pas partir en production"
+    # Fenêtre sans taille, ou erreur de dessin : on ferme au lieu de laisser le
+    # calque, et l'exception qui l'aurait figé (`getImageData` sur 0 px).
+    assert "if (!W || !H) { finish(); return; }" in js, "une fenêtre sans taille doit fermer l'intro"
+    assert js.count("catch (e) { finish(); return; }") >= 2, \
+        "une erreur de construction ou de dessin doit fermer l'intro, pas la figer"
+    css = _HOME.read_text(encoding="utf-8")
+    assert "scrollbar-gutter:stable" in css, \
+        "sans place réservée pour la barre de défilement, le nom ne tombe plus sur l'onglet"
+
+
+def test_the_menu_labels_never_overlap():
+    """« Menu » et « Fermer » ne s'affichent jamais l'un sur l'autre (22/09/2026).
+
+    ⚠️ Les deux libellés partagent la même case du bouton. Une transition sur
+    `visibility` garde un élément VISIBLE pendant toute sa durée quand il se
+    cache : avec `visibility .3s`, les deux mots restaient superposés 0,3 s à
+    chaque clic. Tenu par trois règles : le bouton coupe ce qui déborde, celui
+    qui part n'est caché qu'après être sorti (délai), celui qui arrive est
+    visible sans délai — et ils sortent et entrent par des côtés opposés.
+    """
+    css = (_ROOT / "site" / "style.css").read_text(encoding="utf-8")
+    def regle(selecteur):
+        m = re.search(re.escape(selecteur) + r"\{([^}]*)\}", css)
+        assert m, f"règle introuvable : {selecteur}"
+        return m.group(1).replace(" ", "")
+    bouton = regle(".nav-toggle")
+    assert "overflow:hidden" in bouton, "le bouton doit couper le libellé qui sort"
+    for part in (".nav-toggle-close", ".nav-menu.is-open .nav-toggle-open"):
+        r = regle(part)
+        assert "visibility:hidden" in r and "visibility0s.3s" in r, \
+            f"{part} : le libellé qui part doit rester visible le temps de SORTIR, pas de se superposer"
+    arrive = regle(".nav-menu.is-open .nav-toggle-close")
+    assert "visibility0s)" in arrive or arrive.endswith("visibility0s"), \
+        "le libellé qui arrive doit être visible sans délai"
+    haut = re.search(r"translateY\((-?\d+)%\)", regle(".nav-menu.is-open .nav-toggle-open"))
+    bas = re.search(r"translateY\((-?\d+)%\)", regle(".nav-toggle-close"))
+    assert haut and bas and int(haut.group(1)) <= -100 and int(bas.group(1)) >= 100, \
+        "les deux libellés doivent sortir ET entrer hors du bouton, par des côtés opposés"
 
 
 def test_stylesheet_is_reachable_at_the_path_pages_use():
@@ -2571,6 +2699,8 @@ _PAIRES_ACCUEIL = [
     ("h-frame-dim", "h-frame", "notes de la bande, sélecteur de langue"),
     ("h-on-accent", "h-accent", "bouton principal"),
     ("h-on-accent", "h-accent-hover", "bouton principal au survol"),
+    ("h-on-accent", "h-accent-ink", "case de risque allumée du pont HARA → TARA"),
+    ("h-ink", "h-visual", "valeurs S/E/C allumées du pont"),
     ("h-pill-btn-ink", "h-pill-btn", "bouton du menu"),
     ("h-m-ink", "h-m-bg", "liens du menu"),
     ("h-m-dim", "h-m-bg", "liens du menu estompés au survol"),

@@ -510,8 +510,32 @@ CATALOGUE: dict[str, str] = {
     "home.ct.short": "Réclamation 8D et analyse causale.",
     "home.stance.note": "Ce qui ne se devine pas",
     "home.stat.noai": "outils rendent leur résultat sans IA",
-    "home.stat.optional":
-        "outils où l'IA est facultative : elle propose ou résume, jamais elle ne cote ni ne décide",
+    # --- Parti pris : les deux figures animées (22/09/2026) ---
+    "home.fig.tools": "Les outils",
+    "home.fig.none": "aucune IA",
+    "home.fig.optional": "IA facultative : propose, ne décide pas",
+    "home.fig.result": "résultat",
+    "home.fig.noai": "sans IA",
+    "home.fig.ai": "IA",
+    "home.fig.bridge": "Le pont HARA → TARA",
+    "home.fig.example": "exemple",
+    "home.fig.wall": "ne traversent pas",
+    "home.fig.feas": "faisabilité",
+    "home.fig.dongle": "Dongle · 6 pt",
+    "home.fig.rule.s": "<b>S traverse</b> : la gravité ne dépend pas de la cause.",
+    "home.fig.rule.ec":
+        "<b>E et C s'arrêtent</b> : l'attaquant choisit son moment, et peut neutraliser le recours.",
+    "home.fig.rule.f": "<b>La faisabilité</b> vient de l'attaque, pas de la HARA.",
+    "home.fig.sr.ring":
+        "Cinq outils sur six rendent leur résultat sans IA : SentinelScan n'en utilise aucune, "
+        "elle est facultative dans quatre autres, et seul QualityCrew en dépend.",
+    "home.fig.sr.bridge":
+        "Exemple : un événement redouté coté S3, E4, C2 donne un ASIL C. Seule la sévérité "
+        "passe en TARA, où elle devient un impact sévère ; l'exposition et la contrôlabilité "
+        "ne traversent pas. Croisée avec une faisabilité élevée — un dongle radio, 6 points — "
+        "elle donne un risque de 5.",
+    # --- Ouverture de l'accueil ---
+    "home.intro.skip": "Passer",
     "home.stat.bridge": "seule la sévérité traverse le pont HARA → TARA",
     "home.section.tools": "Outils",
     # --- Page de garde — libellés accompagnés d'une icône ---
