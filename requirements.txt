@@ -5,7 +5,12 @@ litellm==1.96.2
 python-dotenv==1.2.2
 
 # API live (Phase 6)
-fastapi==0.115.5
+# ⚠️ fastapi 0.115.5 imposait starlette<0.42, vulnérable à CVE-2025-62727 (en-tête Range
+# à traitement quadratique dans StaticFiles → déni de service sur /static). pip-audit du
+# 22/09/2026. starlette est épinglé EXPLICITEMENT : fastapi 0.141 ne pose plus de borne
+# haute, et une version non épinglée du cœur HTTP bougerait à chaque installation.
+fastapi==0.141.1
+starlette==1.6.0
 uvicorn[standard]==0.32.1
 
 # SentinelScan — client API GitHub + rapport Excel
