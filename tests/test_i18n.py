@@ -554,6 +554,83 @@ def test_no_status_message_is_hard_coded():
         assert fr[cle] != en[cle], f"« {cle} » est identique en français et en anglais"
 
 
+def _script_texts():
+    """Chaque texte littéral des scripts de page : (fichier, ligne, texte).
+
+    Un littéral de gabarit HTML (« '<span>Traitement du risque</span>' ») est
+    découpé sur ses balises : c'est le TEXTE entre elles qui s'affiche.
+    """
+    litteral = re.compile(r"'((?:[^'\\]|\\.)*)'|\"((?:[^\"\\]|\\.)*)\"")
+    for chemin in sorted(SITE.glob("*.html")) + sorted(SITE.glob("*.js")):
+        source = chemin.read_text(encoding="utf-8")
+        if chemin.suffix == ".html":
+            blocs = [(m.start(1), m.group(1)) for m in re.finditer(r"<script>(.*?)</script>", source, re.S)]
+        else:
+            blocs = [(0, source)]
+        for debut, code in blocs:
+            code = re.sub(r"/\*.*?\*/", lambda m: "\n" * m.group().count("\n"), code, flags=re.S)
+            for i, ligne in enumerate(code.splitlines()):
+                if ligne.strip().startswith("//"):
+                    continue
+                numero = source[:debut].count("\n") + i + 1
+                for m in litteral.finditer(ligne):
+                    corps = m.group(1) or m.group(2) or ""
+                    # Le texte qui SUIT une balise est du contenu affiché : un seul
+                    # mot y suffit (« <span>menace ' + ref »). Ailleurs, un mot
+                    # isolé est le plus souvent une classe CSS concaténée.
+                    for j, morceau in enumerate(re.split(r"<[^>]*>", corps)):
+                        yield chemin.name, numero, morceau, j > 0
+
+
+# Termes identiques dans les deux langues, affichés tels quels.
+_NEUTRES = {"use strict", "ASIL", "OC", "HARA", "TARA", "pt"}
+
+
+def _looks_like_text(texte: str, in_markup: bool = False) -> bool:
+    propre = texte.strip()
+    if not propre or propre in _NEUTRES:
+        return False
+    # Classes CSS, sélecteurs, polices, URL, expressions : tiret, chiffre ou symbole.
+    # Le point final d'une phrase n'en fait pas partie.
+    if re.search(r"[\d\-_#@/\\$={}()\[\]]", propre) or re.search(r"\.\w", propre):
+        return False
+    # Sélecteurs CSS : « input, textarea », « input:checked ».
+    if re.fullmatch(r"[a-z]+(\s*,\s*[a-z]+|:[a-z]+)+", propre):
+        return False
+    accent = any(c.isalpha() and not c.isascii() for c in propre)
+    mots = re.findall(r"[A-Za-zÀ-ÿ’']{2,}", propre)
+    return len(mots) >= (1 if in_markup else 2) or accent
+
+
+def test_no_text_is_hard_coded_in_page_scripts():
+    """Tout texte affiché par un script de page passe par T().
+
+    ⚠️ Trouvé le 27/09/2026, en filmant les outils en anglais : cinq textes
+    français écrits en dur dans des gabarits JavaScript — « Traitement du
+    risque », « N menaces maximum », « structure non reconnue »… et une
+    COMPARAISON avec « En cours… » qui, traduite, ne tombait plus jamais
+    juste sur /en. `test_no_french_survives_in_an_english_page` ne peut pas
+    les voir : ils sont construits APRÈS le rendu serveur.
+
+    Un texte est une suite d'au moins deux mots sans tiret, ou tout mot
+    accentué. Les listes de classes CSS (« btn btn-ghost »), les sélecteurs et
+    les piles de polices portent un tiret ou un chiffre : ils passent.
+    """
+    fautes = [f"{fichier}:{numero} « {texte.strip()[:60]} »"
+              for fichier, numero, texte, balise in _script_texts() if _looks_like_text(texte, balise)]
+    assert not fautes, "texte écrit en dur dans un script (passer par T()) : " + " | ".join(fautes)
+
+
+def test_the_hard_coded_text_detector_bites():
+    """Contre-épreuve : le détecteur voit bien les cinq cas réels de 2026-09-27."""
+    for exemple in ("'<span class=\"rating-label\">Traitement du risque</span>'",
+                    "'<span class=\"goal-src\">menace '",
+                    "' menaces maximum'", "'structure non reconnue'", "'En cours…'",
+                    "'Explication indisponible.'"):
+        morceaux = re.split(r"<[^>]*>", exemple.strip("'"))
+        assert any(_looks_like_text(m, j > 0) for j, m in enumerate(morceaux)), exemple
+
+
 def test_no_catalogue_entry_strays_out_of_the_latin_script():
     """⚠️ Garde-fou contre un caractère qui se glisse sans se voir.
 

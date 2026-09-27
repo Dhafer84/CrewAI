@@ -712,7 +712,7 @@
       // d'avoir coté n'aurait aucun sens.
       '<div class="treatment" data-role="treatment" hidden>' +
         '<div class="treatment-head">' +
-          '<span class="rating-label">Traitement du risque</span>' +
+          '<span class="rating-label">' + T('tara.js.treatment.label') + '</span>' +
           '<span class="treatment-state" data-role="state"></span>' +
         '</div>' +
         '<select class="rating-select treatment-select">' + treatmentOptions() + '</select>' +
@@ -897,7 +897,7 @@
     const n = list.children.length;
     damageCard.querySelector('.btn-add-threat').disabled = n >= MAX_THREATS;
     damageCard.querySelector('.threat-count').textContent =
-      n >= MAX_THREATS ? MAX_THREATS + ' menaces maximum' : n + ' / ' + MAX_THREATS;
+      n >= MAX_THREATS ? T('tara.js.threats.max', { n: MAX_THREATS }) : n + ' / ' + MAX_THREATS;
   }
 
   function refreshCount() {
@@ -977,8 +977,8 @@
       return '<div class="goal">'
            + '<span class="goal-ref">OC-' + (index + 1) + '</span>'
            + '<span class="goal-text">' + escapeHtml(goal.text) + '</span>'
-           + '<span class="goal-src">menace ' + goal.ref + ' · risque '
-           + goal.risk + '</span></div>';
+           + '<span class="goal-src">' + T('tara.js.goal.src', { ref: goal.ref, risk: goal.risk })
+           + '</span></div>';
     }).join('');
 
     hint.textContent = goals.length === 0

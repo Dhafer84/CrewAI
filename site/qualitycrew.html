@@ -383,7 +383,9 @@
         // Laisser un agent sur « En cours… » alors que tout est arrêté donne
         // l'impression qu'il travaille encore. On le remet en attente.
         for (let i = 0; i < 4; i++) {
-          if (document.getElementById('status-text-' + i).textContent === 'En cours…') {
+          // L'état se lit sur la classe, jamais sur le texte : « En cours… »
+          // est traduit, et la comparaison ne tombait jamais juste sur /en.
+          if (document.getElementById('status-' + i).classList.contains('status-running')) {
             setAgentStatus(i, 'wait');
           }
         }

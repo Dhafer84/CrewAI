@@ -694,6 +694,8 @@ CATALOGUE: dict[str, str] = {
     "rw.js.export.prep": "Préparation du classeur…",
     "rw.js.export.ko": "Export refusé.",
     "rw.js.export.ok": "Classeur prêt — il inclut la couverture et le détail des sources.",
+    "rw.js.explain.ko": "Explication indisponible.",
+    "rw.js.degraded.short": "structure non reconnue",
     "rw.js.explain.run": "Rédaction des explications…",
     "rw.js.explain.done":
         "{n} explication(s) ajoutée(s). Le tableau, lui, ne doit rien au modèle.",
@@ -806,6 +808,9 @@ CATALOGUE: dict[str, str] = {
     "tara.js.needrating":
         "Cotez un impact et une faisabilité pour obtenir une valeur de risque.",
     "tara.js.notreat": "Aucun risque n'appelle de traitement.",
+    "tara.js.treatment.label": "Traitement du risque",
+    "tara.js.threats.max": "{n} menaces maximum",
+    "tara.js.goal.src": "menace {ref} · risque {risk}",
     "tara.js.suggest.cta": "Proposer par IA",
     "tara.js.todo.one": "{n} traitement à compléter",
     "tara.js.todo.other": "{n} traitements à compléter",

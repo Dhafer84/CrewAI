@@ -603,7 +603,7 @@
         explainStream.close(); explainStream = null;
 
       } else if (data.type === 'error') {
-        setHint(data.message || 'Explication indisponible.', true);
+        setHint(data.message || T('rw.js.explain.ko'), true);
         btnExplain.disabled = false;
         explainStream.close(); explainStream = null;
 
@@ -667,7 +667,7 @@
         const degraded = data.state === 'degraded';
         row.querySelector('.dot').className = 'dot ' + (degraded ? 'dot-error' : 'dot-done');
         row.querySelector('.q-result').textContent = degraded
-          ? 'structure non reconnue'
+          ? T('rw.js.degraded.short')
           : (data.found > 0 ? T('rw.js.stat.signals', { n: data.found }) : '—');
         if (degraded) row.classList.add('has-error');
         else if (data.found > 0) row.classList.add('has-hits');
