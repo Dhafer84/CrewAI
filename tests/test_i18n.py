@@ -631,6 +631,55 @@ def test_the_hard_coded_text_detector_bites():
         assert any(_looks_like_text(m, j > 0) for j, m in enumerate(morceaux)), exemple
 
 
+def _crews_built_without_the_language(sources=None):
+    """Toute fonction qui reçoit `lang` et construit un crew sans le lui passer.
+
+    `sources` : couples (nom, code) ; par défaut, tout `src/`.
+    """
+    import ast
+    if sources is None:
+        sources = [(str(c.relative_to(_ROOT)), c.read_text(encoding="utf-8"))
+                   for c in sorted((_ROOT / "src").rglob("*.py"))]
+    fautes = []
+    for nom, code in sources:
+        arbre = ast.parse(code)
+        for fn in ast.walk(arbre):
+            if not isinstance(fn, ast.FunctionDef):
+                continue
+            if "lang" not in [a.arg for a in fn.args.args + fn.args.kwonlyargs]:
+                continue
+            for appel in ast.walk(fn):
+                if not (isinstance(appel, ast.Call) and isinstance(appel.func, ast.Name)
+                        and re.fullmatch(r"build_\w*crew", appel.func.id)):
+                    continue
+                transmise = any(k.arg == "lang" for k in appel.keywords) or any(
+                    isinstance(a, ast.Name) and a.id == "lang" for a in appel.args)
+                if not transmise:
+                    fautes.append(f"{nom}:{appel.lineno} {fn.name}() → {appel.func.id}()")
+    return fautes
+
+
+def test_every_ai_engine_hands_the_language_to_its_crew():
+    """⚠️ Trouvé le 27/09/2026, en filmant ThreatScope en anglais : la
+    proposition de menaces arrivait EN FRANÇAIS sur /en/tara. La route passait
+    bien la langue à `suggest_threats`, qui ne la transmettait pas à
+    `build_crew` — retombé sur le français par défaut, en silence, depuis le
+    passage au bilingue. Aucun test ne pouvait le voir sans appeler le modèle ;
+    celui-ci lit le code : qui reçoit une langue la transmet à son crew.
+    """
+    fautes = _crews_built_without_the_language()
+    assert not fautes, "langue non transmise au crew : " + " | ".join(fautes)
+
+
+def test_the_language_detector_bites():
+    """Contre-épreuve : sur le code d'avant la correction, le détecteur tombe."""
+    avant = ("def suggest_threats(item, asset, damage, task_callback=None, lang='fr'):\n"
+             "    crew = build_crew(item, asset, damage, task_callback=task_callback)\n")
+    apres = avant.replace("task_callback=task_callback)", "task_callback=task_callback, lang=lang)")
+    assert len(_crews_built_without_the_language([("avant", avant)])) == 1
+    assert _crews_built_without_the_language([("apres", apres)]) == []
+
+
 def test_no_catalogue_entry_strays_out_of_the_latin_script():
     """⚠️ Garde-fou contre un caractère qui se glisse sans se voir.
 

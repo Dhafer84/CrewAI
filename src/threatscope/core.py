@@ -98,6 +98,7 @@ def suggest_threats(item: str, asset: str, damage: str, task_callback=None, lang
         asset or "Actif non nommé",
         damage or "Conséquence non décrite",
         task_callback=task_callback,
+        lang=lang,
     )
     result = crew.kickoff()
     return parse_suggestions(result.raw)
