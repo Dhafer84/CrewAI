@@ -681,6 +681,9 @@ CATALOGUE: dict[str, str] = {
     # --- SafetyScope page — JavaScript messages ---
     "hara.js.matrix.ko": "Could not load the ASIL table.",
     "hara.js.delete": "Delete",
+    "hara.js.axis.s": "Severity",
+    "hara.js.axis.e": "Exposure",
+    "hara.js.axis.c": "Controllability",
     "hara.js.ph.malfunction": "Malfunction — e.g. unexpected loss of braking torque",
     "hara.js.ph.situation": "Driving situation — e.g. motorway descent, wet road surface",
     "hara.js.event": "Event {n}",
@@ -775,6 +778,11 @@ CATALOGUE: dict[str, str] = {
     "tara.js.rated.other": "{n} attack paths rated",
     "tara.js.needrating": "Rate an impact and a feasibility to obtain a risk value.",
     "tara.js.notreat": "No risk calls for treatment.",
+    "tara.js.suggest.cta": "Suggest with AI",
+    "tara.js.todo.one": "{n} treatment to complete",
+    "tara.js.todo.other": "{n} treatments to complete",
+    "tara.js.todo.of.one": "out of {n} risk above {threshold}.",
+    "tara.js.todo.of.other": "out of {n} risks above {threshold}.",
     "tara.js.treated.one": "The risk to be treated is settled and justified.",
     "tara.js.treated.other": "The {n} risks to be treated are settled and justified.",
     "tara.js.nogoal":

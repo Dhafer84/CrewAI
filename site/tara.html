@@ -467,7 +467,7 @@
           '</button>' +
           '<button class="btn btn-ghost btn-sm btn-suggest btn-suggest-threats">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>' +
-            'Proposer par IA' +
+            T('tara.js.suggest.cta') +
           '</button>' +
           '<span class="form-hint threat-count" style="margin-bottom:0"></span>' +
         '</div>' +
@@ -954,9 +954,8 @@
     treatmentNote.textContent = rated === 0
       ? T('tara.js.needrating')
       : incomplete > 0
-        ? incomplete + ' traitement' + (incomplete > 1 ? 's' : '') + ' à compléter sur '
-          + toTreat + ' risque' + (toTreat > 1 ? 's' : '') + ' au-dessus de '
-          + scales.treatment.decisionThreshold + '.'
+        ? T('tara.js.todo', { n: incomplete }) + ' '
+          + T('tara.js.todo.of', { n: toTreat, threshold: scales.treatment.decisionThreshold })
         : toTreat === 0
           ? T('tara.js.notreat')
           : T('tara.js.treated', { n: toTreat });

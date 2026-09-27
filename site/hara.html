@@ -128,9 +128,9 @@
 (function() {
   const MAX_EVENTS = 10;
   const AXES = [
-    { key: 's', prefix: 'S', label: 'Sévérité',       source: 'severity',        max: 3 },
-    { key: 'e', prefix: 'E', label: 'Exposition',     source: 'exposure',        max: 4 },
-    { key: 'c', prefix: 'C', label: 'Contrôlabilité', source: 'controllability', max: 3 }
+    { key: 's', prefix: 'S', label: T('hara.js.axis.s'), source: 'severity',        max: 3 },
+    { key: 'e', prefix: 'E', label: T('hara.js.axis.e'), source: 'exposure',        max: 4 },
+    { key: 'c', prefix: 'C', label: T('hara.js.axis.c'), source: 'controllability', max: 3 }
   ];
 
   const events   = document.getElementById('events');
