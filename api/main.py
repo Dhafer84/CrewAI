@@ -50,7 +50,7 @@ sys.path.insert(0, str(_ROOT / "src"))
 from i18n import DEFAULT_LANG  # noqa: E402
 from i18n import t as tr  # noqa: E402
 
-from api.render import VERSIONED_ASSETS, render  # noqa: E402
+from api.render import VERSIONED_ASSETS, render, robots_txt, sitemap_xml  # noqa: E402
 from qualitycrew.config import is_daily_quota, require_llm_key  # noqa: E402
 from qualitycrew.core import run_audit  # noqa: E402
 from sentinelscan.config import require_github_token  # noqa: E402
@@ -413,6 +413,22 @@ async def causetrace_page():
 @app.get("/about")
 async def about_page():
     return _page("/about", "fr")
+
+
+@app.get("/robots.txt")
+async def robots():
+    return Response(robots_txt(SITE_BASE_URL), media_type="text/plain; charset=utf-8")
+
+
+@app.get("/sitemap.xml")
+async def sitemap():
+    # La date d'une page est celle de son fichier : elle bouge quand la page
+    # change, et seulement alors — un `lastmod` qui ment est ignoré par Google.
+    lastmod = {chemin: datetime.fromtimestamp((_SITE_DIR / nom).stat().st_mtime,
+                                              timezone.utc).date().isoformat()
+               for chemin, nom in _PAGES.items()}
+    return Response(sitemap_xml(SITE_BASE_URL, lastmod),
+                    media_type="application/xml; charset=utf-8")
 
 
 @app.get("/en")

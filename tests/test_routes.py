@@ -3087,6 +3087,80 @@ def test_the_home_font_is_served_by_the_site_itself():
         f"la police n'est pas servie correctement : {resp.status_code} {resp.headers.get('content-type')}"
 
 
+# ── robots.txt et sitemap.xml ────────────────────────────────────────────────
+
+def _robots_blocks(robots: str, path: str) -> bool:
+    """Un chemin est-il refusé par robots.txt ? (correspondance de préfixe)."""
+    refus = [l.split(":", 1)[1].strip() for l in robots.splitlines() if l.startswith("Disallow:")]
+    return any(path.startswith(r) for r in refus if r)
+
+
+def test_robots_keeps_crawlers_off_every_dynamic_route():
+    """Toute route GET dynamique est refusée aux robots ; aucune page ne l'est.
+
+    ⚠️ Un robot qui suivrait `/watch/stream` lancerait une vraie veille sur
+    sept sites tiers. Une route neuve sans préfixe refusé fait tomber ce test :
+    c'est le moment de l'ajouter à `ROBOTS_DISALLOW`.
+    """
+    with client() as c:
+        resp = c.get("/robots.txt")
+    assert resp.status_code == 200, f"/robots.txt → {resp.status_code}"
+    assert resp.headers["content-type"].startswith("text/plain"), resp.headers["content-type"]
+    robots = resp.text
+    assert "Sitemap: https://" in robots, "robots.txt doit annoncer le sitemap par une adresse absolue"
+
+    ouvertes = {"/", "/en", "/en/{page}", "/robots.txt", "/sitemap.xml", "/i18n/{lang}.js"} | set(PAGES)
+    oubliees = []
+    for route in app.routes:
+        chemin = getattr(route, "path", "")
+        if "GET" not in getattr(route, "methods", set()) or chemin in ouvertes:
+            continue
+        if not _robots_blocks(robots, chemin):
+            oubliees.append(chemin)
+    assert not oubliees, f"routes dynamiques ouvertes aux robots : {oubliees}"
+
+    for page in list(PAGES) + ["/en"] + ["/en" + p for p in PAGES if p != "/"]:
+        assert not _robots_blocks(robots, page), f"robots.txt refuse la page {page}"
+    for actif in ("/static/style.css", "/static/home.css", "/i18n/fr.js"):
+        assert not _robots_blocks(robots, actif), f"robots.txt refuse {actif} : Google ne pourrait plus rendre la page"
+
+
+def test_the_sitemap_lists_every_page_with_its_own_canonical():
+    """Le sitemap annonce exactement les 16 adresses canoniques, appariées.
+
+    Une adresse du sitemap qui diffère de la `canonical` de la page est
+    ignorée par Google ; un `hreflang` qui diverge casse l'appariement FR/EN.
+    """
+    import xml.etree.ElementTree as ET
+    ns = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9", "x": "http://www.w3.org/1999/xhtml"}
+    canonique = re.compile(r'<link rel="canonical" href="([^"]+)">')
+    alterne = re.compile(r'<link rel="alternate" hreflang="([\w-]+)" href="([^"]+)">')
+
+    with client() as c:
+        resp = c.get("/sitemap.xml")
+        assert resp.status_code == 200, f"/sitemap.xml → {resp.status_code}"
+        assert "xml" in resp.headers["content-type"], resp.headers["content-type"]
+        racine = ET.fromstring(resp.text)
+        annonces = {}
+        for url in racine.findall("s:url", ns):
+            loc = url.find("s:loc", ns).text
+            lastmod = url.find("s:lastmod", ns)
+            assert lastmod is not None and re.fullmatch(r"\d{4}-\d{2}-\d{2}", lastmod.text), f"{loc} : lastmod absent ou mal formé"
+            annonces[loc] = {l.get("hreflang"): l.get("href") for l in url.findall("x:link", ns)}
+
+        attendues = {}
+        for page in PAGES:
+            for adresse in (page, "/en" if page == "/" else "/en" + page):
+                html = c.get(adresse).text
+                attendues[canonique.search(html).group(1)] = dict(alterne.findall(html))
+
+    assert set(annonces) == set(attendues), (
+        f"sitemap ≠ pages — en trop : {sorted(set(annonces) - set(attendues))}, "
+        f"manquantes : {sorted(set(attendues) - set(annonces))}")
+    for loc, liens in annonces.items():
+        assert liens == attendues[loc], f"{loc} : hreflang du sitemap {liens} ≠ page {attendues[loc]}"
+
+
 def main() -> int:
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failures = 0

@@ -177,6 +177,52 @@ def _alternates(chemin: str, base: str) -> str:
     ])
 
 
+# Préfixes des routes dynamiques — contrats JSON, flux SSE, exports. Rien à
+# indexer, et un robot qui suivrait `/watch/stream` lancerait une vraie veille
+# sur sept sites tiers. ⚠️ Avec la barre finale : `Disallow: /hara/` écarte
+# `/hara/matrix` sans toucher à la page `/hara`.
+# `test_robots_keeps_crawlers_off_every_dynamic_route` tombe si une route GET
+# neuve n'est couverte par aucun préfixe.
+ROBOTS_DISALLOW = ("/audit/", "/scan/", "/watch/", "/hara/", "/tara/",
+                   "/regwatch/", "/8d/", "/ai/")
+
+
+def robots_txt(base: str) -> str:
+    """`/robots.txt` : tout est permis sauf les routes dynamiques.
+
+    `/static/` et `/i18n/` restent ouverts : Google exécute le JavaScript des
+    pages pour les rendre, et une feuille ou un script refusé lui montrerait
+    une page cassée.
+    """
+    lignes = ["User-agent: *", "Allow: /"]
+    lignes += [f"Disallow: {prefixe}" for prefixe in ROBOTS_DISALLOW]
+    lignes += ["", f"Sitemap: {base}/sitemap.xml", ""]
+    return "\n".join(lignes)
+
+
+def sitemap_xml(base: str, lastmod: dict[str, str]) -> str:
+    """`/sitemap.xml` : chaque page dans ses deux langues, appariées.
+
+    Les adresses et les `hreflang` sortent de `_urls`, comme ceux des pages :
+    un sitemap qui annoncerait une autre adresse que la `canonical` de la page
+    serait ignoré. `lastmod` : date de dernière modification du fichier de la
+    page (AAAA-MM-JJ), fournie par l'appelant.
+    """
+    entrees = []
+    for chemin in PAGE_PATHS:
+        fr, en = _urls(chemin, base)
+        liens = "".join(
+            f'\n    <xhtml:link rel="alternate" hreflang="{h}" href="{u}"/>'
+            for h, u in (("fr", fr), ("en", en), ("x-default", fr)))
+        date = f"\n    <lastmod>{lastmod[chemin]}</lastmod>" if chemin in lastmod else ""
+        for adresse in (fr, en):
+            entrees.append(f"  <url>\n    <loc>{adresse}</loc>{date}{liens}\n  </url>")
+    return ('<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n'
+            '        xmlns:xhtml="http://www.w3.org/1999/xhtml">\n'
+            + "\n".join(entrees) + "\n</urlset>\n")
+
+
 def _attr(valeur: str) -> str:
     """Prépare une valeur pour un attribut `content`.
 
