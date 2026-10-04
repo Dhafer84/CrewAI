@@ -38,7 +38,7 @@ _ATTR_KEY = re.compile(r'data-i18n-content="([^"]+)"')
 # (La liste est complétée plus bas par toutes les images de partage, dès
 # qu'elles sont définies : voir VERSIONED_ASSETS après OG_TOOL_CARDS.)
 _STATIC_ASSETS = ("style.css", "home.css", "i18n.js", "aistatus.js", "menu.js",
-                  "stance.js", "intro.js", "safe-markdown.js")
+                  "stance.js", "intro.js", "safe-markdown.js", "assistant.js")
 
 # Repère que chaque page pose dans son <nav> : `render` y injecte le menu
 # partagé (`site/partials/menu.html`). Une seule copie pour huit pages — un
@@ -313,8 +313,23 @@ def menu_for(menu: str, path: str) -> str:
     return menu.replace(cible, cible + ' aria-current="page"', 1)
 
 
+def assistant_tag(assistant_url: str, lang: str) -> str:
+    """Balise de la bulle de l'assistant 3D (`site/assistant.js`).
+
+    Ses textes viennent du catalogue (`assistant.*`), comme le reste du site.
+    Le script est servi par CE site (`/static/`) : la CSP n'autorise toujours
+    aucun script externe autre que marked. Seuls l'iframe, l'icône et le micro
+    viennent de `assistant_url`, autorisés par `_page_csp` et la
+    Permissions-Policy (api/main.py). L'assistant n'est chargé qu'au clic.
+    """
+    textes = " ".join(f'data-{nom}="{_attr(t(f"assistant.{nom}", lang))}"'
+                      for nom in ("label", "title", "close"))
+    return (f'<script src="/static/assistant.js" data-origin="{_attr(assistant_url)}" '
+            f'data-lang="{lang}" {textes} defer></script>')
+
+
 def render(html: str, lang: str, path: str, base_url: str,
-           asset_version: str = "", menu: str = "") -> str:
+           asset_version: str = "", menu: str = "", assistant_url: str = "") -> str:
     """Rend une page dans la langue demandée.
 
     Args:
@@ -329,10 +344,15 @@ def render(html: str, lang: str, path: str, base_url: str,
             règle de style s'afficherait nu. C'est arrivé en test.
         menu: le balisage du menu partagé. Injecté AVANT la traduction et le
             préfixage des liens : il suit la langue de la page comme le reste.
+        assistant_url: origine de l'assistant 3D ; vide = pas de bulle.
+            Injectée avant `</body>`, AVANT le versionnage des fichiers
+            statiques, pour que `assistant.js` reçoive son `?v=` comme les autres.
     """
     lang = normalize(lang)
     if menu:
         html = html.replace(MENU_SLOT, menu_for(menu, path), 1)
+    if assistant_url:
+        html = html.replace("</body>", assistant_tag(assistant_url, lang) + "\n</body>", 1)
     html = translate_markup(html, lang)
 
     html = html.replace('<html lang="fr">', f'<html lang="{lang}">', 1)
@@ -377,5 +397,5 @@ def catalogue_languages() -> tuple[str, ...]:
 
 
 __all__ = ["render", "translate_markup", "social", "catalogue_languages",
-           "menu_for", "MENU_SLOT", "DEFAULT_LANG", "og_image_for", "og_alt_for",
+           "menu_for", "MENU_SLOT", "assistant_tag", "DEFAULT_LANG", "og_image_for", "og_alt_for",
            "OG_IMAGES", "OG_TOOL_CARDS"]

@@ -109,6 +109,36 @@ app.mount("/static", StaticFiles(directory=str(_SITE_DIR)), name="static")
 # --------------------------------------------------------------------------
 _MARKED_URL = "https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"
 
+
+def _assistant_origin(valeur: str) -> str:
+    """Origine de l'assistant 3D, ou "" si la valeur n'en est pas une.
+
+    ⚠️ Elle entre telle quelle dans la CSP et la Permissions-Policy : on n'y
+    laisse passer qu'une origine HTTPS nue (schéma + hôte [+ port]) — ni
+    chemin, ni joker, ni espace qui ajouterait une source en douce. Une
+    valeur invalide désactive la bulle plutôt que d'élargir les en-têtes.
+    """
+    valeur = valeur.strip().rstrip("/")
+    if re.fullmatch(r"https://[a-z0-9.-]+(:\d+)?", valeur):
+        return valeur
+    if valeur:
+        logging.getLogger(__name__).warning("ASSISTANT_URL ignorée (origine HTTPS attendue) : %r", valeur)
+    return ""
+
+
+# L'assistant 3D (dépôt robot-3d-assistant), proposé dans une bulle sur chaque
+# page. Seule exception aux en-têtes ci-dessous : son iframe, son icône, et le
+# micro et la caméra QUE LUI peut demander. Vide = pas de bulle, en-têtes
+# d'origine. Surchargeable pour un environnement de test.
+ASSISTANT_URL = _assistant_origin(os.getenv("ASSISTANT_URL", "https://assistant.qualitycrew.fr"))
+
+
+def _permissions_policy() -> str:
+    """Micro et caméra interdits — sauf à l'iframe de l'assistant, s'il y en a un."""
+    appareils = f'("{ASSISTANT_URL}")' if ASSISTANT_URL else "()"
+    return f"camera={appareils}, microphone={appareils}, geolocation=(), payment=(), usb=()"
+
+
 _SECURITY_HEADERS = (
     # HTTPS seulement, pendant un an. Ignoré par les navigateurs en HTTP simple :
     # le serveur de développement n'en souffre pas.
@@ -124,7 +154,8 @@ _SECURITY_HEADERS = (
     # Aucune adresse de page ne part chez un tiers — ni vers GitHub depuis un
     # rapport, ni vers le CDN de marked.
     ("referrer-policy", "same-origin"),
-    ("permissions-policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()"),
+    # Calculée à chaque réponse : voir `_permissions_policy` (assistant 3D).
+    ("permissions-policy", None),
     ("cross-origin-opener-policy", "same-origin"),
 )
 # Réponses qui ne sont pas des pages (JSON, flux, fichiers) : rien à charger.
@@ -150,10 +181,15 @@ def _page_csp(html: str) -> str:
     empreintes = " ".join(
         "'sha256-" + base64.b64encode(hashlib.sha256(corps.encode("utf-8")).digest()).decode() + "'"
         for corps in _INLINE_SCRIPT.findall(html))
+    # La bulle de l'assistant : son script est servi ICI (script-src inchangé),
+    # seuls son iframe et son icône viennent de son origine.
+    assistant = f" {ASSISTANT_URL}" if ASSISTANT_URL else ""
+    cadres = f"frame-src {ASSISTANT_URL}; " if ASSISTANT_URL else ""
     return ("default-src 'self'; "
             f"script-src 'self' {_MARKED_URL} {empreintes}".rstrip() + "; "
             "style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data:; font-src 'self'; connect-src 'self'; "
+            f"img-src 'self' data:{assistant}; font-src 'self'; connect-src 'self'; "
+            f"{cadres}"
             "object-src 'none'; base-uri 'none'; form-action 'self'; "
             "frame-ancestors 'none'")
 
@@ -174,6 +210,7 @@ class _SecurityHeaders:
                 presents = {k.lower() for k, _ in entetes}
                 for nom, valeur in _SECURITY_HEADERS:
                     if nom.encode() not in presents:
+                        valeur = valeur if valeur is not None else _permissions_policy()
                         entetes.append((nom.encode(), valeur.encode()))
                 if b"content-security-policy" not in presents:
                     entetes.append((b"content-security-policy", _CSP_DEFAULT.encode()))
@@ -368,7 +405,8 @@ def _page(path: str, lang: str) -> HTMLResponse:
     if memorise is None or memorise[0] != empreinte:
         html = render(fichier.read_text(encoding="utf-8"), lang, path,
                       SITE_BASE_URL, version,
-                      menu=_MENU.read_text(encoding="utf-8") if menu_present else "")
+                      menu=_MENU.read_text(encoding="utf-8") if menu_present else "",
+                      assistant_url=ASSISTANT_URL)
         _rendered[cle] = (empreinte, html, _page_csp(html))
 
     _, html, csp = _rendered[cle]

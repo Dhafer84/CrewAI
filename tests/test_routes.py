@@ -38,7 +38,9 @@ sys.path.insert(0, str(_ROOT / "src"))
 import openpyxl  # noqa: E402
 from starlette.testclient import TestClient  # noqa: E402
 
+import api.main as main_module  # noqa: E402
 from api.main import app  # noqa: E402
+from i18n import t  # noqa: E402
 
 PAGES = {
     "/": "tool-rail",
@@ -473,7 +475,9 @@ _ENTETES_ATTENDUS = {
     "x-content-type-options": "nosniff",
     "x-frame-options": "DENY",
     "referrer-policy": "same-origin",
-    "permissions-policy": "camera=()",
+    # Micro et caméra : interdits, sauf à l'assistant 3D — voir
+    # `test_the_assistant_is_the_only_exception_to_the_lockdown`.
+    "permissions-policy": "geolocation=(), payment=(), usb=()",
     "content-security-policy": "frame-ancestors 'none'",
 }
 
@@ -525,6 +529,105 @@ def test_each_page_allows_exactly_its_own_inline_scripts():
                 f"{chemin} : origine externe trop large : {externes}"
             for directive in ("object-src 'none'", "base-uri 'none'", "frame-ancestors 'none'"):
                 assert directive in csp, f"{chemin} : {directive} absent"
+
+
+def _bulle(html: str) -> str:
+    """La balise de la bulle de l'assistant dans une page servie ("" si absente)."""
+    balises = re.findall(r'<script src="/static/assistant\.js[^"]*"[^>]*>', html)
+    assert len(balises) <= 1, f"bulle injectée {len(balises)} fois"
+    return balises[0] if balises else ""
+
+
+def test_the_assistant_bubble_is_on_every_page_and_served_from_here():
+    """La bulle de l'assistant 3D (dépôt robot-3d-assistant) est sur chaque page.
+
+    ⚠️ Son script est servi PAR CE SITE (`/static/assistant.js`, versionné comme
+    les autres) : `script-src` n'autorise toujours aucune origine externe autre
+    que marked — `test_each_page_allows_exactly_its_own_inline_scripts` le
+    tient. L'assistant lui-même n'est chargé qu'au clic sur la bulle.
+    """
+    assert main_module.ASSISTANT_URL, "l'assistant doit être actif par défaut"
+    with client() as c:
+        for chemin in PAGES_FR + PAGES_EN:
+            balise = _bulle(c.get(chemin).text)
+            assert balise, f"{chemin} : pas de bulle"
+            assert "/static/assistant.js?v=" in balise, f"{chemin} : bulle non versionnée : {balise}"
+            assert f'data-origin="{main_module.ASSISTANT_URL}"' in balise, f"{chemin} : {balise}"
+            assert balise.endswith(" defer>"), f"{chemin} : la bulle doit être chargée en `defer`"
+        resp = c.get("/static/assistant.js")
+        assert resp.status_code == 200
+        assert "javascript" in resp.headers["content-type"], "type MIME faux : `nosniff` bloquerait le script"
+
+
+def test_the_assistant_bubble_takes_its_texts_from_the_catalogue():
+    """Les libellés de la bulle viennent du catalogue, dans la langue de la page.
+
+    `assistant.js` est une copie d'un autre dépôt, sans `T()` : c'est la page
+    qui lui fournit ses textes (`data-label`, `data-title`, `data-close`).
+    D'où son exemption dans `tests/test_i18n.py` (`_SCRIPTS_TIERS`).
+    """
+    with client() as c:
+        for chemin, lang in (("/", "fr"), ("/en", "en"), ("/hara", "fr"), ("/en/tara", "en")):
+            balise = _bulle(c.get(chemin).text)
+            assert f'data-lang="{lang}"' in balise, f"{chemin} : {balise}"
+            for nom in ("label", "title", "close"):
+                attendu = t(f"assistant.{nom}", lang).replace("&", "&amp;").replace('"', "&quot;")
+                assert f'data-{nom}="{attendu}"' in balise, f"{chemin} : data-{nom} ≠ catalogue : {balise}"
+
+
+def test_the_assistant_is_the_only_exception_to_the_lockdown():
+    """L'assistant obtient son iframe, son icône, son micro et sa caméra — rien de plus.
+
+    ⚠️ Micro et caméra restent interdits à la page elle-même et à tout autre
+    cadre : la Permissions-Policy n'en délègue l'usage qu'à l'origine de
+    l'assistant, qui le demande dans sa bulle, au clic du visiteur.
+    """
+    origine = main_module.ASSISTANT_URL
+    with client() as c:
+        for chemin in ("/", "/en/hara", "/about"):
+            entetes = c.get(chemin).headers
+            csp = entetes["content-security-policy"]
+            assert re.search(r"frame-src ([^;]+)", csp).group(1).split() == [origine], f"{chemin} : {csp}"
+            assert origine in re.search(r"img-src ([^;]+)", csp).group(1).split(), f"{chemin} : {csp}"
+            assert origine not in re.search(r"script-src ([^;]+)", csp).group(1), \
+                f"{chemin} : l'assistant ne doit PAS pouvoir servir de script à la page"
+            politique = entetes["permissions-policy"]
+            assert f'camera=("{origine}")' in politique and f'microphone=("{origine}")' in politique, politique
+            assert "self" not in politique and "*" not in politique, politique
+        # Les réponses qui ne sont pas des pages ne gagnent rien.
+        assert c.get("/ai/status").headers["content-security-policy"] == "default-src 'none'; frame-ancestors 'none'"
+
+
+def test_without_an_assistant_the_headers_are_the_original_ones():
+    """ASSISTANT_URL vide : ni bulle, ni iframe, micro et caméra interdits à tous."""
+    ancienne = main_module.ASSISTANT_URL
+    main_module.ASSISTANT_URL = ""
+    main_module._rendered.clear()
+    try:
+        with client() as c:
+            resp = c.get("/")
+            csp = resp.headers["content-security-policy"]
+            assert not _bulle(resp.text), "bulle injectée alors que l'assistant est désactivé"
+            assert "frame-src" not in csp and "img-src 'self' data:;" in csp, csp
+            assert resp.headers["permissions-policy"] == \
+                "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    finally:
+        main_module.ASSISTANT_URL = ancienne
+        main_module._rendered.clear()
+
+
+def test_only_a_bare_https_origin_is_accepted_for_the_assistant():
+    """La valeur entre telle quelle dans les en-têtes : rien d'autre qu'une origine HTTPS.
+
+    Un chemin, un joker ou une espace y ajouterait une source en douce ; une
+    valeur refusée désactive la bulle au lieu d'élargir la politique.
+    """
+    accepte = main_module._assistant_origin
+    assert accepte("https://assistant.qualitycrew.fr/") == "https://assistant.qualitycrew.fr"
+    assert accepte("https://localhost:8443") == "https://localhost:8443"
+    for refusee in ("", "http://assistant.qualitycrew.fr", "https://a.fr/chemin", "https://a.fr *",
+                    "https://*.qualitycrew.fr", "https://a.fr 'unsafe-inline'", "javascript:alert(1)"):
+        assert accepte(refusee) == "", f"acceptée à tort : {refusee!r}"
 
 
 def test_external_scripts_carry_an_integrity_hash():

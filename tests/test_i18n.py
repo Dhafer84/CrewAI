@@ -554,6 +554,14 @@ def test_no_status_message_is_hard_coded():
         assert fr[cle] != en[cle], f"« {cle} » est identique en français et en anglais"
 
 
+# Scripts recopiés d'un autre dépôt, qui ne chargent pas le catalogue du site.
+# `assistant.js` (bulle de l'assistant 3D) : ses textes affichés lui sont
+# fournis PAR LA PAGE, depuis le catalogue (`assistant.*`, via
+# `api/render.assistant_tag`) — ses libellés intégrés ne servent qu'ailleurs.
+# `test_the_assistant_bubble_takes_its_texts_from_the_catalogue` (test_routes.py) le vérifie.
+_SCRIPTS_TIERS = {"assistant.js"}
+
+
 def _script_texts():
     """Chaque texte littéral des scripts de page : (fichier, ligne, texte).
 
@@ -562,6 +570,8 @@ def _script_texts():
     """
     litteral = re.compile(r"'((?:[^'\\]|\\.)*)'|\"((?:[^\"\\]|\\.)*)\"")
     for chemin in sorted(SITE.glob("*.html")) + sorted(SITE.glob("*.js")):
+        if chemin.name in _SCRIPTS_TIERS:
+            continue
         source = chemin.read_text(encoding="utf-8")
         if chemin.suffix == ".html":
             blocs = [(m.start(1), m.group(1)) for m in re.finditer(r"<script>(.*?)</script>", source, re.S)]

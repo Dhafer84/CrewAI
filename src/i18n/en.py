@@ -12,6 +12,10 @@ CATALOGUE: dict[str, str] = {
     "nav.source": "Source code",
 
     # --- Expanding menu (site/partials/menu.html) ---------------------------
+    # --- Bulle de l'assistant 3D (site/assistant.js, via api/render.py) -----
+    "assistant.label": "Talk to my assistant",
+    "assistant.title": "Dhafer's assistant",
+    "assistant.close": "Close",
     "nav.menu.close": "Close",
     "nav.menu.tools": "Tools",
     "nav.menu.home": "Home",
