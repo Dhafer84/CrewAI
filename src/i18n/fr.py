@@ -20,8 +20,8 @@ CATALOGUE: dict[str, str] = {
     # « Menu », les noms d'outils, « Audit », « HARA », « TARA », « 8D » et
     # « LinkedIn » s'écrivent pareil dans les deux langues : non annotés.
     # --- Bulle de l'assistant 3D (site/assistant.js, via api/render.py) -----
-    "assistant.label": "Parler à mon assistant",
-    "assistant.title": "Assistant de Dhafer",
+    "assistant.label": "Parler à l'assistant",
+    "assistant.title": "Assistant",
     "assistant.close": "Fermer",
     "nav.menu.close": "Fermer",
     "nav.menu.tools": "Outils",
