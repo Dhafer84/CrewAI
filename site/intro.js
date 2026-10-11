@@ -1,8 +1,10 @@
 /* ============================================================
-   OUVERTURE DE L'ACCUEIL (22/09/2026)
+   OUVERTURE DE L'ACCUEIL (22/09/2026 ; nom du SITE depuis le 11/10/2026)
 
-   Un orbe de particules respire, éclate en galaxie, forme le nom de l'auteur
-   en grand ; le nom s'envole se poser sur l'onglet — là où est le vrai —
+   Un orbe de particules respire, éclate en galaxie, forme le nom du site
+   (« QUALITY CREW », lu dans le logo de l'onglet — auparavant le nom de l'auteur,
+   remplacé au choix de l'utilisateur, variante 1 du prototype v3) en grand ;
+   le nom s'envole se poser sur l'onglet — là où est le vrai —
    pendant qu'un diaphragme PERCE le calque et découvre l'accueil.
 
    Temps (≈ 2,95 s) :

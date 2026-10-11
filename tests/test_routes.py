@@ -3118,7 +3118,7 @@ def test_every_page_sits_in_the_frame():
 # propres, normes, cotations, chiffres. Toute autre coïncidence est un oubli
 # d'annotation.
 _NEUTRES_ACCUEIL = {
-    "Dhafer", "Bouthelja", "Menu", "GitHub", "LinkedIn",
+    "Dhafer", "Bouthelja", "Quality", "Crew", "Menu", "GitHub", "LinkedIn",
     "QualityCrew", "SentinelScan", "SafetyScope", "ThreatScope", "RegWatch", "CauseTrace",
     "Audit", "HARA", "TARA", "8D", "S", "4", "5/6", "S3", "E4", "C3", "ASIL D",
     "SafetyScope · HARA", "ThreatScope · TARA", "CauseTrace · D4",
@@ -3126,7 +3126,7 @@ _NEUTRES_ACCUEIL = {
     "ISO/SAE 21434 · UN R155", "ISO · ASPICE · UN R155", "8D · Ishikawa",
 }
 _NEUTRES_APROPOS = {
-    "Dhafer", "Bouthelja", "Menu", "GitHub", "LinkedIn", "Contact",
+    "Dhafer", "Bouthelja", "Quality", "Crew", "Menu", "GitHub", "LinkedIn", "Contact",
     "linkedin.com/", "in/bouthelja-dhafer",
     "QualityCrew", "SentinelScan", "SafetyScope", "ThreatScope", "RegWatch", "CauseTrace",
     "Audit", "HARA", "TARA", "8D", "5/6", "01", "02", "03",

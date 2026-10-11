@@ -99,8 +99,9 @@ OG_IMAGES = tuple(OG_IMAGE.values()) + tuple(
 # navigateurs garderaient l'ancienne.
 VERSIONED_ASSETS = _STATIC_ASSETS + OG_IMAGES
 
-# `og:site_name` — un nom propre, identique dans les deux langues.
-OG_SITE_NAME = "Dhafer Bouthelja"
+# `og:site_name` — un nom propre, identique dans les deux langues. Le nom du
+# SITE depuis le 11/10/2026 (comme le logo de l'onglet), plus celui de l'auteur.
+OG_SITE_NAME = "Quality Crew"
 
 _LOCALES = {"fr": "fr_FR", "en": "en_US"}
 

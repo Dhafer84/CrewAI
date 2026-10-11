@@ -179,7 +179,7 @@ h1 em,.count em{{color:{c['accent-ink']};font-style:normal}}
 </style></head><body>
 
   <div class="notch">
-    <div class="tab"><div class="logo">Dhafer <em>Bouthelja</em></div></div>
+    <div class="tab"><div class="logo">Quality <em>Crew</em></div></div>
     {etape}
     <div class="band">
       <div class="live"><span class="dot"></span>{mots['live']}</div>
@@ -344,7 +344,7 @@ h1 em{{color:{c['accent-ink']};font-style:normal}}
 </style></head><body>
 
   <div class="notch">
-    <div class="tab"><div class="logo">Dhafer <em>Bouthelja</em></div></div>
+    <div class="tab"><div class="logo">Quality <em>Crew</em></div></div>
     {etape}
     <div class="band">
       <div class="live"><span class="dot"></span>{t("home.status.live", lang)}</div>
