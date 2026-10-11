@@ -4,7 +4,7 @@ Ce module est le SEUL point d'entrée que les couches de présentation
 (CLI local aujourd'hui, API FastAPI plus tard) doivent appeler.
 """
 
-from i18n import DEFAULT_LANG
+from i18n import DEFAULT_LANG, t
 
 from pathlib import Path
 
@@ -30,17 +30,39 @@ def run_audit(
     Returns:
         Rapport d'audit en markdown.
     """
-    require_llm_key()
-
-    checklist_path = checklist_path or _DEFAULT_CHECKLIST
-
     docs = {
-        "srs": (documents_dir / "srs.md").read_text(encoding="utf-8"),
-        "test_plan": (documents_dir / "test_plan.md").read_text(encoding="utf-8"),
-        "review_report": (documents_dir / "review_report.md").read_text(encoding="utf-8"),
-        "checklist": checklist_path.read_text(encoding="utf-8"),
+        name: (documents_dir / f"{name}.md").read_text(encoding="utf-8")
+        for name in ("srs", "test_plan", "review_report")
     }
+    return run_audit_docs(docs, checklist_path, task_callback, lang)
 
-    crew = build_crew(docs, task_callback=task_callback, lang=lang)
-    result = crew.kickoff()
-    return result.raw
+
+def run_audit_docs(
+    docs: dict[str, str],
+    checklist_path: Path | None = None,
+    task_callback=None,
+    lang: str = DEFAULT_LANG,
+    visitor: bool = False,
+) -> str:
+    """Lance l'audit sur des documents déjà lus. `run_audit` y passe aussi :
+    un seul chemin vers `build_crew`.
+
+    Args:
+        docs: srs, test_plan, review_report (textes).
+        visitor: documents d'un VISITEUR (vérifiés par `documents.check_documents`) :
+            consignes génériques, aucun affichage console, et le rapport commence
+            par l'avertissement « brouillon, aucune référence » (décision D6) —
+            ajouté ici, pas demandé au modèle : il ne peut pas l'oublier.
+
+    Returns:
+        Rapport d'audit en markdown.
+    """
+    require_llm_key()
+    checklist_path = checklist_path or _DEFAULT_CHECKLIST
+    docs = {**docs, "checklist": checklist_path.read_text(encoding="utf-8")}
+
+    crew = build_crew(docs, task_callback=task_callback, lang=lang, visitor=visitor)
+    report = crew.kickoff().raw
+    if visitor:
+        report = "> " + t("qc.docs.report_banner", lang) + "\n\n" + report
+    return report

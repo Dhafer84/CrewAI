@@ -8,6 +8,8 @@
   GET /regwatch      → RegWatch, veille de signaux publics autour des normes
   GET /audit/stream  → SSE : progression des agents + rapport final
   GET /audit/templates/{doc}.md?lang= → gabarit à remplir (exigences, plan de test, revue)
+  POST /audit/prepare        → documents du visiteur : vérifiés, échangés contre un jeton
+  GET /audit/docs/stream?t=  → SSE : audit des documents du visiteur (consignes génériques)
   GET /watch/stream  → SSE : progression de la veille + signaux retenus
   GET /scan/stream   → SSE : progression du scan + rapport final
   GET /static/*      → assets CSS
@@ -53,7 +55,8 @@ from i18n import t as tr  # noqa: E402
 
 from api.render import VERSIONED_ASSETS, render, robots_txt, sitemap_xml  # noqa: E402
 from qualitycrew.config import is_daily_quota, require_llm_key  # noqa: E402
-from qualitycrew.core import run_audit  # noqa: E402
+from qualitycrew.core import run_audit, run_audit_docs  # noqa: E402
+from qualitycrew.documents import check_documents, messages as document_messages  # noqa: E402
 from sentinelscan.config import require_github_token  # noqa: E402
 from sentinelscan.queries import InvalidKeyword, normalize_keywords  # noqa: E402
 from sentinelscan.report import build_excel, build_markdown  # noqa: E402
@@ -1388,9 +1391,18 @@ async def audit_template(doc: str, lang: str = DEFAULT_LANG):
     )
 
 
-@app.get("/audit/stream")
-async def audit_stream(request: Request, lang: str = DEFAULT_LANG):
-    client = _client_key(request)
+def _audit_sse(request: Request, client: str, runner, before=None, visitor: bool = False):
+    """Le flux SSE d'un audit, commun à la démo et aux documents du visiteur :
+    même verrou, même plafond (10/jour), même cadence par client.
+
+    Args:
+        runner: `runner(task_callback) -> rapport`, exécuté dans un fil.
+        before: coroutine facultative, appelée en premier ; elle rend un message
+            d'erreur pour refuser (ex. jeton invalide), sinon None.
+        visitor: documents d'un visiteur → l'erreur est journalisée SANS son
+            texte (une exception d'appel au modèle peut citer la requête), et
+            `done` porte `visitor: true` (la page affiche l'avertissement D6).
+    """
     queue: asyncio.Queue[str | None] = asyncio.Queue()
     loop = asyncio.get_event_loop()
     task_index = [0]
@@ -1405,32 +1417,33 @@ async def audit_stream(request: Request, lang: str = DEFAULT_LANG):
             "output": task_output.raw,
         }))
 
+    async def refuse(message: str) -> None:
+        await queue.put(json.dumps({"type": "error", "message": message}))
+        await queue.put(None)
+
     async def run():
+        if before is not None:
+            refus = await before()
+            if refus:
+                return await refuse(refus)
         refus = _audit_refusal(client)
         if refus:
-            await queue.put(json.dumps({"type": "error", "message": refus}))
-            await queue.put(None)
-            return
-
+            return await refuse(refus)
         if _audit_semaphore.locked():
-            await queue.put(json.dumps({
-                "type": "error",
-                "message": tr("err.busy.audit"),
-            }))
-            await queue.put(None)
-            return
+            return await refuse(tr("err.busy.audit"))
 
         async with _audit_semaphore:
             _register_audit(client)
             try:
                 await queue.put(json.dumps({"type": "start"}))
                 require_llm_key()
-                report = await _to_thread_to_the_end(
-                    run_audit, _DOCUMENTS_DIR, None, task_callback, lang
-                )
-                await queue.put(json.dumps({"type": "done", "report": report}))
+                report = await _to_thread_to_the_end(runner, task_callback)
+                await queue.put(json.dumps({"type": "done", "report": report, "visitor": visitor}))
             except Exception as exc:
-                _log.exception("Audit interrompu")
+                if visitor:
+                    _log.error("Audit (documents du visiteur) interrompu : %s", type(exc).__name__)
+                else:
+                    _log.exception("Audit interrompu")
                 await queue.put(json.dumps({
                     "type": "error",
                     "message": _failure_message(
@@ -1441,6 +1454,80 @@ async def audit_stream(request: Request, lang: str = DEFAULT_LANG):
 
     tache = asyncio.create_task(run())
     return _sse_response(request, queue, timeout=420.0, task=tache)
+
+
+@app.get("/audit/stream")
+async def audit_stream(request: Request, lang: str = DEFAULT_LANG):
+    """La DÉMO : le jeu d'essai fictif, consignes ciblées sur lui (inchangé)."""
+    return _audit_sse(
+        request, _client_key(request),
+        lambda callback: run_audit(_DOCUMENTS_DIR, None, callback, lang),
+    )
+
+
+# --------------------------------------------------------------------------
+# QualityCrew — audit des documents du VISITEUR (étape 3, 11/10/2026)
+#
+# Parcours SÉPARÉ de la démo (choix de l'utilisateur : deux boutons). Les
+# documents sont postés en JSON texte (lus dans le navigateur, pas de
+# multipart), vérifiés par `documents.check_documents` SANS consommer d'audit,
+# puis échangés contre un jeton à usage unique lié au client : gardés en
+# mémoire 60 s au plus, jamais sur disque, jamais dans une URL ni un journal.
+# --------------------------------------------------------------------------
+
+# Corps de requête accepté : 3 × 12 Ko de texte + JSON, large ; nginx borne aussi
+_MAX_PREPARE_BYTES = 80_000
+
+
+class AuditDocsRequest(BaseModel):
+    lang: str = DEFAULT_LANG
+    confirm: bool = False      # case « rien de confidentiel » (décision D1)
+    docs: dict = {}
+
+
+@app.post("/audit/prepare")
+async def audit_prepare(request: Request, payload: AuditDocsRequest):
+    """Vérifie les documents et rend un jeton ; refuse sans consommer d'audit."""
+    client = _client_key(request)
+    lang = payload.lang
+    try:
+        taille = int(request.headers.get("content-length") or 0)
+    except ValueError:
+        taille = 0
+    if taille > _MAX_PREPARE_BYTES:
+        return JSONResponse({"error": tr("qc.docs.too_large_request", lang)}, status_code=413)
+    if not payload.confirm:
+        return JSONResponse({"error": tr("qc.docs.confirm", lang)}, status_code=400)
+    # Quota épuisé ou cadence : le dire AVANT que le visiteur attende pour rien
+    refus = _audit_refusal(client)
+    if refus:
+        return JSONResponse({"error": refus}, status_code=429)
+    docs, problems = check_documents(payload.docs)
+    if problems:
+        return JSONResponse({"errors": document_messages(problems, lang)}, status_code=400)
+    token = _issue_token(client, "audit-docs", {"docs": docs, "lang": lang})
+    return {"token": token}
+
+
+@app.get("/audit/docs/stream")
+async def audit_docs_stream(request: Request, t: str = ""):
+    """L'audit des documents du visiteur (consignes génériques, `visitor.py`)."""
+    client = _client_key(request)
+    session: dict = {}
+
+    async def before():
+        payload = _consume_token(t, client, "audit-docs")
+        if payload is None:
+            return tr("err.session.audit")
+        session.update(payload)
+        return None
+
+    return _audit_sse(
+        request, client,
+        lambda callback: run_audit_docs(
+            session["docs"], None, callback, session["lang"], visitor=True),
+        before=before, visitor=True,
+    )
 
 
 # --------------------------------------------------------------------------

@@ -171,3 +171,15 @@ Une phrase de verdict global.
     )
 
     return [analyse_exigences, verification_conformite, detection_risques, redaction_rapport]
+
+
+def make_visitor_tasks(agents: dict[str, Agent], docs: dict[str, str],
+                       lang: str = DEFAULT_LANG) -> list[Task]:
+    """Les quatre tâches pour les documents du VISITEUR : consignes génériques
+    de `visitor.py` (celles ci-dessus sont ciblées sur l'exemple de la démo)."""
+    from .visitor import descriptions
+
+    return [
+        Task(description=description, expected_output=expected, agent=agents[agent])
+        for agent, description, expected in descriptions(docs, language_rule(lang))
+    ]

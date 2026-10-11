@@ -10,7 +10,10 @@ def make_llm() -> LLM:
     return LLM(model=LLM_MODEL, **llm_options())
 
 
-def make_agents(llm: LLM) -> dict[str, Agent]:
+def make_agents(llm: LLM, verbose: bool = True) -> dict[str, Agent]:
+    """`verbose=False` pour les documents d'un visiteur : en mode bavard, CrewAI
+    écrit chaque consigne — documents compris — dans la console, donc dans les
+    journaux du VPS (décision D1 : jamais de document dans les journaux)."""
     analyste = Agent(
         role="Analyste d'exigences logicielles",
         goal=(
@@ -25,7 +28,7 @@ def make_agents(llm: LLM) -> dict[str, Agent]:
             "l'identifiant exact de l'exigence concernée."
         ),
         llm=llm,
-        verbose=True,
+        verbose=verbose,
     )
 
     verificateur = Agent(
@@ -41,7 +44,7 @@ def make_agents(llm: LLM) -> dict[str, Agent]:
             "et tu formules un verdict motivé avec citation de l'élément de preuve."
         ),
         llm=llm,
-        verbose=True,
+        verbose=verbose,
     )
 
     detecteur = Agent(
@@ -58,7 +61,7 @@ def make_agents(llm: LLM) -> dict[str, Agent]:
             "et qualifier leur impact (Critique / Majeur / Mineur)."
         ),
         llm=llm,
-        verbose=True,
+        verbose=verbose,
     )
 
     redacteur = Agent(
@@ -74,7 +77,7 @@ def make_agents(llm: LLM) -> dict[str, Agent]:
             "Observation), et tu conclus avec les 3 actions prioritaires."
         ),
         llm=llm,
-        verbose=True,
+        verbose=verbose,
     )
 
     return {

@@ -3344,3 +3344,125 @@ def test_the_audit_page_offers_the_templates_in_its_language():
             assert texte in page, chemin
         # Les téléchargements restent hors des moteurs de recherche
         assert _robots_blocks(c.get("/robots.txt").text, "/audit/templates/srs.md")
+
+
+# ── QualityCrew : documents du visiteur — envoi et flux (étape 3, 11/10/2026) ──
+# ⚠️ Aucun appel au modèle : `run_audit_docs` est remplacé par un faux qui
+# enregistre ce qu'il reçoit (un vrai audit viderait le quota partagé).
+
+def _documents_exemple() -> dict:
+    racine = Path(__file__).resolve().parent.parent / "data" / "sample_project"
+    return {d: (racine / f"{d}.md").read_text(encoding="utf-8") for d in ("srs", "test_plan", "review_report")}
+
+
+class _AuditFactice:
+    """Remet à zéro cadence et plafond, remplace `run_audit_docs`, et restaure tout."""
+
+    def __enter__(self):
+        import api.main as m
+        self.m, self.appels = m, []
+        self.memoire = (dict(m._last_audit_by_client), dict(m._audit_daily_usage), m.run_audit_docs)
+        m._last_audit_by_client.clear()
+        m._audit_daily_usage.update({"day": None, "count": 0})
+
+        def faux(docs, checklist, callback, lang, visitor=False):
+            self.appels.append({"docs": docs, "lang": lang, "visitor": visitor})
+            return "> avertissement\n\n## Rapport"
+        m.run_audit_docs = faux
+        return self
+
+    def __exit__(self, *exc):
+        m = self.m
+        m._last_audit_by_client.clear()
+        m._last_audit_by_client.update(self.memoire[0])
+        m._audit_daily_usage.update(self.memoire[1])
+        m.run_audit_docs = self.memoire[2]
+
+
+def test_the_visitor_upload_is_refused_without_consuming_an_audit():
+    with _AuditFactice() as f, client("10.7.7.1") as c:
+        docs = _documents_exemple()
+        # Case de confidentialité non cochée (D1)
+        r = c.post("/audit/prepare", json={"docs": docs, "lang": "fr"})
+        assert r.status_code == 400 and "confidentiel" in r.json()["error"]
+        # Gabarits non remplis : la liste des corrections, dans la langue demandée
+        gabarits = Path(__file__).resolve().parent.parent / "data" / "templates" / "en"
+        vides = {d: (gabarits / f"{d}.md").read_text(encoding="utf-8") for d in docs}
+        r = c.post("/audit/prepare", json={"docs": vides, "lang": "en", "confirm": True})
+        assert r.status_code == 400
+        assert len(r.json()["errors"]) == 3 and r.json()["errors"][0].startswith("Requirements: the template")
+        # Envoi démesuré
+        r = c.post("/audit/prepare", json={"docs": {"srs": "x" * 90_000}, "confirm": True})
+        assert r.status_code == 413
+        # Rien n'a été compté ni lancé
+        assert f.m._audit_daily_usage["count"] == 0 and not f.appels
+        # Plafond du jour atteint : on le dit AVANT l'attente
+        f.m._audit_daily_usage["count"] = f.m._MAX_AUDITS_PER_DAY
+        r = c.post("/audit/prepare", json={"docs": docs, "confirm": True})
+        assert r.status_code == 429 and "Quota quotidien" in r.json()["error"]
+
+
+def test_the_visitor_audit_runs_once_with_a_token_bound_to_its_client():
+    with _AuditFactice() as f:
+        docs = _documents_exemple()
+        docs["srs"] = "﻿" + docs["srs"].replace("\n", "\r\n")   # BOM + Windows
+        with client("10.7.7.2") as c:
+            r = c.post("/audit/prepare", json={"docs": docs, "lang": "en", "confirm": True})
+            assert r.status_code == 200, r.text
+            jeton = r.json()["token"]
+            assert set(r.json()) == {"token"}, "la réponse ne renvoie pas les documents"
+        # Un autre visiteur ne peut pas utiliser ce jeton…
+        with client("10.7.7.3") as autre:
+            assert "Session d'audit" in autre.get(f"/audit/docs/stream?t={jeton}").text
+        # … et ce refus l'a consommé (usage unique) : on en reprend un
+        with client("10.7.7.2") as c:
+            jeton = c.post("/audit/prepare", json={"docs": docs, "lang": "en", "confirm": True}).json()["token"]
+            flux = c.get(f"/audit/docs/stream?t={jeton}").text
+            assert '"type": "done"' in flux and '"visitor": true' in flux, flux
+            # Rejouer le même jeton : refusé, rien de relancé
+            assert "Session d'audit" in c.get(f"/audit/docs/stream?t={jeton}").text
+        assert len(f.appels) == 1
+        appel = f.appels[0]
+        assert appel["visitor"] is True and appel["lang"] == "en"
+        assert appel["docs"]["srs"] == _documents_exemple()["srs"], "documents normalisés (BOM, fins de ligne)"
+        assert f.m._audit_daily_usage["count"] == 1
+
+
+def test_the_demo_stream_stays_the_demo():
+    """Le bouton de la démo ne passe jamais par le parcours visiteur."""
+    import api.main as m
+    lances, vrai = [], m.run_audit
+    with _AuditFactice() as f:
+        m.run_audit = lambda *a, **k: lances.append(a) or "rapport démo"
+        try:
+            with client("10.7.7.4") as c:
+                flux = c.get("/audit/stream?lang=fr").text
+        finally:
+            m.run_audit = vrai
+        assert '"visitor": false' in flux and lances and not f.appels
+
+
+def test_a_failed_visitor_audit_logs_nothing_of_the_documents():
+    """Une exception d'appel au modèle peut citer la requête : pour un visiteur,
+    seul le TYPE de l'erreur est journalisé (D1)."""
+    import logging
+    secret = "PROJET-CONFIDENTIEL-XYZ"
+    traces = []
+    handler = logging.Handler()
+    handler.emit = lambda record: traces.append(record.getMessage() + str(record.exc_info or ""))
+    with _AuditFactice() as f:
+        def en_panne(docs, *a, **k):
+            raise RuntimeError(f"Groq a refusé la requête : {docs['srs'][:200]}")
+        f.m.run_audit_docs = en_panne
+        docs = _documents_exemple()
+        docs["srs"] = docs["srs"].replace("Battery Temperature Monitor", secret)
+        logging.getLogger().addHandler(handler)
+        try:
+            with client("10.7.7.5") as c:
+                jeton = c.post("/audit/prepare", json={"docs": docs, "confirm": True}).json()["token"]
+                flux = c.get(f"/audit/docs/stream?t={jeton}").text
+        finally:
+            logging.getLogger().removeHandler(handler)
+    assert '"type": "error"' in flux and secret not in flux
+    assert any("RuntimeError" in t for t in traces), traces
+    assert not any(secret in t for t in traces), "le document est passé dans les journaux"
