@@ -552,6 +552,11 @@ CATALOGUE: dict[str, str] = {
     "qc.status.waiting": "Waiting",
     "qc.badge": "Live demo — ASPICE / ISO 26262",
     "qc.cta": "Run the audit",
+    "qc.templates.label": "Prepare your own documents:",
+    "qc.templates.srs": "Requirements (.md)",
+    "qc.templates.test_plan": "Test plan (.md)",
+    "qc.templates.review_report": "Review report (.md)",
+    "qc.templates.hint": "Fill-in templates modelled on the example. Auditing your own documents is coming soon; put nothing confidential in them.",
     # --- SentinelScan page ---
     "ss.subtitle":
         "Information leak watch on public GitHub repositories. Enter distinctive terms — company name, internal project, e-mail domain — and the tool identifies exposures and ranks them by criticality.",

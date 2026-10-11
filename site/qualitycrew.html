@@ -47,6 +47,15 @@
       </button>
       <span class="status-msg" id="status-msg"></span>
     </div>
+    <!-- Gabarits à remplir (étape 1 de « l'audit sur vos documents ») ; le script
+         plus bas met chaque lien dans la langue de la page. -->
+    <div class="templates">
+      <span data-i18n="qc.templates.label">Préparer vos propres documents :</span>
+      <a class="btn btn-ghost btn-sm" data-template="srs" href="/audit/templates/srs.md" download data-i18n="qc.templates.srs">Exigences (.md)</a>
+      <a class="btn btn-ghost btn-sm" data-template="test_plan" href="/audit/templates/test_plan.md" download data-i18n="qc.templates.test_plan">Plan de test (.md)</a>
+      <a class="btn btn-ghost btn-sm" data-template="review_report" href="/audit/templates/review_report.md" download data-i18n="qc.templates.review_report">Rapport de revue (.md)</a>
+      <p class="templates-hint" data-i18n="qc.templates.hint">Des gabarits à remplir, sur le modèle de l'exemple. L'audit de vos propres documents arrive bientôt ; n'y mettez rien de confidentiel.</p>
+    </div>
   </section>
 
   <div class="stats">
@@ -223,6 +232,11 @@
 <script src="/static/safe-markdown.js"></script>
 <script>
 (function() {
+  // Gabarits : téléchargés dans la langue de la page
+  document.querySelectorAll('a[data-template]').forEach(function (a) {
+    a.href = '/audit/templates/' + a.dataset.template + '.md?lang=' + window.LANG;
+  });
+
   const btn = document.getElementById('btn-launch');
   const statusMsg = document.getElementById('status-msg');
   let es = null;

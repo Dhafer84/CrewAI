@@ -574,6 +574,11 @@ CATALOGUE: dict[str, str] = {
     "qc.status.waiting": "En attente",
     "qc.badge": "Démo live — ASPICE / ISO 26262",
     "qc.cta": "Lancer l'audit",
+    "qc.templates.label": "Préparer vos propres documents :",
+    "qc.templates.srs": "Exigences (.md)",
+    "qc.templates.test_plan": "Plan de test (.md)",
+    "qc.templates.review_report": "Rapport de revue (.md)",
+    "qc.templates.hint": "Des gabarits à remplir, sur le modèle de l'exemple. L'audit de vos propres documents arrive bientôt ; n'y mettez rien de confidentiel.",
     # --- Page SentinelScan ---
     "ss.subtitle":
         "Veille de fuite d'information sur les dépôts publics GitHub. Saisissez des termes distinctifs — nom d'entreprise, projet interne, domaine e-mail — l'outil identifie les expositions et les classe par criticité.",

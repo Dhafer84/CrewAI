@@ -142,6 +142,9 @@ h1{font-size:38px;font-weight:600;line-height:1.15;letter-spacing:-0.8px;color:#
 h1 em{color:var(--accent);font-style:normal}
 .subtitle{font-size:16px;color:var(--text-muted);line-height:1.65;max-width:560px;margin-bottom:32px}
 .hero-actions{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.templates{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:16px;font-size:12.5px;color:var(--text-muted)}
+.templates .btn{text-decoration:none}
+.templates-hint{flex-basis:100%;margin:2px 0 0;font-size:11.5px;color:var(--text-dim)}
 
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;padding:10px 20px;border-radius:var(--radius);border:none;cursor:pointer;transition:opacity .15s}

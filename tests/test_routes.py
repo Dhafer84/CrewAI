@@ -3280,3 +3280,67 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+# ── QualityCrew : gabarits à télécharger (11/10/2026) ────────────────────────
+# Étape 1 de « l'audit sur les documents du visiteur » : des gabarits qui
+# reprennent la structure du jeu d'essai, pour que les agents s'y retrouvent.
+
+_GABARITS = {
+    "srs": ("exigences-logicielles.md", "software-requirements.md", "SRS-001"),
+    "test_plan": ("plan-de-test.md", "test-plan.md", "TC-001"),
+    "review_report": ("rapport-de-revue.md", "review-report.md", "R-01"),
+}
+
+
+def test_the_audit_templates_download_in_both_languages():
+    """Chaque gabarit se télécharge en pièce jointe, dans la langue demandée,
+    avec les identifiants que les agents attendent et l'avertissement de
+    confidentialité (le document partira chez Groq à l'étape suivante)."""
+    with client() as c:
+        for doc, (nom_fr, nom_en, ident) in _GABARITS.items():
+            for lang, nom, alerte in (("fr", nom_fr, "rien de confidentiel"),
+                                      ("en", nom_en, "anything confidential")):
+                r = c.get(f"/audit/templates/{doc}.md?lang={lang}")
+                assert r.status_code == 200, (doc, lang)
+                assert r.headers["content-type"].startswith("text/markdown"), (doc, lang)
+                assert r.headers["content-disposition"] == f'attachment; filename="{nom}"', (doc, lang)
+                assert ident in r.text and alerte in r.text, (doc, lang)
+            # Langue inconnue ou absente : français
+            assert c.get(f"/audit/templates/{doc}.md?lang=de").headers["content-disposition"].endswith(f'"{nom_fr}"')
+            assert c.get(f"/audit/templates/{doc}.md").headers["content-disposition"].endswith(f'"{nom_fr}"')
+
+
+def test_the_audit_templates_are_a_closed_list():
+    """`doc` ne sert jamais à construire un chemin hors de la liste."""
+    with client() as c:
+        for doc in ("../../.env", "%2e%2e%2f.env", "checklist", "srs.md", "SRS", ""):
+            assert c.get(f"/audit/templates/{doc}.md").status_code == 404, doc
+
+
+def test_the_audit_templates_mirror_the_sample_project():
+    """Mêmes sections que le jeu d'essai, mêmes identifiants en fr et en en :
+    un gabarit qui diverge de l'exemple ne serait plus audité pareil."""
+    racine = Path(__file__).resolve().parent.parent / "data" / "templates"
+    ids = re.compile(r"\b(?:SRS-\d{3}|TC-\d{3}|R-\d{2}|CHK-\d{2})\b")
+    for doc in _GABARITS:
+        fr = (racine / "fr" / f"{doc}.md").read_text(encoding="utf-8")
+        en = (racine / "en" / f"{doc}.md").read_text(encoding="utf-8")
+        assert ids.findall(fr) == ids.findall(en), doc
+        niveaux = lambda texte: [len(l) - len(l.lstrip("#")) for l in texte.splitlines() if l.startswith("#")]
+        assert niveaux(fr) == niveaux(en), f"{doc} : titres différents"
+    # La matrice de couverture (CHK-09) est là, comme dans l'exemple
+    assert "| Exigence | Cas de test |" in (racine / "fr" / "test_plan.md").read_text(encoding="utf-8")
+    assert "| Requirement | Test case |" in (racine / "en" / "test_plan.md").read_text(encoding="utf-8")
+
+
+def test_the_audit_page_offers_the_templates_in_its_language():
+    with client() as c:
+        for chemin, lang, texte in (("/qualitycrew", "fr", "Plan de test (.md)"),
+                                    ("/en/qualitycrew", "en", "Test plan (.md)")):
+            page = c.get(chemin).text
+            for doc in _GABARITS:
+                assert f'data-template="{doc}" href="/audit/templates/{doc}.md" download' in page, (chemin, doc)
+            assert texte in page, chemin
+        # Les téléchargements restent hors des moteurs de recherche
+        assert _robots_blocks(c.get("/robots.txt").text, "/audit/templates/srs.md")

@@ -7,6 +7,7 @@
   GET /tara          → ThreatScope, analyse TARA / risque cybersécurité
   GET /regwatch      → RegWatch, veille de signaux publics autour des normes
   GET /audit/stream  → SSE : progression des agents + rapport final
+  GET /audit/templates/{doc}.md?lang= → gabarit à remplir (exigences, plan de test, revue)
   GET /watch/stream  → SSE : progression de la veille + signaux retenus
   GET /scan/stream   → SSE : progression du scan + rapport final
   GET /static/*      → assets CSS
@@ -1351,6 +1352,40 @@ def _audit_refusal(client: str) -> str | None:
 def _register_audit(client: str) -> None:
     _last_audit_by_client[client] = time.time()
     _audit_daily_usage["count"] += 1
+
+
+# --------------------------------------------------------------------------
+# QualityCrew — gabarits à télécharger (11/10/2026)
+#
+# Étape 1 de « QualityCrew sur les documents du visiteur » (voir CLAUDE.md) :
+# le visiteur prépare SES documents avec la même structure que le jeu d'essai
+# (SRS-001, TC-001, R-01, trace amont, matrice de couverture). Fichiers servis
+# tels quels depuis data/templates/<lang>/ — aucune IA, aucune donnée reçue.
+# --------------------------------------------------------------------------
+
+_TEMPLATES_DIR = _ROOT / "data" / "templates"
+# Document → nom du fichier téléchargé, par langue
+_TEMPLATE_FILES = {
+    "srs": {"fr": "exigences-logicielles.md", "en": "software-requirements.md"},
+    "test_plan": {"fr": "plan-de-test.md", "en": "test-plan.md"},
+    "review_report": {"fr": "rapport-de-revue.md", "en": "review-report.md"},
+}
+
+
+@app.get("/audit/templates/{doc}.md")
+async def audit_template(doc: str, lang: str = DEFAULT_LANG):
+    """Un gabarit à remplir, en téléchargement. Liste fermée : `doc` ne sert
+    jamais à construire un chemin s'il n'est pas dans `_TEMPLATE_FILES`."""
+    noms = _TEMPLATE_FILES.get(doc)
+    if noms is None:
+        return JSONResponse({"error": "Template not found."}, status_code=404)
+    lang = lang if lang in noms else DEFAULT_LANG
+    texte = (_TEMPLATES_DIR / lang / f"{doc}.md").read_text(encoding="utf-8")
+    return Response(
+        texte,
+        media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{noms[lang]}"'},
+    )
 
 
 @app.get("/audit/stream")
