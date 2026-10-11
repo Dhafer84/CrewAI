@@ -556,6 +556,18 @@ CATALOGUE: dict[str, str] = {
     "qc.templates.srs": "Requirements (.md)",
     "qc.templates.test_plan": "Test plan (.md)",
     "qc.templates.review_report": "Review report (.md)",
+    "qc.docs.name.srs": "Requirements",
+    "qc.docs.name.test_plan": "Test plan",
+    "qc.docs.name.review_report": "Review report",
+    "qc.docs.missing": "{doc}: document missing.",
+    "qc.docs.empty": "{doc}: the document is empty.",
+    "qc.docs.not_text": "{doc}: this is not a text file — send a .md or .txt file.",
+    "qc.docs.too_big": "{doc}: {size} KB, over the {max} KB limit per document.",
+    "qc.docs.total_too_big": "The three documents add up to {size} KB, over the {max} KB limit.",
+    "qc.docs.no_ids.srs": "{doc}: no identified requirement. Each requirement starts with a heading \"### SRS-001 — …\", as in the template.",
+    "qc.docs.no_ids.test_plan": "{doc}: no identified test case. Each case starts with a heading \"### TC-001 — …\", as in the template.",
+    "qc.docs.no_ids.review_report": "{doc}: no identified finding. Each finding starts with a heading \"### R-01 — …\", as in the template.",
+    "qc.docs.unfilled": "{doc}: the template is not filled in yet — replace the [brackets], for example {examples}.",
     "qc.templates.hint": "Fill-in templates modelled on the example. Auditing your own documents is coming soon; put nothing confidential in them.",
     # --- SentinelScan page ---
     "ss.subtitle":

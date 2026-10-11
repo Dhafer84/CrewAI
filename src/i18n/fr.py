@@ -578,6 +578,18 @@ CATALOGUE: dict[str, str] = {
     "qc.templates.srs": "Exigences (.md)",
     "qc.templates.test_plan": "Plan de test (.md)",
     "qc.templates.review_report": "Rapport de revue (.md)",
+    "qc.docs.name.srs": "Exigences",
+    "qc.docs.name.test_plan": "Plan de test",
+    "qc.docs.name.review_report": "Rapport de revue",
+    "qc.docs.missing": "{doc} : document manquant.",
+    "qc.docs.empty": "{doc} : le document est vide.",
+    "qc.docs.not_text": "{doc} : ce n'est pas un fichier texte — envoyez un fichier .md ou .txt.",
+    "qc.docs.too_big": "{doc} : {size} Ko, au-delà de la limite de {max} Ko par document.",
+    "qc.docs.total_too_big": "Les trois documents font {size} Ko ensemble, au-delà de la limite de {max} Ko.",
+    "qc.docs.no_ids.srs": "{doc} : aucune exigence identifiée. Chaque exigence commence par un titre « ### SRS-001 — … », comme dans le gabarit.",
+    "qc.docs.no_ids.test_plan": "{doc} : aucun cas de test identifié. Chaque cas commence par un titre « ### TC-001 — … », comme dans le gabarit.",
+    "qc.docs.no_ids.review_report": "{doc} : aucun constat identifié. Chaque constat commence par un titre « ### R-01 — … », comme dans le gabarit.",
+    "qc.docs.unfilled": "{doc} : le gabarit n'est pas encore rempli — remplacez les [crochets], par exemple {examples}.",
     "qc.templates.hint": "Des gabarits à remplir, sur le modèle de l'exemple. L'audit de vos propres documents arrive bientôt ; n'y mettez rien de confidentiel.",
     # --- Page SentinelScan ---
     "ss.subtitle":
