@@ -94,8 +94,8 @@ def language_rule(lang: str = "fr") -> str:
     """Consigne de langue de sortie, à insérer dans un prompt.
 
     ⚠️ **Les prompts restent en français, seule la SORTIE change de langue.**
-    Les traduire serait risqué pour rien : ceux de QualityCrew sont calibrés
-    et atteignent 12/12 sur les défauts injectés. Un modèle suit une consigne
+    Les traduire serait risqué pour rien : ceux de QualityCrew sont mesurés
+    (≈ 10/12 sur un dossier inconnu, en français). Un modèle suit une consigne
     de langue explicite quelle que soit la langue de la consigne.
 
     ⚠️ La consigne insiste sur la langue des **entrées**, parce que c'est là

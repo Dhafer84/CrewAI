@@ -2715,7 +2715,6 @@ def test_no_opacity_fades_readable_text():
 # échouer `test_green_means_status_only` — c'est le seul moyen d'obliger à se
 # demander si ce nouvel élément dit « c'est bon » ou s'il porte la couleur du site.
 _VERTS_ADMIS = {
-    ".stat-val.green",            # 12/12 défauts trouvés : un résultat atteint
     ".caps-state",                # « IA disponible »
     ".treatment-state.is-ok",     # traitement complet
     ".bridge-yes .bridge-mark",   # « ✓ la sévérité traverse le pont »

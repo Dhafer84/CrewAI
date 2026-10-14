@@ -132,6 +132,20 @@ def test_the_demo_uses_the_measured_generic_prompts():
     assert source.count("Task(") == 1, "un second jeu de consignes est réapparu dans tasks.py"
 
 
+def test_the_site_shows_the_measured_score_not_12_12():
+    """Étape 6 du « 12/12 réel » (14/10/2026) : la page affiche le score MESURÉ
+    (≈ 10/12 sur un dossier inconnu, 11,3/12 sur l'exemple), plus « 12/12 »."""
+    from i18n import t
+    page = (_ROOT / "site" / "qualitycrew.html").read_text(encoding="utf-8")
+    catalogues = "".join((_ROOT / "src" / "i18n" / f"{lang}.py").read_text(encoding="utf-8")
+                         for lang in ("fr", "en"))
+    assert "12/12" not in page and "12/12" not in catalogues
+    assert "≈ 10/12" in page
+    assert (t("qc.stat.sample_val", "fr"), t("qc.stat.sample_val", "en")) == ("11,3/12", "11.3/12")
+    for lang in ("fr", "en"):
+        assert "10" in t("qc.docs.report_banner", lang), lang
+
+
 class _Faux:
     """Remplace CrewAI : enregistre les appels, ne contacte aucun modèle."""
 
