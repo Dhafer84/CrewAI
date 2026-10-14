@@ -7,6 +7,10 @@ CLAUDE.md
 .env.*
 !.env.example
 data/INJECTED_DEFECTS_SECRET.md
+# Second dossier d'essai et barème de mesure (11/10/2026) : vérité terrain, jamais publiée
+data/holdout_secret/
+data/holdout3_secret/
+scripts/measure_audit.py
 
 # --- Python ---
 __pycache__/

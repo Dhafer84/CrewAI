@@ -1458,7 +1458,8 @@ def _audit_sse(request: Request, client: str, runner, before=None, visitor: bool
 
 @app.get("/audit/stream")
 async def audit_stream(request: Request, lang: str = DEFAULT_LANG):
-    """La DÉMO : le jeu d'essai fictif, consignes ciblées sur lui (inchangé)."""
+    """La DÉMO : le jeu d'essai fictif, mêmes consignes génériques que pour un
+    visiteur (depuis le 14/10/2026), mais sans bandeau « brouillon »."""
     return _audit_sse(
         request, _client_key(request),
         lambda callback: run_audit(_DOCUMENTS_DIR, None, callback, lang),

@@ -11,7 +11,8 @@ Trois promesses vérifiées, sans aucun appel au modèle :
 2. les documents sont des DONNÉES encadrées, dont on ne peut pas sortir ;
 3. le parcours visiteur n'écrit rien des documents dans la console (D1) et son
    rapport commence par l'avertissement « brouillon » (D6) ; la démo, elle,
-   reste exactement comme avant.
+   garde l'affichage console et n'a pas de bandeau.
+Depuis le 14/10/2026, ces consignes sont AUSSI celles de la démo (un seul jeu).
 """
 
 import sys
@@ -66,6 +67,28 @@ def test_documents_are_fenced_data_with_the_guard():
     assert "<<<DÉBUT DOCUMENT" not in _consignes()[3][1]
 
 
+def test_the_verifier_receives_all_three_documents():
+    """Bug trouvé à la mesure du 11/10/2026 : le vérificateur juge CHK-15 (constats de
+    revue) mais ne recevait pas le rapport de revue — un audit a écrit « aucun document
+    de constats de revue fourni »."""
+    verification = _consignes()[1][1]
+    for document in ("SPÉCIFICATION DES EXIGENCES", "PLAN DE TEST", "RAPPORT DE REVUE"):
+        assert f"<<<DÉBUT DOCUMENT : {document}>>>" in verification, document
+
+
+def test_every_checklist_point_has_a_method():
+    """Une règle de méthode par point (CHK-01 à CHK-15) : le vérificateur les reçoit
+    toutes, l'analyste les six siennes ; elles disent COMMENT vérifier."""
+    from qualitycrew.visitor import METHODS
+    assert list(METHODS) == [f"CHK-{n:02d}" for n in range(1, 16)]
+    analyse, verification = _consignes()[0][1], _consignes()[1][1]
+    for chk, methode in METHODS.items():
+        assert f"- {chk} : {methode}" in verification, chk
+        assert (f"- {chk} : " in analyse) == (int(chk[4:]) <= 6), chk
+    # CHK-09 se vérifie ligne par ligne, CHK-15 constat par constat
+    assert "LIGNE PAR LIGNE" in METHODS["CHK-09"] and "constat OUVERT" in METHODS["CHK-15"]
+
+
 def test_a_document_cannot_close_its_own_fence():
     """Un document qui écrit la balise de fin pour « sortir » du cadre puis
     donner des ordres reste DANS le cadre."""
@@ -89,10 +112,24 @@ def test_the_report_title_comes_from_the_specification():
     assert "## Rapport d'audit — Spécification — Régulateur de vitesse" in _consignes()[3][1]
 
 
-def test_the_demo_prompts_are_unchanged():
-    """La démo garde ses consignes ciblées (choix de l'utilisateur, 11/10/2026)."""
-    demo = (_ROOT / "src" / "qualitycrew" / "tasks.py").read_text(encoding="utf-8")
-    assert "module BTM" in demo and "SRS-014 et SRS-015" in demo
+def test_the_demo_uses_the_measured_generic_prompts():
+    """Étape 5 du « 12/12 réel » (14/10/2026) : la démo n'a plus de consignes
+    ciblées sur l'exemple — le score affiché est celui des consignes génériques.
+    Sur les documents de la démo, aucune consigne ne doit souffler la réponse :
+    tout mot propre à l'exemple vient des DOCUMENTS encadrés, jamais d'ailleurs."""
+    sample = {d: (_ROOT / "data" / "sample_project" / f"{d}.md").read_text(encoding="utf-8")
+              for d in ("srs", "test_plan", "review_report")}
+    import re
+    for agent, description, attendu in _consignes({**sample, "checklist": _CHECKLIST}):
+        hors_documents = re.sub(r"<<<DÉBUT DOCUMENT : (.+?)>>>.*?<<<FIN DOCUMENT : \1>>>", "",
+                                description, flags=re.S)
+        for texte in (hors_documents, attendu):
+            for mot in ("SRS-006", "SRS-014", "SRS-015", "SYS-REQ-014", "contacteur",
+                        "50 ms", "100 ms", "T_crit", "BTM SRS & Test Plan"):
+                assert mot not in texte, f"{agent} : « {mot} » hors des documents"
+    source = (_ROOT / "src" / "qualitycrew" / "tasks.py").read_text(encoding="utf-8")
+    assert "from .visitor import descriptions" in source
+    assert source.count("Task(") == 1, "un second jeu de consignes est réapparu dans tasks.py"
 
 
 class _Faux:
@@ -128,20 +165,18 @@ def test_the_visitor_crew_is_silent_and_the_demo_one_is_not():
     """En mode bavard, CrewAI écrit les consignes — documents compris — dans la
     console, donc dans les journaux du VPS. Interdit pour un visiteur (D1)."""
     vus = {}
-    sauvegarde = (crew_module.make_llm, crew_module.make_agents, crew_module.make_tasks,
-                  crew_module.make_visitor_tasks, crew_module.Crew)
+    sauvegarde = (crew_module.make_llm, crew_module.make_agents, crew_module.make_tasks, crew_module.Crew)
     crew_module.make_llm = lambda: "llm"
     crew_module.make_agents = lambda llm, verbose=True: vus.setdefault("agents", []).append(verbose) or {"a": "agent"}
-    crew_module.make_tasks = lambda agents, docs, lang: vus.setdefault("taches", []).append("demo") or []
-    crew_module.make_visitor_tasks = lambda agents, docs, lang: vus.setdefault("taches", []).append("visiteur") or []
+    crew_module.make_tasks = lambda agents, docs, lang: vus.setdefault("taches", []).append(docs["srs"]) or []
     crew_module.Crew = lambda **kw: vus.setdefault("crew", []).append(kw["verbose"])
     try:
         crew_module.build_crew(_VISITEUR, visitor=True)
         crew_module.build_crew(_VISITEUR)
     finally:
-        (crew_module.make_llm, crew_module.make_agents, crew_module.make_tasks,
-         crew_module.make_visitor_tasks, crew_module.Crew) = sauvegarde
-    assert vus == {"agents": [False, True], "taches": ["visiteur", "demo"], "crew": [False, True]}
+        (crew_module.make_llm, crew_module.make_agents, crew_module.make_tasks, crew_module.Crew) = sauvegarde
+    # Mêmes consignes (une seule fonction) ; seul l'affichage console diffère
+    assert vus == {"agents": [False, True], "taches": [_VISITEUR["srs"]] * 2, "crew": [False, True]}
 
 
 def main() -> int:

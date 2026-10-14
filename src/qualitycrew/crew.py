@@ -5,17 +5,17 @@ from i18n import DEFAULT_LANG
 from crewai import Crew, Process
 
 from .agents import make_agents, make_llm
-from .tasks import make_tasks, make_visitor_tasks
+from .tasks import make_tasks
 
 
 def build_crew(docs: dict[str, str], task_callback=None,
                lang: str = DEFAULT_LANG, visitor: bool = False) -> Crew:
-    """`visitor=True` : documents d'un visiteur — consignes génériques
-    (`visitor.py`) et AUCUN affichage console (rien des documents dans les
-    journaux). Sinon : la démo, consignes ciblées sur l'exemple, inchangée."""
+    """Mêmes consignes pour la démo et le visiteur (`tasks.py`). `visitor=True` :
+    AUCUN affichage console — rien des documents d'un visiteur dans les journaux.
+    La démo, elle, garde l'affichage (documents fictifs et publics)."""
     llm = make_llm()
     agents = make_agents(llm, verbose=not visitor)
-    tasks = (make_visitor_tasks if visitor else make_tasks)(agents, docs, lang)
+    tasks = make_tasks(agents, docs, lang)
 
     return Crew(
         agents=list(agents.values()),
