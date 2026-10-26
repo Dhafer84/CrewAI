@@ -593,7 +593,9 @@ def _script_texts():
 
 
 # Termes identiques dans les deux langues, affichés tels quels.
-_NEUTRES = {"use strict", "ASIL", "OC", "HARA", "TARA", "pt"}
+# « MS Learn » : nom de la documentation Microsoft, étiquette de source de l'article
+# /ai-gateway — un nom propre, identique dans les deux langues.
+_NEUTRES = {"use strict", "ASIL", "OC", "HARA", "TARA", "pt", "MS Learn", "MS Learn · JWT"}
 
 
 def _looks_like_text(texte: str, in_markup: bool = False) -> bool:

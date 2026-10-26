@@ -35,14 +35,17 @@
     <span class="h-chip" data-i18n="gw.eyebrow">Architecture type · IA dans une société d'ingénierie</span>
     <h1 data-i18n="gw.hook">Que devient votre prompt <em>avant d'atteindre le modèle&nbsp;?</em></h1>
     <p class="b-meta"><time datetime="2026-10-25" data-i18n="gw.date">25 octobre 2026</time><span class="b-tags" data-i18n="gw.tags">Architecture · Sécurité · Coûts</span></p>
-    <p class="h-lead g-lede" data-i18n="gw.lede">Dans une société d'ingénierie, aucun outil ne devrait appeler un modèle directement. <strong>Chaque requête passe par une passerelle unique</strong> qui vérifie l'identité, protège les données client et maîtrise les coûts. Lancez un scénario et suivez la requête.</p>
+    <!-- Deux chapeaux, un par vue : le script montre celui de la vue choisie.
+         La vue ingénieur est celle par défaut (choix de l'auteur, 26/10/2026). -->
+    <p class="h-lead g-lede" data-view="eng" data-i18n="gw.lede.eng">Dans une société d'ingénierie, aucun outil ne devrait appeler un modèle directement. <strong>Chaque requête passe par une passerelle unique</strong> qui applique des politiques. <strong>Vue ingénieur :</strong> à chaque étape, la politique et son extrait de configuration, le code de retour et le risque OWASP traité.</p>
+    <p class="h-lead g-lede" data-view="simple" hidden data-i18n="gw.lede">Dans une société d'ingénierie, aucun outil ne devrait appeler un modèle directement. <strong>Chaque requête passe par une passerelle unique</strong> qui vérifie l'identité, protège les données client et maîtrise les coûts. Lancez un scénario et suivez la requête.</p>
     <!-- ⚠️ Ces trois chiffres sont des DÉCOMPTES : contrôles du schéma (MODS),
          boutons de scénario, sources citées. test_the_ai_gateway_counts_are_true
          les recompte. -->
     <ul class="g-stats">
       <li><b>5</b><span data-i18n="gw.stat.controls">contrôles</span></li>
       <li><b>4</b><span data-i18n="gw.stat.scenarios">scénarios</span></li>
-      <li><b>3</b><span data-i18n="gw.stat.sources">sources vérifiées</span></li>
+      <li><b>6</b><span data-i18n="gw.stat.sources">sources vérifiées</span></li>
     </ul>
   </header>
 
@@ -58,7 +61,13 @@
     </div>
     <div class="h-panel g-run">
       <div class="g-scn-row">
-        <span class="g-label" id="g-pick" data-i18n="gw.pick">Choisissez un scénario</span>
+        <div class="g-scn-head">
+          <span class="g-label" id="g-pick" data-i18n="gw.pick">Choisissez un scénario</span>
+          <div class="g-view" role="group" data-i18n-aria-label="gw.view.group" aria-label="Niveau de détail">
+            <button type="button" data-v="simple" aria-pressed="false" data-i18n="gw.view.simple">Simple</button>
+            <button type="button" data-v="eng" aria-pressed="true" data-i18n="gw.view.eng">Ingénieur</button>
+          </div>
+        </div>
         <div class="g-scenarios" role="group" aria-labelledby="g-pick">
           <button class="g-scn" type="button" data-s="normal" aria-pressed="true" data-i18n="gw.scn.normal">Requête standard</button>
           <button class="g-scn" type="button" data-s="sensible" aria-pressed="false" data-i18n="gw.scn.sensible">Données client confidentielles</button>
@@ -67,7 +76,7 @@
         </div>
       </div>
 
-      <div class="g-bench">
+      <div class="g-bench is-eng" id="g-bench">
         <div class="g-stage" id="g-stage"><div class="g-stage-in">
           <div class="g-live"><i aria-hidden="true"></i><span data-i18n="gw.live">Simulation en direct</span></div>
           <div class="g-diagram"><svg id="g-svg" role="img"></svg></div>
@@ -141,7 +150,7 @@
           <li><i class="g-sw g-resp"></i><span data-i18n="gw.legend.resp">Réponse</span></li>
           <li><i class="g-sw g-stop"></i><span data-i18n="gw.legend.stop">Requête bloquée</span></li>
         </ul>
-        <p class="g-fine" data-i18n="gw.read.note">Les étiquettes « Source » renvoient au document qui décrit le contrôle. L'étiquette en pointillés « Adaptation » signale une règle que je propose pour une société d'ingénierie, qui ne vient pas d'une source. Les chiffres et noms des exemples sont fictifs.</p>
+        <p class="g-fine" data-i18n="gw.read.note">Les étiquettes « Source » renvoient au document qui décrit le contrôle. L'étiquette en pointillés « Adaptation » signale une règle que je propose pour une société d'ingénierie, qui ne vient pas d'une source. Les chiffres et noms des exemples sont fictifs. Les extraits de politiques suivent la syntaxe de la documentation Microsoft avec des valeurs fictives ; le rattachement aux risques OWASP est une proposition.</p>
       </div>
       <div class="g-note">
         <h3 data-i18n="gw.limits">Ce que cette architecture ne garantit pas</h3>
@@ -149,6 +158,7 @@
           <li data-i18n="gw.limits.1">Elle réduit les risques de fuite et de dérive des coûts, elle ne les supprime pas. Les règles d'usage et la formation restent nécessaires.</li>
           <li data-i18n="gw.limits.2">Une passerelle hébergée dans le cloud ajoute de la latence pour les services sur site. Une passerelle auto-hébergée évite ce trajet, mais l'entreprise doit la déployer, la dimensionner et la maintenir.</li>
           <li data-i18n="gw.limits.3">La journalisation des contenus a des limites : taille des messages capturés et échantillonnage, qui peut aussi peser sur le débit.</li>
+          <li data-i18n="gw.limits.4">Les métriques ne font pas un journal d'audit : Microsoft précise qu'Application Insights n'est pas conçu comme un système d'audit. Un journal d'audit demande un stockage dédié, avec une durée de rétention fixée.</li>
         </ul>
       </div>
       <div class="g-note">
@@ -157,6 +167,9 @@
           <li><a href="https://learn.microsoft.com/ai/playbook/solutions/genai-gateway/reference-architectures/apim-based" target="_blank" rel="noopener" data-i18n="gw.src.ms.link">Microsoft, architecture de référence d'une passerelle GenAI sur Azure API Management</a> <span data-i18n="gw.src.ms.what">: authentification par identité managée, masquage des données personnelles, limites de jetons par minute, débordement de la capacité réservée vers le paiement à l'usage, compteurs de jetons pour la refacturation, passerelle auto-hébergée.</span></li>
           <li><a href="https://api7.ai/blog/what-is-an-ai-gateway" target="_blank" rel="noopener" data-i18n="gw.src.api7.link">API7, qu'est-ce qu'une passerelle IA (en anglais)</a> <span data-i18n="gw.src.api7.what">: clés des fournisseurs gardées par la passerelle, budgets par équipe, routage par coût et par tâche, journaux d'audit.</span></li>
           <li><a href="https://genai.owasp.org/llmrisk/llm102025-unbounded-consumption/" target="_blank" rel="noopener" data-i18n="gw.src.owasp.link">OWASP, LLM10:2025 Unbounded Consumption (en anglais)</a> <span data-i18n="gw.src.owasp.what">: la consommation non maîtrisée d'un modèle, jusqu'aux coûts imprévus (« denial of wallet »).</span></li>
+          <li><a href="https://learn.microsoft.com/azure/api-management/api-management-policies#ai-gateway" target="_blank" rel="noopener" data-i18n="gw.src.pol.link">Microsoft Learn, politiques « AI gateway » d'API Management (en anglais)</a> <span data-i18n="gw.src.pol.what">: llm-token-limit, llm-content-safety, llm-semantic-cache-lookup, llm-emit-token-metric (syntaxe, codes 403 et 429, avertissements).</span></li>
+          <li><a href="https://learn.microsoft.com/azure/api-management/validate-jwt-policy" target="_blank" rel="noopener" data-i18n="gw.src.jwt.link">Microsoft Learn, validate-jwt et authentication-managed-identity (en anglais)</a> <span data-i18n="gw.src.jwt.what">: validation du jeton (401 par défaut) et authentification de la passerelle auprès du fournisseur.</span></li>
+          <li><a href="https://opentelemetry.io/blog/2026/genai-observability/" target="_blank" rel="noopener" data-i18n="gw.src.otel.link">OpenTelemetry, observabilité de l'IA générative (en anglais)</a> <span data-i18n="gw.src.otel.what">: métriques gen_ai.client.token.usage et gen_ai.client.operation.duration ; conventions encore en cours d'élaboration.</span></li>
         </ul>
         <p class="g-fine" data-i18n="gw.src.note">Microsoft documente une mise en œuvre sur Azure. Le principe d'une passerelle centrale vaut pour d'autres produits.</p>
       </div>
@@ -183,6 +196,9 @@
     ms: { l: 'Microsoft', u: 'https://learn.microsoft.com/ai/playbook/solutions/genai-gateway/reference-architectures/apim-based' },
     api7: { l: 'API7', u: 'https://api7.ai/blog/what-is-an-ai-gateway' },
     owasp: { l: 'OWASP 2025', u: 'https://genai.owasp.org/llmrisk/llm102025-unbounded-consumption/' },
+    mslearn: { l: 'MS Learn', u: 'https://learn.microsoft.com/azure/api-management/api-management-policies#ai-gateway' },
+    jwt: { l: 'MS Learn · JWT', u: 'https://learn.microsoft.com/azure/api-management/validate-jwt-policy' },
+    otel: { l: 'OpenTelemetry', u: 'https://opentelemetry.io/blog/2026/genai-observability/' },
     adapt: {}
   };
   var LOCALE = T('gw.locale');
@@ -254,6 +270,140 @@
       '<span class="g-lbl">' + lblApres + '</span><code>' + apres + '</code></div>';
   }
 
+  // ===== Vue ingénieur : le détail technique de chaque étape =====
+  // Les extraits suivent la syntaxe de la documentation Microsoft (API Management),
+  // avec des valeurs fictives ; ils sont identiques dans les deux langues et restent
+  // donc ici. Les libellés (gw.eng.lbl.*), les notes (gw.eng.<étape>) et les
+  // étiquettes traduisibles (gw.tag.*) viennent du catalogue. a: 1 = proposition de
+  // l'auteur, pas tirée d'une source (« Adaptation »).
+  // ⚠️ Vérifiés le 26/10/2026 sur Microsoft Learn : 429 = débit par minute,
+  // 403 = quota de la période (llm-token-limit) ; 403 aussi pour llm-content-safety ;
+  // 401 par défaut pour validate-jwt.
+  function tag(x, c) { return { x: x, c: c }; }
+  function ttag(k, c) { return { k: k, c: c }; }
+  var O1 = tag('LLM01 · Prompt Injection', 'owasp'), O2 = tag('LLM02 · Sensitive Information Disclosure', 'owasp'),
+    O5 = tag('LLM05 · Improper Output Handling', 'owasp'), O10 = tag('LLM10 · Unbounded Consumption', 'owasp');
+  var PJ = 'context.Variables.GetValueOrDefault<string>("projectId", "none")';
+  var ENG = {
+    send: { tags: [ttag('c2g', 'ctl')], blocks: [{ a: 1, l: 'req', c:
+'POST /llm/v1/chat/completions\nAuthorization: Bearer <jwt>   # claims: sub, team, project\n' +
+'{"messages":[{"role":"user","content":"…"}],"stream":false}' }] },
+    auth: { src: ['jwt'], tags: [tag('validate-jwt', 'ctl'), tag('authentication-managed-identity', 'ctl'), tag('HTTP 401', 'bad')], blocks: [
+      { l: 'inbound', c:
+'<validate-jwt header-name="Authorization" require-scheme="Bearer"\n' +
+'    failed-validation-httpcode="401" output-token-variable-name="jwt">\n' +
+'  <openid-config url="https://idp.example.com/.well-known/openid-configuration" />\n' +
+'  <audiences><audience>ai-gateway</audience></audiences>\n' +
+'</validate-jwt>\n' +
+'<set-variable name="projectId"\n' +
+'    value="@(((Jwt)context.Variables["jwt"]).Claims.GetValueOrDefault("project", "none"))" />' },
+      { l: 'provider', c: '<authentication-managed-identity resource="https://cognitiveservices.azure.com" />' }] },
+    quota: { src: ['mslearn'], tags: [tag('llm-token-limit', 'ctl'), O10, ttag('rate', 'bad'), tag('HTTP 403 · quota', 'bad')], blocks: [{ l: 'pol', c:
+'<llm-token-limit\n' +
+'    counter-key="@(' + PJ + ')"\n' +
+'    tokens-per-minute="20000"\n' +
+'    token-quota="500000" token-quota-period="Monthly"\n' +
+'    estimate-prompt-tokens="true"\n' +
+'    remaining-quota-tokens-header-name="x-remaining-tokens" />' }] },
+    mask: { src: ['mslearn'], tags: [tag('llm-content-safety', 'ctl'), O1, O2, tag('HTTP 403', 'bad')], blocks: [
+      { a: 1, l: 'mask', c:
+'detector: PII   # not an llm-* policy\n' +
+'in : ...for Mr Dhafer (dhafer@carmaker.example)...\n' +
+'out: ...for [PERSON_1] ([EMAIL_1])...\n' +
+'map: {PERSON_1, EMAIL_1} kept at the gateway' },
+      { l: 'doc', c:
+'<llm-content-safety backend-id="content-safety-backend"\n' +
+'    shield-prompt="true">\n' +
+'  <categories output-type="EightSeverityLevels">\n' +
+'    <category name="Hate" threshold="4" />\n' +
+'    <category name="Violence" threshold="4" />\n' +
+'  </categories>\n' +
+'</llm-content-safety>' }] },
+    route: { src: ['mslearn'], tags: [tag('llm-semantic-cache-lookup', 'ctl'), ttag('route', 'ctl'), O10], blocks: [
+      { l: 'cache', c:
+'<!-- inbound -->\n' +
+'<llm-semantic-cache-lookup score-threshold="0.05"\n' +
+'    embeddings-backend-id="embeddings-backend"\n' +
+'    embeddings-backend-auth="system-assigned">\n' +
+'  <vary-by>@(' + PJ + ')</vary-by>\n' +
+'</llm-semantic-cache-lookup>\n' +
+'<rate-limit calls="10" renewal-period="60" />\n' +
+'<!-- outbound -->\n' +
+'<llm-semantic-cache-store duration="60" />' },
+      { a: 1, l: 'routing', c:
+'default       → reserved-deployment\n' +
+'on 429 / 5xx  → retry (backoff) → payg-deployment' }] },
+    back: { src: ['mslearn'], tags: [tag('usage', 'ctl'), O5], blocks: [{ l: 'use', c:
+'"usage": {"prompt_tokens": 412, "completion_tokens": 138, "total_tokens": 550}\n' +
+'cost = 412 × price_in + 138 × price_out   # rate card of your provider' }] },
+    bill: { src: ['mslearn', 'otel'], tags: [tag('llm-emit-token-metric', 'ctl'), O10], blocks: [{ l: 'pol', c:
+'<llm-emit-token-metric namespace="llm-metrics">\n' +
+'  <dimension name="API ID" />\n' +
+'  <dimension name="Project" value="@(' + PJ + ')" />\n' +
+'</llm-emit-token-metric>' }] },
+    reply: { src: ['mslearn'], tags: [tag('HTTP 200', 'http')], blocks: [{ l: 'reply', c:
+'HTTP/1.1 200 OK\n' +
+'x-remaining-tokens: 88000' }] },
+    conf_detect: { tags: [tag('classification', 'ctl'), O2], blocks: [{ a: 1, l: 'class', c:
+'match: PROJECT "BMS-7" ∈ registry.confidential\n' +
+'set  : x-data-class = sensitive   # internal header\n' +
+'mask : PROJECT → [PROJECT_1], EMAIL → [EMAIL_1]' }] },
+    conf_route: { src: ['mslearn'], tags: [ttag('route', 'ctl'), O2], blocks: [{ a: 1, l: 'routing', c:
+'if x-data-class == sensitive:\n' +
+'    backend → internal-model\n' +
+'    cache   → bypass\n' +
+'    egress  → deny   # no external provider' }] },
+    conf_back: { tags: [tag('usage', 'ctl')], blocks: [
+      { l: 'use', c: '"usage": {"prompt_tokens": 530, "completion_tokens": 211}' },
+      { a: 1, l: 'costint', c: 'cost ≈ (hardware + energy + operations) / tokens served' }] },
+    conf_audit: { tags: [ttag('audit', 'ctl')], blocks: [{ a: 1, l: 'log', c:
+'{"project":"BMS-7","data_class":"sensitive",\n' +
+' "backend":"internal-model","masked":["PROJECT","EMAIL"],\n' +
+' "tokens":{"in":530,"out":211},"status":200}' }] },
+    q_stop: { src: ['mslearn'], tags: [tag('llm-token-limit', 'ctl'), O10, tag('HTTP 403 · quota', 'bad')], blocks: [{ l: 'counter', c:
+'used 500000 / token-quota 500000  (Monthly)\n→ blocked before the model call' }] },
+    q_refuse: { src: ['mslearn'], tags: [tag('HTTP 403', 'bad'), tag('HTTP 429', 'bad')], blocks: [{ a: 1, l: 'err', c:
+'HTTP/1.1 403 Forbidden\n' +
+'{"error":"token_quota_exceeded","project":"BMS-7","period":"Monthly"}' }] },
+    q_log: { tags: [ttag('log', 'ctl')], blocks: [{ a: 1, l: 'log', c:
+'{"event":"quota_exceeded","project":"BMS-7",\n' +
+' "team":"powertrain-sw","status":403}' }] },
+    q_alert: { tags: [ttag('alert', 'ctl'), O10], blocks: [{ a: 1, l: 'alert', c:
+'alert when tokens_used / token_quota >= 0.8\nnotify project lead' }] },
+    d_try: { tags: [ttag('route', 'ctl'), O10], blocks: [{ a: 1, l: 'routing', c: 'default → reserved-deployment' }] },
+    d_spill: { src: ['mslearn'], tags: [tag('spillover', 'ctl'), tag('HTTP 429', 'bad'), O10], blocks: [{ a: 1, l: 'spill', c:
+'reserved-deployment → 429 (saturated)\n' +
+'retry with increasing delay\n' +
+'still saturated → payg-deployment' }] },
+    d_back: { tags: [tag('usage', 'ctl')], blocks: [{ l: 'use', c:
+'"usage": {"prompt_tokens": 640, "completion_tokens": 190}\ntier: payg' }] },
+    d_cost: { src: ['mslearn'], tags: [tag('llm-emit-token-metric', 'ctl'), O10], blocks: [{ a: 1, l: 'spillind', c:
+'spillover_ratio = tokens_payg / tokens_total\n' +
+'alert when spillover_ratio > threshold' }] }
+  };
+
+  // Coloration des extraits : le code est d'abord échappé, puis les balises et
+  // attributs XML sont entourés. Rien d'autre n'est interprété.
+  function escHtml(c) { return c.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function highlight(c) {
+    var h = escHtml(c);
+    if (!/^\s*</.test(c)) { return h; }
+    h = h.replace(/\b([\w-]+)=(?=")/g, '<i class="g-an">$1</i>=');
+    return h.replace(/(^|[\s>;])(&lt;\/?)([\w-]+)/g, function (m, a, b, n) { return a + b + '<b class="g-tn">' + n + '</b>'; });
+  }
+
+  function engHtml(id) {
+    var e = ENG[id];
+    var tags = e.tags.map(function (g) {
+      return '<span class="g-tag is-' + g.c + '">' + (g.k ? T('gw.tag.' + g.k) : g.x) + '</span>';
+    }).join('');
+    var blocks = e.blocks.map(function (b) {
+      return '<div class="g-eb' + (b.a ? ' is-adapt' : '') + '"><span class="g-lbl">' + T('gw.eng.lbl.' + b.l) +
+        (b.a ? ' · ' + T('gw.adapt') : '') + '</span><code>' + highlight(b.c) + '</code></div>';
+    }).join('');
+    return '<div class="g-eng"><div class="g-tags">' + tags + '</div>' + blocks + '<p class="g-enote">' + T('gw.eng.' + id) + '</p></div>';
+  }
+
   // Une étape : son identifiant (titre et texte au catalogue, gw.st.<id>.t / .b),
   // sa nature, ses sources, son trajet, l'état du paquet et les blocs éclairés.
   function st(id, k, src, p, pk, hl, ex) { return { id: id, k: k, src: src, p: p, pk: pk, hl: hl, ex: ex }; }
@@ -291,7 +441,7 @@
   function $(id) { return document.getElementById(id); }
   var NS = 'http://www.w3.org/2000/svg';
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var mode = 'wide', scn = 'normal', idx = 0, playing = !reduce, raf = null, timer = null;
+  var mode = 'wide', scn = 'normal', idx = 0, playing = !reduce, raf = null, timer = null, view = 'eng';
 
   function kindLabel(k) { return T('gw.kind.' + k); }
   function stepTitle(s) { return T('gw.st.' + s.id + '.t'); }
@@ -399,8 +549,10 @@
     step.hl.forEach(function (id) { var n = $('g-n-' + id); if (n) { n.classList.add('is-on'); n.setAttribute('data-k', step.k); } });
   }
 
+  // En vue ingénieur, les sources de l'étape s'enrichissent de celles du détail technique.
   function sources(step) {
-    return step.src.map(function (k) {
+    var cles = step.src.concat(view === 'eng' ? (ENG[step.id].src || []) : []);
+    return cles.filter(function (k, i) { return cles.indexOf(k) === i; }).map(function (k) {
       if (k === 'adapt') { return '<span class="g-src is-adapt" title="' + T('gw.adapt.title') + '">' + T('gw.adapt') + '</span>'; }
       return '<a class="g-src" href="' + SRC[k].u + '" target="_blank" rel="noopener">' + SRC[k].l + '</a>';
     }).join('');
@@ -411,6 +563,7 @@
     panel.setAttribute('data-k', step.k);
     panel.innerHTML = '<div class="g-in"><span class="g-kind">' + T('gw.step', { i: i + 1 }) + ' · ' + kindLabel(step.k) + '</span>' +
       '<h3>' + stepTitle(step) + '</h3><p>' + stepBody(step) + '</p>' + (step.ex ? step.ex() : '') +
+      (view === 'eng' ? engHtml(step.id) : '') +
       '<div class="g-srcs">' + T('gw.source') + ' ' + sources(step) + '</div></div>';
     $('g-counter').textContent = T('gw.counter', { i: pad(i + 1), n: pad(n) });
     $('g-prev').disabled = i === 0;
@@ -481,6 +634,16 @@
     playing = !reduce;
     go(0, false);
   }
+
+  // Vue simple ou ingénieur : le chapeau, la largeur du panneau et son détail suivent.
+  function setView(v) {
+    view = v;
+    document.querySelectorAll('.g-view button').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.v === v ? 'true' : 'false'); });
+    document.querySelectorAll('.g-lede[data-view]').forEach(function (p) { p.hidden = p.dataset.view !== v; });
+    $('g-bench').classList.toggle('is-eng', v === 'eng');
+    renderPanel(S[scn][idx], idx, S[scn].length);
+  }
+  document.querySelectorAll('.g-view button').forEach(function (b) { b.onclick = function () { setView(b.dataset.v); }; });
 
   document.querySelectorAll('.g-scn').forEach(function (b) { b.onclick = function () { setScn(b.dataset.s); }; });
   $('g-prev').onclick = function () { pause(); go(idx - 1, true); };

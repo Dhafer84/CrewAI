@@ -474,6 +474,12 @@ html:not(.intro-on) .intro{display:none}
 .g-stats span{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--h-ink-2)}
 .g-run{padding:26px 26px 30px 30px;display:grid;gap:20px}
 .g-scn-row{display:grid;gap:10px}
+.g-scn-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+/* Sélecteur de vue : deux boutons dans une pilule, celui qui est actif en accent. */
+.g-view{display:inline-flex;border:1px solid var(--h-line);border-radius:999px;padding:3px;background:var(--bg-card)}
+.g-view button{font-family:inherit;font-size:13px;font-weight:500;line-height:1;color:var(--h-ink-2);background:none;border:0;border-radius:999px;padding:8px 14px;cursor:pointer}
+.g-view button:hover{color:var(--h-ink)}
+.g-view button[aria-pressed="true"]{background:var(--h-accent);color:var(--h-on-accent)}
 .g-label{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--h-ink-2)}
 .g-scenarios{display:flex;flex-wrap:wrap;gap:8px}
 .g-scn{font-family:inherit;font-size:14.5px;font-weight:500;line-height:1.3;color:var(--h-ink);background:var(--bg-card);border:1px solid var(--h-line);
@@ -481,6 +487,8 @@ html:not(.intro-on) .intro{display:none}
 .g-scn:hover{border-color:var(--h-ink-2)}
 .g-scn[aria-pressed="true"]{background:var(--h-accent);color:var(--h-on-accent);border-color:var(--h-accent);box-shadow:0 0 22px rgba(158,172,254,.3)}
 .g-bench{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(0,1fr);gap:18px;align-items:start}
+/* En vue ingénieur, le panneau porte des extraits de configuration : il prend plus de place. */
+.g-bench.is-eng{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
 /* Le contour de la scène tourne : un dégradé conique dont l'angle est animé. */
 @property --g-ang{syntax:"<angle>";inherits:false;initial-value:0deg}
 .g-stage{border-radius:16px;padding:1px;min-width:0;
@@ -560,6 +568,19 @@ html:not(.intro-on) .intro{display:none}
 .g-src{font:500 11.5px ui-monospace,Menlo,Consolas,monospace;border:1px solid var(--h-line);border-radius:5px;padding:2px 8px;color:var(--h-ink)}
 a.g-src:hover{border-color:var(--h-accent);color:var(--h-accent-ink);text-decoration:none}
 .g-src.is-adapt{border-style:dashed;color:var(--h-ink-2)}
+.g-eng{display:grid;gap:10px;border-top:1px dashed var(--border);padding-top:12px}
+.g-tags{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start}
+.g-tag{font:500 11px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.03em;border:1px solid var(--h-line);border-radius:5px;padding:2px 8px;color:var(--h-ink-2);overflow-wrap:anywhere}
+.g-tag.is-ctl{color:var(--h-accent-ink);border-color:var(--accent-border)}
+.g-tag.is-owasp{color:var(--blue);border-color:var(--blue)}
+.g-tag.is-http{color:var(--amber);border-color:var(--amber)}
+.g-tag.is-bad{color:var(--red);border-color:var(--red)}
+.g-eb{display:grid;gap:6px;border:1px solid var(--h-line);border-radius:10px;padding:10px;background:var(--bg-sunk)}
+.g-eb.is-adapt{border-style:dashed}
+.g-eb code{font:500 12px/1.55 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--h-ink);display:block}
+.g-eb code .g-tn{color:var(--h-accent-ink);font-weight:500}
+.g-eb code .g-an{color:var(--amber);font-style:normal}
+.g-panel .g-enote{font-size:13.5px;line-height:1.6;color:var(--h-ink-2)}
 .g-keys{padding:28px 30px 30px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 .g-key{--g-kc:var(--h-accent);position:relative;overflow:hidden;isolation:isolate;display:grid;gap:10px;align-content:start;padding:20px;border:1px solid var(--h-line);border-radius:16px;background:linear-gradient(160deg,var(--h-t2),var(--bg-card) 70%)}
 .g-key[data-k="sec"]{--g-kc:var(--blue)} .g-key[data-k="cost"]{--g-kc:var(--amber)}
@@ -589,7 +610,8 @@ a.g-src:hover{border-color:var(--h-accent);color:var(--h-accent-ink);text-decora
 .g-sw.g-resp{background:var(--h-ink);box-shadow:0 0 8px var(--h-ink)} .g-sw.g-stop{background:var(--red);box-shadow:0 0 8px var(--red)}
 .g-fine{font-size:13px;line-height:1.6;color:var(--h-ink-2)}
 @media (max-width:1023px){
-  .g-bench{grid-template-columns:minmax(0,1fr)}
+  /* .is-eng aussi : sa règle à deux colonnes, plus spécifique, l'emporterait sinon. */
+  .g-bench,.g-bench.is-eng{grid-template-columns:minmax(0,1fr)}
   .g-keys,.g-notes{grid-template-columns:1fr}
   .g-notes{padding:30px}
   .b-hero{padding:30px}

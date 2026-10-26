@@ -3156,7 +3156,7 @@ _NEUTRES_APROPOS = {
 _NEUTRES_BLOG = {
     "Quality", "Crew", "Menu", "GitHub", "LinkedIn", "Blog", "Articles", "Sources",
     "QualityCrew", "SentinelScan", "SafetyScope", "ThreatScope", "RegWatch", "CauseTrace",
-    "Audit", "HARA", "TARA", "8D", "◀", "▶", "Pause", "5", "4", "3",
+    "Audit", "HARA", "TARA", "8D", "◀", "▶", "Pause", "Simple", "5", "4", "6",
 }
 
 
@@ -3539,7 +3539,11 @@ def test_the_ai_gateway_article_has_no_third_party_resources():
     assert "googleapis" not in source and "gstatic" not in source
     assert "<style" not in source, "les styles de l'article vivent dans home.css (tests de contraste)"
     externes = set(re.findall(r'https://([^/"\']+)', source))
-    assert externes <= {"learn.microsoft.com", "api7.ai", "genai.owasp.org", "github.com"}, externes
+    # Les sources citées, plus deux adresses qui n'apparaissent que DANS les extraits de
+    # configuration de la vue ingénieur (un fournisseur d'identité fictif en .example,
+    # la ressource de l'identité managée telle que l'écrit la documentation).
+    assert externes <= {"learn.microsoft.com", "api7.ai", "genai.owasp.org", "opentelemetry.io",
+                        "github.com", "idp.example.com", "cognitiveservices.azure.com"}, externes
     assert "/ca-es/" not in source, "le lien Microsoft pointait vers la version catalane"
     with client() as c:
         for chemin in ("/ai-gateway", "/en/ai-gateway"):
@@ -3565,6 +3569,41 @@ def test_the_ai_gateway_counts_are_true():
     sources = len(re.findall(r'<li><a href="https://', source.split('class="g-list g-sources"', 1)[1].split("</ul>", 1)[0]))
     assert chiffres == {"controls": str(controles), "scenarios": str(scenarios), "sources": str(sources)}, (
         f"en-tête {chiffres} ≠ réalité : {controles} contrôles, {scenarios} scénarios, {sources} sources")
+
+
+def test_the_ai_gateway_engineer_view_covers_every_step():
+    """La vue ingénieur est celle par défaut, et aucune étape n'en est privée.
+
+    Une étape sans détail technique ferait lever le script (ENG[id] indéfini) au
+    moment précis où le visiteur la sélectionne — sans erreur côté serveur. Et
+    le code 403 du quota dépassé, faux en ligne jusqu'au 26/10/2026 (« 429 »),
+    est vérifié ici contre la documentation : 429 = débit, 403 = quota.
+    """
+    from i18n import t
+
+    source = (_ROOT / "site" / "blog-ai-gateway.html").read_text(encoding="utf-8")
+    etapes = set(re.findall(r"st\('(\w+)',", source)) | set(re.findall(r"^    (\w+): st\('", source, re.M))
+    script = source.split("var ENG = {", 1)[1].split("\n  };", 1)[0]
+    detail = set(re.findall(r"^    (\w+): \{", script, re.M))
+    assert etapes and etapes == detail, f"étapes {sorted(etapes)} ≠ détail ingénieur {sorted(detail)}"
+    for etape in etapes:
+        for langue in ("fr", "en"):
+            assert t(f"gw.eng.{etape}", langue) != f"gw.eng.{etape}", f"note gw.eng.{etape} absente ({langue})"
+
+    assert re.search(r'data-v="eng" aria-pressed="true"', source), "la vue ingénieur doit être active par défaut"
+    assert re.search(r'data-view="simple" hidden', source), "le chapeau simple doit être masqué par défaut"
+    assert "view = 'eng'" in source
+
+    # Trouvé dans le navigateur à 375 px : la règle à deux colonnes de la vue
+    # ingénieur, plus spécifique, l'emportait sur le passage à une colonne.
+    etroit = _HOME.read_text(encoding="utf-8").split("@media (max-width:1023px)")
+    assert any(".g-bench.is-eng{grid-template-columns:minmax(0,1fr)}" in bloc.split("}\n}")[0]
+               or ".g-bench,.g-bench.is-eng{grid-template-columns:minmax(0,1fr)}" in bloc.split("}\n}")[0]
+               for bloc in etroit[1:]), "la vue ingénieur doit passer à une colonne sous 1024 px"
+
+    for langue in ("fr", "en"):
+        refus = t("gw.st.q_refuse.b", langue)
+        assert "403" in refus and refus.index("403") < refus.index("429"), refus
 
 
 # ⚠️ Le lanceur reste EN DERNIER : un test défini après lui n'est jamais exécuté
