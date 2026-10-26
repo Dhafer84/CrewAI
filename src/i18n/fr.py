@@ -31,8 +31,7 @@ CATALOGUE: dict[str, str] = {
 
     # --- Pieds de page ----------------------------------------------------
     "footer.tools": "Tous les outils",
-    "footer.index": "Données 100 % fictives",
-    "footer.qualitycrew": "QualityCrew — projet démo · documents 100% fictifs",
+    "footer.qualitycrew": "QualityCrew — projet démo",
     "footer.sentinelscan":
         "OSINT passif · sources publiques · les termes ne transitent jamais par une URL",
     "footer.hara":

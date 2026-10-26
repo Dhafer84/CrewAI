@@ -24,8 +24,7 @@ CATALOGUE: dict[str, str] = {
 
     # --- Footers -----------------------------------------------------------
     "footer.tools": "All tools",
-    "footer.index": "100% fictional data",
-    "footer.qualitycrew": "QualityCrew — demo project · 100% fictional documents",
+    "footer.qualitycrew": "QualityCrew — demo project",
     "footer.sentinelscan":
         "Passive OSINT · public sources only · search terms never travel in a URL",
     "footer.hara":
