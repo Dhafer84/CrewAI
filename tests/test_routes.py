@@ -51,6 +51,8 @@ PAGES = {
     "/regwatch": "/regwatch/sources",
     "/8d": "/8d/rules",
     "/about": "about.doctrine",
+    "/blog": 'class="b-post"',
+    "/ai-gateway": "gw.st.",
 }
 
 # Contrat de /tara/scales : chaque chemin est réellement lu par site/tara.html.
@@ -1085,9 +1087,9 @@ def test_a_regwatch_report_is_not_served_by_another_tool_route():
 # --------------------------------------------------------------------------
 
 PAGES_FR = ["/", "/qualitycrew", "/sentinelscan", "/hara", "/tara", "/regwatch", "/8d",
-            "/about"]
+            "/about", "/blog", "/ai-gateway"]
 PAGES_EN = ["/en", "/en/qualitycrew", "/en/sentinelscan", "/en/hara",
-            "/en/tara", "/en/regwatch", "/en/8d", "/en/about"]
+            "/en/tara", "/en/regwatch", "/en/8d", "/en/about", "/en/blog", "/en/ai-gateway"]
 
 # Mots-outils qui n'existent pas en anglais. Leur présence dans une page
 # `/en/` signale un texte oublié à l'extraction.
@@ -3011,13 +3013,25 @@ def test_the_menu_lists_every_tool_of_the_catalogue():
 
 
 def test_the_menu_marks_the_current_page_in_its_language():
-    """Une seule entrée courante, la bonne, et dans la langue de la page."""
+    """Une seule entrée courante, la bonne, et dans la langue de la page.
+
+    Un article n'a pas d'entrée à lui : c'est la rubrique « Blog » qui est
+    marquée (`aria-current="true"`), et aucune entrée ne se dit « la page ».
+    """
+    from api.render import BLOG_POSTS
+
     with client() as c:
         for fr, en in zip(PAGES_FR, PAGES_EN):
             for chemin, attendu in ((fr, fr), (en, en)):
                 page = c.get(chemin).text
                 courants = re.findall(r'<a href="([^"]+)" aria-current="page"', page)
-                assert courants == [attendu], (
+                rubriques = re.findall(r'<a href="([^"]+)" aria-current="true"', page)
+                if fr in BLOG_POSTS:
+                    blog = "/en/blog" if chemin.startswith("/en") else "/blog"
+                    assert courants == [] and rubriques == [blog], (
+                        f"{chemin} : page {courants}, rubrique {rubriques}, attendu la rubrique {blog}")
+                    continue
+                assert courants == [attendu] and rubriques == [], (
                     f"{chemin} : entrée courante du menu = {courants}, attendu [{attendu!r}]")
 
 
@@ -3086,7 +3100,13 @@ def test_the_home_palette_clears_the_contrast_floor():
 
 
 # Les pages « vitrine » : accueil et À propos. Les six autres sont des outils.
-_PAGES_VITRINE = {"index.html", "about.html"}
+# Pages vitrine : ni outil, ni retour au catalogue. Le blog et ses articles en
+# font partie (un article ramène à `/blog`, pas aux outils).
+_PAGES_VITRINE = {"index.html", "about.html", "blog.html"}
+
+
+def _vitrine(nom: str) -> bool:
+    return nom in _PAGES_VITRINE or nom.startswith("blog-")
 
 
 def test_every_page_sits_in_the_frame():
@@ -3105,7 +3125,7 @@ def test_every_page_sits_in_the_frame():
         assert "h-panel" in texte, f"{page.name} : aucun panneau"
         corps = re.search(r'<body class="([^"]+)">', texte)
         assert corps and "home" in corps.group(1).split(), f"{page.name} : classe de page absente"
-        outil = page.name not in _PAGES_VITRINE
+        outil = not _vitrine(page.name)
         assert ("tool-page" in corps.group(1).split()) == outil, (
             f"{page.name} : `tool-page` {'manquante' if outil else 'en trop'}")
         if outil:
@@ -3117,7 +3137,7 @@ def test_every_page_sits_in_the_frame():
 # propres, normes, cotations, chiffres. Toute autre coïncidence est un oubli
 # d'annotation.
 _NEUTRES_ACCUEIL = {
-    "Dhafer", "Bouthelja", "Quality", "Crew", "Menu", "GitHub", "LinkedIn",
+    "Dhafer", "Bouthelja", "Quality", "Crew", "Menu", "GitHub", "LinkedIn", "Blog",
     "QualityCrew", "SentinelScan", "SafetyScope", "ThreatScope", "RegWatch", "CauseTrace",
     "Audit", "HARA", "TARA", "8D", "S", "4", "5/6", "S3", "E4", "C3", "ASIL D",
     "SafetyScope · HARA", "ThreatScope · TARA", "CauseTrace · D4",
@@ -3125,10 +3145,18 @@ _NEUTRES_ACCUEIL = {
     "ISO/SAE 21434 · UN R155", "ISO · ASPICE · UN R155", "8D · Ishikawa",
 }
 _NEUTRES_APROPOS = {
-    "Dhafer", "Bouthelja", "Quality", "Crew", "Menu", "GitHub", "LinkedIn", "Contact",
+    "Dhafer", "Bouthelja", "Quality", "Crew", "Menu", "GitHub", "LinkedIn", "Contact", "Blog",
     "linkedin.com/", "in/bouthelja-dhafer",
     "QualityCrew", "SentinelScan", "SafetyScope", "ThreatScope", "RegWatch", "CauseTrace",
     "Audit", "HARA", "TARA", "8D", "5/6", "01", "02", "03",
+}
+
+# Le blog : noms propres, sigles, flèches des boutons de l'article, et les
+# exemples de l'article qui ne se traduisent pas (« Microsoft », « API7 »…).
+_NEUTRES_BLOG = {
+    "Quality", "Crew", "Menu", "GitHub", "LinkedIn", "Blog", "Articles", "Sources",
+    "QualityCrew", "SentinelScan", "SafetyScope", "ThreatScope", "RegWatch", "CauseTrace",
+    "Audit", "HARA", "TARA", "8D", "◀", "▶", "Pause",
 }
 
 
@@ -3151,7 +3179,9 @@ def test_the_english_showcase_pages_share_only_neutral_text():
 
     with client() as c:
         for fr, en, neutres in (("/", "/en", _NEUTRES_ACCUEIL),
-                                ("/about", "/en/about", _NEUTRES_APROPOS)):
+                                ("/about", "/en/about", _NEUTRES_APROPOS),
+                                ("/blog", "/en/blog", _NEUTRES_BLOG),
+                                ("/ai-gateway", "/en/ai-gateway", _NEUTRES_BLOG)):
             communs = textes(c.get(fr).text) & textes(c.get(en).text)
             suspects = sorted(communs - neutres)
             assert not suspects, (
@@ -3465,3 +3495,58 @@ def test_a_failed_visitor_audit_logs_nothing_of_the_documents():
     assert '"type": "error"' in flux and secret not in flux
     assert any("RuntimeError" in t for t in traces), traces
     assert not any(secret in t for t in traces), "le document est passé dans les journaux"
+
+
+# ── Blog ─────────────────────────────────────────────────────────────────────
+
+def test_the_blog_lists_every_post():
+    """Un article publié doit être trouvable, et une carte ne doit mener nulle part de vide.
+
+    Trois listes doivent dire la même chose : `BLOG_POSTS` (les adresses
+    servies), les fichiers `site/blog-*.html`, et les cartes de `/blog` — dans
+    les deux langues. Chaque article ramène à la liste, dans sa langue, et le
+    menu des pages lie `/blog`.
+    """
+    from api.render import BLOG_POSTS
+
+    fichiers = {"/" + f.stem.removeprefix("blog-") for f in (_ROOT / "site").glob("blog-*.html")}
+    assert set(BLOG_POSTS) == fichiers, f"BLOG_POSTS {sorted(BLOG_POSTS)} ≠ fichiers {sorted(fichiers)}"
+    assert len(set(BLOG_POSTS)) == len(BLOG_POSTS), "un article est listé deux fois"
+
+    with client() as c:
+        for prefixe in ("", "/en"):
+            liste = c.get(f"{prefixe}/blog")
+            assert liste.status_code == 200
+            cartes = re.findall(r'<a class="b-post" href="([^"]+)"', liste.text)
+            attendues = [f"{prefixe}{chemin}" for chemin in BLOG_POSTS]
+            assert cartes == attendues, f"{prefixe}/blog : cartes {cartes}, attendu {attendues} (même ordre)"
+            for chemin in attendues:
+                article = c.get(chemin)
+                assert article.status_code == 200, f"{chemin} : {article.status_code}"
+                assert re.search(rf'<a class="nav-back" href="{prefixe}/blog"', article.text), \
+                    f"{chemin} ne ramène pas à {prefixe}/blog"
+        for chemin in PAGES_FR + PAGES_EN:
+            page = _SELECTEUR.sub("", c.get(chemin).text)
+            cible = "/en/blog" if chemin.startswith("/en") else "/blog"
+            assert f'href="{cible}"' in page, f"{chemin} : le menu ne lie pas {cible}"
+
+
+def test_the_ai_gateway_article_has_no_third_party_resources():
+    """L'article vient d'une page Artifacts : rien de ce qu'elle chargeait ne doit survivre.
+
+    Polices Google (l'IP du visiteur part chez Google), thème clair propre,
+    vert hors statut : la page suit le cadre du site. Ses liens externes ne
+    vont que vers les trois sources citées.
+    """
+    source = (_ROOT / "site" / "blog-ai-gateway.html").read_text(encoding="utf-8")
+    assert "googleapis" not in source and "gstatic" not in source
+    assert "<style" not in source, "les styles de l'article vivent dans home.css (tests de contraste)"
+    externes = set(re.findall(r'https://([^/"\']+)', source))
+    assert externes <= {"learn.microsoft.com", "api7.ai", "genai.owasp.org", "github.com"}, externes
+    assert "/ca-es/" not in source, "le lien Microsoft pointait vers la version catalane"
+    with client() as c:
+        for chemin in ("/ai-gateway", "/en/ai-gateway"):
+            page = c.get(chemin)
+            csp = page.headers["content-security-policy"]
+            assert "fonts.googleapis.com" not in csp
+            assert "'unsafe-inline'" not in csp.split("script-src", 1)[1].split(";", 1)[0]

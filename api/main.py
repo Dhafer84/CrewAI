@@ -53,7 +53,7 @@ sys.path.insert(0, str(_ROOT / "src"))
 from i18n import DEFAULT_LANG  # noqa: E402
 from i18n import t as tr  # noqa: E402
 
-from api.render import VERSIONED_ASSETS, render, robots_txt, sitemap_xml  # noqa: E402
+from api.render import BLOG_POSTS, VERSIONED_ASSETS, render, robots_txt, sitemap_xml  # noqa: E402
 from qualitycrew.config import is_daily_quota, require_llm_key  # noqa: E402
 from qualitycrew.core import run_audit, run_audit_docs  # noqa: E402
 from qualitycrew.documents import check_documents, messages as document_messages  # noqa: E402
@@ -367,6 +367,9 @@ _PAGES = {
     "/regwatch": "regwatch.html",
     "/8d": "8d.html",
     "/about": "about.html",
+    "/blog": "blog.html",
+    # Un article = `site/blog-<nom>.html`, servi à `/<nom>` (voir BLOG_POSTS).
+    **{chemin: f"blog-{chemin.strip('/')}.html" for chemin in BLOG_POSTS},
 }
 
 # Le menu partagé des huit pages — injecté par `render`, voir api/render.py.
@@ -455,6 +458,24 @@ async def causetrace_page():
 @app.get("/about")
 async def about_page():
     return _page("/about", "fr")
+
+
+@app.get("/blog")
+async def blog_page():
+    return _page("/blog", "fr")
+
+
+def _blog_post_route(chemin: str):
+    async def blog_post_page():
+        return _page(chemin, "fr")
+    return blog_post_page
+
+
+# Une route par article, déclarée depuis la liste : ajouter un article ne
+# demande aucune fonction de plus ici.
+for _chemin in BLOG_POSTS:
+    app.add_api_route(_chemin, _blog_post_route(_chemin), methods=["GET"],
+                      include_in_schema=False)
 
 
 @app.get("/robots.txt")

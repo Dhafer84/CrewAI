@@ -45,7 +45,7 @@ SITE = _ROOT / "site"
 # affiche sous le lien.
 # `data-i18n` porte le CONTENU d'un élément ; `data-i18n-<attribut>` porte
 # un attribut traduisible — `content` d'une <meta>, `placeholder` d'un champ.
-_KEY_IN_HTML = re.compile(r'data-i18n(?:-\w+)?="([^"]+)"')
+_KEY_IN_HTML = re.compile(r'data-i18n(?:-[\w-]+)?="([^"]+)"')
 # `tr` est l'alias de `t` dans api/main.py — voir le commentaire là-bas.
 _KEY_IN_PYTHON = re.compile(r'\b(?:t|tr)\(\s*["\']([a-z](?:[\w.]*\w)?)["\']')
 _KEY_IN_JS = re.compile(r'\bT\(\s*["\']([a-z](?:[\w.]*\w)?)["\']')

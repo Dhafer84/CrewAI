@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="blog.title">Blog — Quality Crew</title>
+  <meta name="description" data-i18n-content="blog.meta" content="Articles sur la qualité, la sécurité et l'IA dans l'ingénierie : architectures, méthodes, retours d'expérience.">
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/home.css">
+  <link rel="preload" href="/static/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
+</head>
+<body class="home">
+<div class="h-shell">
+
+  <nav class="h-notch">
+    <div class="h-tab"><a class="logo" href="/">Quality <em>Crew</em></a></div>
+    <svg class="h-step" viewBox="0 0 72 64" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0C38 0 34 64 72 64H0Z" fill="currentColor"/></svg>
+    <div class="h-band">
+      <div class="nav-end">
+        <a class="nav-link nav-lang" href="/en/blog" hreflang="en" title="English version">EN</a>
+        <!-- menu -->
+      </div>
+    </div>
+  </nav>
+
+  <main>
+  <section class="h-panel b-hero">
+    <span class="h-chip">Blog</span>
+    <h1 data-i18n="blog.h1">Notes d'<em>ingénierie</em></h1>
+    <p class="h-lead" data-i18n="blog.intro">Des articles sur la qualité, la sécurité et l'IA dans l'ingénierie : des architectures, des méthodes, et ce qu'elles ne garantissent pas.</p>
+  </section>
+
+  <!-- ===== Les articles =====
+       ⚠️ AJOUTER UN ARTICLE : une carte ici, le chemin dans `BLOG_POSTS`
+       (api/render.py) et le fichier `site/blog-<nom>.html`.
+       `test_the_blog_lists_every_post` refuse une carte ou un article oublié.
+       Les plus récents en premier. -->
+  <section class="h-section" aria-labelledby="b-posts">
+    <div class="h-notch">
+      <div class="h-tab"><h2 class="h-chip" id="b-posts" data-i18n="blog.posts">Articles</h2></div>
+      <svg class="h-step" viewBox="0 0 72 64" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0C38 0 34 64 72 64H0Z" fill="currentColor"/></svg>
+      <div class="h-band"></div>
+    </div>
+    <div class="h-panel b-list">
+      <ul class="b-posts">
+        <li>
+          <a class="b-post" href="/ai-gateway">
+            <span class="b-meta"><time datetime="2026-10-25" data-i18n="gw.date">25 octobre 2026</time><span class="b-tags" data-i18n="gw.tags">Architecture · Sécurité · Coûts</span></span>
+            <strong class="b-post-title" data-i18n="gw.h1">Passerelle IA d'entreprise</strong>
+            <span class="b-sum" data-i18n="gw.summary">Faire passer chaque appel à un modèle par un point unique qui contrôle l'identité, les données sensibles, les quotas et les coûts. Un schéma interactif, quatre scénarios.</span>
+            <span class="b-more"><span data-i18n="blog.read">Lire l'article</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </section>
+  </main>
+
+  <footer class="h-footer">
+    <span class="footer-text" data-i18n="footer.index">Données 100 % fictives</span>
+    <a class="footer-text" href="https://github.com/Dhafer84/CrewAI" target="_blank" rel="noopener" data-i18n="nav.source">Code source</a>
+  </footer>
+
+</div>
+<script src="/i18n/fr.js"></script>
+<script src="/static/i18n.js"></script>
+<script src="/static/menu.js"></script>
+
+</body>
+</html>

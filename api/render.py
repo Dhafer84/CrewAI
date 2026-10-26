@@ -109,8 +109,15 @@ _TITLE = re.compile(r"<title[^>]*>(.*?)</title>", re.S)
 _DESCRIPTION = re.compile(
     r'<meta\s+name="description"[^>]*?\scontent="([^"]*)"')
 
+# Les articles du blog (25/10/2026), du plus récent au plus ancien. Chacun est
+# servi à SON adresse (`/ai-gateway`, `/en/ai-gateway`) depuis
+# `site/blog-<nom>.html`. ⚠️ Ajouter un article : son chemin ici, son fichier,
+# et sa carte dans `site/blog.html` — `test_the_blog_lists_every_post` refuse
+# un oubli dans un sens comme dans l'autre.
+BLOG_POSTS = ("/ai-gateway",)
+
 PAGE_PATHS = ("", "/qualitycrew", "/sentinelscan", "/hara", "/tara", "/regwatch", "/8d",
-              "/about")
+              "/about", "/blog") + BLOG_POSTS
 
 
 def _end_of_element(html: str, tag: str, after: int) -> int | None:
@@ -147,11 +154,12 @@ def translate_markup(html: str, lang: str) -> str:
     for debut, fin, texte in reversed(remplacements):
         html = html[:debut] + texte + html[fin:]
 
-    # Attributs traduisibles. Deux cas, et deux seulement :
+    # Attributs traduisibles. Trois cas, et trois seulement :
     #   `content`     — la description <meta>, ce que Google affiche
     #   `placeholder` — le texte d'exemple d'un champ de saisie
+    #   `aria-label`  — le nom d'un groupe ou d'un contrôle sans texte visible
     # Un attribut n'a pas de contenu à remplacer : il faut le nommer.
-    for attribut in ("content", "placeholder"):
+    for attribut in ("content", "placeholder", "aria-label"):
         html = re.sub(
             rf'data-i18n-{attribut}="([^"]+)"\s+{attribut}="[^"]*"',
             lambda m, a=attribut: f'{a}="{t(m.group(1), lang)}"',
@@ -310,6 +318,10 @@ def menu_for(menu: str, path: str) -> str:
     les liens en `/en/…`.
     """
     menu = _COMMENT.sub("", menu).strip()
+    # Un article n'a pas d'entrée à lui : c'est la rubrique « Blog » qui est
+    # marquée, avec `aria-current="true"` (la rubrique, pas la page même).
+    if path in BLOG_POSTS:
+        return menu.replace('href="/blog"', 'href="/blog" aria-current="true"', 1)
     cible = f'href="{path or "/"}"'
     return menu.replace(cible, cible + ' aria-current="page"', 1)
 
@@ -399,4 +411,4 @@ def catalogue_languages() -> tuple[str, ...]:
 
 __all__ = ["render", "translate_markup", "social", "catalogue_languages",
            "menu_for", "MENU_SLOT", "assistant_tag", "DEFAULT_LANG", "og_image_for", "og_alt_for",
-           "OG_IMAGES", "OG_TOOL_CARDS"]
+           "OG_IMAGES", "OG_TOOL_CARDS", "BLOG_POSTS"]

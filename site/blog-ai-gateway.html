@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="gw.title">Passerelle IA d'entreprise — Blog Quality Crew</title>
+  <meta name="description" data-i18n-content="gw.meta" content="Pourquoi faire passer chaque appel à un modèle d'IA par une passerelle unique : identité, masquage des données, quotas, routage et refacturation, suivis étape par étape sur quatre scénarios.">
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/home.css">
+  <link rel="preload" href="/static/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
+</head>
+<body class="home blog-post">
+<div class="h-shell">
+
+  <!-- Cadre à crans : l'onglet ramène à la liste des articles, la bande porte la langue et le menu. -->
+  <nav class="h-notch">
+    <div class="h-tab">
+      <a class="nav-back" href="/blog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span data-i18n="blog.back">Tous les articles</span>
+      </a>
+    </div>
+    <svg class="h-step" viewBox="0 0 72 64" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0C38 0 34 64 72 64H0Z" fill="currentColor"/></svg>
+    <div class="h-band">
+      <div class="nav-end">
+        <a class="nav-link nav-lang" href="/en/ai-gateway" hreflang="en" title="English version">EN</a>
+        <!-- menu -->
+      </div>
+    </div>
+  </nav>
+
+  <main>
+  <article>
+  <header class="h-panel b-hero">
+    <span class="h-chip" data-i18n="gw.eyebrow">Architecture type · IA dans une société d'ingénierie</span>
+    <h1 data-i18n="gw.h1">Passerelle IA d'entreprise</h1>
+    <p class="b-meta"><time datetime="2026-10-25" data-i18n="gw.date">25 octobre 2026</time><span class="b-tags" data-i18n="gw.tags">Architecture · Sécurité · Coûts</span></p>
+  </header>
+
+  <!-- ===== Le schéma interactif =====
+       Textes du schéma : `data-i18n` ; textes des étapes : catalogue `gw.*`, lus
+       par le script avec T(). Aucune phrase n'est écrite dans le script. -->
+  <section class="h-section" aria-labelledby="g-run">
+    <div class="h-notch">
+      <div class="h-tab"><h2 class="h-chip" id="g-run" data-i18n="gw.run">Le parcours d'une requête</h2></div>
+      <svg class="h-step" viewBox="0 0 72 64" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0C38 0 34 64 72 64H0Z" fill="currentColor"/></svg>
+      <div class="h-band"></div>
+    </div>
+    <div class="h-panel g-run">
+      <div class="g-scenarios" role="group" data-i18n-aria-label="gw.scn.group" aria-label="Scénario">
+        <button class="g-scn" type="button" data-s="normal" aria-pressed="true" data-i18n="gw.scn.normal">Requête standard</button>
+        <button class="g-scn" type="button" data-s="sensible" aria-pressed="false" data-i18n="gw.scn.sensible">Données client confidentielles</button>
+        <button class="g-scn" type="button" data-s="quota" aria-pressed="false" data-i18n="gw.scn.quota">Budget du projet épuisé</button>
+        <button class="g-scn" type="button" data-s="debord" aria-pressed="false" data-i18n="gw.scn.debord">Capacité saturée</button>
+      </div>
+
+      <div class="g-bench">
+        <div class="g-stage">
+          <div class="g-diagram">
+            <svg id="g-svg" viewBox="0 0 1000 590" role="img" aria-labelledby="g-svgt">
+              <title id="g-svgt" data-i18n="gw.svg.title">Schéma : l'ingénieur, la passerelle IA et ses cinq contrôles, l'annuaire d'entreprise, trois modèles et la supervision des coûts</title>
+              <path class="g-wire" d="M190 300 H230 M230 197 V429 M230 197 H285 M230 429 H300"/>
+              <path class="g-wire" d="M285 57 V400 M285 57 H345 M285 400 H680"/>
+              <path class="g-wire" d="M680 170 V400 M680 170 H720 M680 280 H720 M680 390 H720"/>
+              <path class="g-wire" d="M720 200 H700 V429 H600 M700 310 H720 M700 420 H720"/>
+              <path class="g-wire" d="M840 310 V360"/>
+              <path class="g-wire" d="M450 451 V510"/>
+
+              <g class="g-node" id="g-n-eng"><rect class="g-box" x="30" y="255" width="160" height="90" rx="8"/>
+                <text class="g-t1" x="110" y="293" text-anchor="middle" data-i18n="gw.n.eng">Ingénieur</text>
+                <text class="g-t2" x="110" y="315" text-anchor="middle" data-i18n="gw.n.eng.sub">IDE, assistant interne</text></g>
+
+              <g class="g-node" id="g-n-sso"><rect class="g-box" x="345" y="24" width="210" height="66" rx="8"/>
+                <text class="g-t1" x="450" y="52" text-anchor="middle" data-i18n="gw.n.sso">Annuaire d'entreprise</text>
+                <text class="g-t2" x="450" y="72" text-anchor="middle" data-i18n="gw.n.sso.sub">identité (SSO), équipes</text></g>
+
+              <g class="g-node" id="g-n-gw"><rect class="g-gwbox" x="270" y="122" width="360" height="350" rx="12"/>
+                <text class="g-tg" x="300" y="152" data-i18n="gw.n.gw">Passerelle IA</text>
+                <text class="g-t2" x="610" y="152" text-anchor="end" data-i18n="gw.n.gw.sub">point de passage unique</text></g>
+
+              <g class="g-node" id="g-n-auth"><rect class="g-box" x="300" y="175" width="300" height="44" rx="6"/>
+                <text class="g-t1" x="316" y="202" data-i18n="gw.n.auth">Authentification</text><text class="g-chip g-sec" x="584" y="201" text-anchor="end" data-i18n="gw.kind.sec">Sécurité</text></g>
+              <g class="g-node" id="g-n-quota"><rect class="g-box" x="300" y="233" width="300" height="44" rx="6"/>
+                <text class="g-t1" x="316" y="260" data-i18n="gw.n.quota">Quotas et budgets</text><text class="g-chip g-cost" x="584" y="259" text-anchor="end" data-i18n="gw.kind.cost">Coûts</text></g>
+              <g class="g-node" id="g-n-mask"><rect class="g-box" x="300" y="291" width="300" height="44" rx="6"/>
+                <text class="g-t1" x="316" y="318" data-i18n="gw.n.mask">Masquage des données</text><text class="g-chip g-sec" x="584" y="317" text-anchor="end" data-i18n="gw.kind.sec">Sécurité</text></g>
+              <g class="g-node" id="g-n-route"><rect class="g-box" x="300" y="349" width="300" height="44" rx="6"/>
+                <text class="g-t1" x="316" y="376" data-i18n="gw.n.route">Routage des modèles</text><text class="g-chip g-cost" x="584" y="375" text-anchor="end" data-i18n="gw.kind.cost">Coûts</text></g>
+              <g class="g-node" id="g-n-log"><rect class="g-box" x="300" y="407" width="300" height="44" rx="6"/>
+                <text class="g-t1" x="316" y="434" data-i18n="gw.n.log">Journal et compteurs</text><text class="g-chip g-trace" x="584" y="433" text-anchor="end" data-i18n="gw.kind.trace">Traçabilité</text></g>
+
+              <g class="g-node" id="g-n-int"><rect class="g-box" x="720" y="140" width="240" height="60" rx="8"/>
+                <text class="g-t1" x="736" y="166" data-i18n="gw.n.int">Modèle interne</text><text class="g-t2" x="736" y="186" data-i18n="gw.n.int.sub">hébergé sur site</text></g>
+              <g class="g-node" id="g-n-res"><rect class="g-box" x="720" y="250" width="240" height="60" rx="8"/>
+                <text class="g-t1" x="736" y="276" data-i18n="gw.n.cloud">Fournisseur cloud</text><text class="g-t2" x="736" y="296" data-i18n="gw.n.res.sub">capacité réservée</text></g>
+              <g class="g-node" id="g-n-use"><rect class="g-box" x="720" y="360" width="240" height="60" rx="8"/>
+                <text class="g-t1" x="736" y="386" data-i18n="gw.n.cloud">Fournisseur cloud</text><text class="g-t2" x="736" y="406" data-i18n="gw.n.use.sub">paiement à l'usage</text></g>
+
+              <g class="g-node" id="g-n-sup"><rect class="g-box" x="310" y="510" width="280" height="62" rx="8"/>
+                <text class="g-t1" x="450" y="537" text-anchor="middle" data-i18n="gw.n.sup">Supervision et refacturation</text>
+                <text class="g-t2" x="450" y="557" text-anchor="middle" data-i18n="gw.n.sup.sub">coûts par projet client</text></g>
+
+              <polyline id="g-trail" class="g-trail" points=""/>
+              <g id="g-pkt"><circle id="g-pktc" r="9"/><circle id="g-pktr" class="g-pkt-ring" r="14"/></g>
+            </svg>
+          </div>
+          <div class="g-controls">
+            <button class="g-ctl" type="button" id="g-prev"><span aria-hidden="true">◀</span> <span data-i18n="gw.prev">Précédent</span></button>
+            <button class="g-ctl g-primary" type="button" id="g-play" data-i18n="gw.pause">Pause</button>
+            <button class="g-ctl" type="button" id="g-next"><span data-i18n="gw.next">Suivant</span> <span aria-hidden="true">▶</span></button>
+            <div class="g-dots" id="g-dots" role="group" data-i18n-aria-label="gw.goto.group" aria-label="Aller à l'étape"></div>
+            <span class="g-counter" id="g-counter" aria-live="polite"></span>
+          </div>
+        </div>
+
+        <aside class="g-panel" id="g-panel" aria-live="off"></aside>
+      </div>
+
+      <h3 class="g-tl-title" id="g-tl-title"></h3>
+      <ol class="g-tl" id="g-tl"></ol>
+    </div>
+  </section>
+
+  <!-- ===== Lecture, limites, sources ===== -->
+  <section class="h-section" aria-labelledby="g-notes">
+    <div class="h-notch is-mirrored">
+      <div class="h-tab"><h2 class="h-chip" id="g-notes" data-i18n="gw.notes">À savoir</h2></div>
+      <svg class="h-step" viewBox="0 0 72 64" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0C38 0 34 64 72 64H0Z" fill="currentColor"/></svg>
+      <div class="h-band"></div>
+    </div>
+    <div class="h-panel is-mirrored g-notes">
+      <div class="g-note">
+        <h3 data-i18n="gw.read">Lire le schéma</h3>
+        <ul class="g-legend">
+          <li><i class="g-sw g-sec"></i><span data-i18n="gw.kind.sec">Sécurité</span></li>
+          <li><i class="g-sw g-cost"></i><span data-i18n="gw.kind.cost">Coûts</span></li>
+          <li><i class="g-sw g-trace"></i><span data-i18n="gw.kind.trace">Traçabilité</span></li>
+          <li><i class="g-sw g-req"></i><span data-i18n="gw.legend.req">Requête</span></li>
+          <li><i class="g-sw g-resp"></i><span data-i18n="gw.legend.resp">Réponse</span></li>
+          <li><i class="g-sw g-stop"></i><span data-i18n="gw.legend.stop">Requête bloquée</span></li>
+        </ul>
+        <p class="g-fine" data-i18n="gw.read.note">Les étiquettes « Source » renvoient au document qui décrit le contrôle. L'étiquette en pointillés « Adaptation » signale une règle que je propose pour une société d'ingénierie, qui ne vient pas d'une source. Les chiffres et noms des exemples sont fictifs.</p>
+      </div>
+      <div class="g-note">
+        <h3 data-i18n="gw.limits">Ce que cette architecture ne garantit pas</h3>
+        <ul class="g-list">
+          <li data-i18n="gw.limits.1">Elle réduit les risques de fuite et de dérive des coûts, elle ne les supprime pas. Les règles d'usage et la formation restent nécessaires.</li>
+          <li data-i18n="gw.limits.2">Une passerelle hébergée dans le cloud ajoute de la latence pour les services sur site. Une passerelle auto-hébergée évite ce trajet, mais l'entreprise doit la déployer, la dimensionner et la maintenir.</li>
+          <li data-i18n="gw.limits.3">La journalisation des contenus a des limites : taille des messages capturés et échantillonnage, qui peut aussi peser sur le débit.</li>
+        </ul>
+      </div>
+      <div class="g-note">
+        <h3 data-i18n="gw.sources">Sources</h3>
+        <ul class="g-list">
+          <li><a href="https://learn.microsoft.com/ai/playbook/solutions/genai-gateway/reference-architectures/apim-based" target="_blank" rel="noopener" data-i18n="gw.src.ms.link">Microsoft, architecture de référence d'une passerelle GenAI sur Azure API Management</a> <span data-i18n="gw.src.ms.what">: authentification par identité managée, masquage des données personnelles, limites de jetons par minute, débordement de la capacité réservée vers le paiement à l'usage, compteurs de jetons pour la refacturation, passerelle auto-hébergée.</span></li>
+          <li><a href="https://api7.ai/blog/what-is-an-ai-gateway" target="_blank" rel="noopener" data-i18n="gw.src.api7.link">API7, qu'est-ce qu'une passerelle IA (en anglais)</a> <span data-i18n="gw.src.api7.what">: clés des fournisseurs gardées par la passerelle, budgets par équipe, routage par coût et par tâche, journaux d'audit.</span></li>
+          <li><a href="https://genai.owasp.org/llmrisk/llm102025-unbounded-consumption/" target="_blank" rel="noopener" data-i18n="gw.src.owasp.link">OWASP, LLM10:2025 Unbounded Consumption (en anglais)</a> <span data-i18n="gw.src.owasp.what">: la consommation non maîtrisée d'un modèle, jusqu'aux coûts imprévus (« denial of wallet »).</span></li>
+        </ul>
+        <p class="g-fine" data-i18n="gw.src.note">Microsoft documente une mise en œuvre sur Azure. Le principe d'une passerelle centrale vaut pour d'autres produits.</p>
+      </div>
+    </div>
+  </section>
+  </article>
+  </main>
+
+  <footer class="h-footer">
+    <span class="footer-text" data-i18n="footer.index">Données 100 % fictives</span>
+    <a class="footer-text" href="https://github.com/Dhafer84/CrewAI" target="_blank" rel="noopener" data-i18n="nav.source">Code source</a>
+  </footer>
+
+</div>
+<script src="/i18n/fr.js"></script>
+<script src="/static/i18n.js"></script>
+<script src="/static/menu.js"></script>
+<script>
+(function () {
+  'use strict';
+  // Sources des étapes. Les noms sont propres (identiques dans les deux langues),
+  // sauf « Adaptation », qui passe par le catalogue.
+  var SRC = {
+    ms: { l: 'Microsoft', u: 'https://learn.microsoft.com/ai/playbook/solutions/genai-gateway/reference-architectures/apim-based' },
+    api7: { l: 'API7', u: 'https://api7.ai/blog/what-is-an-ai-gateway' },
+    owasp: { l: 'OWASP 2025', u: 'https://genai.owasp.org/llmrisk/llm102025-unbounded-consumption/' },
+    adapt: {}
+  };
+  var LOCALE = T('gw.locale');
+
+  function gauge(used, max) {
+    var full = used >= max;
+    var nombres = T('gw.ex.tokens', { used: used.toLocaleString(LOCALE), max: max.toLocaleString(LOCALE) });
+    return '<div class="g-ex"><span class="g-lbl">' + T('gw.ex.project') + '</span>' +
+      '<div class="g-gauge' + (full ? ' is-full' : '') + '"><span style="width:' + Math.min(100, used / max * 100) + '%"></span></div>' +
+      '<span class="g-gnum">' + nombres + (full ? T('gw.ex.full') : '') + '</span></div>';
+  }
+  // Textes déjà traduits : les clés restent écrites en entier à l'appel, où le
+  // contrôle des clés du catalogue (test_i18n.py) les voit.
+  function pair(avant, apres, lblApres) {
+    return '<div class="g-ex"><span class="g-lbl">' + T('gw.ex.before') + '</span><code>' + avant + '</code>' +
+      '<span class="g-lbl">' + lblApres + '</span><code>' + apres + '</code></div>';
+  }
+
+  // Trajets du paquet sur le schéma (coordonnées du viewBox).
+  var P = {
+    toGw: [[190, 300], [230, 300], [230, 197], [285, 197]],
+    sso: [[285, 197], [285, 57], [345, 57], [285, 57], [285, 197]],
+    quota: [[285, 197], [285, 255]],
+    mask: [[285, 255], [285, 313]],
+    toRes: [[285, 313], [285, 371], [285, 400], [680, 400], [680, 280], [720, 280]],
+    toInt: [[285, 313], [285, 371], [285, 400], [680, 400], [680, 170], [720, 170]],
+    spill: [[840, 310], [840, 360]],
+    backRes: [[720, 300], [700, 300], [700, 429], [600, 429]],
+    backInt: [[720, 190], [700, 190], [700, 429], [600, 429]],
+    backUse: [[720, 410], [700, 410], [700, 429], [600, 429]],
+    toSup: [[450, 451], [450, 510]],
+    reply: [[300, 429], [230, 429], [230, 300], [190, 300]],
+    refuse: [[285, 255], [230, 255], [230, 300], [190, 300]],
+    quotaLog: [[600, 255], [615, 255], [615, 429], [600, 429]]
+  };
+
+  // Une étape : son identifiant (titre et texte au catalogue, gw.st.<id>.t / .b),
+  // sa nature, ses sources, son trajet, l'état du paquet et les blocs éclairés.
+  function st(id, k, src, p, pk, hl, ex) { return { id: id, k: k, src: src, p: p, pk: pk, hl: hl, ex: ex }; }
+  var C = {
+    send: st('send', 'flow', ['api7'], P.toGw, 'req', ['eng', 'gw']),
+    auth: st('auth', 'sec', ['ms', 'api7'], P.sso, 'req', ['auth', 'sso']),
+    quota: st('quota', 'cost', ['ms', 'api7', 'owasp'], P.quota, 'req', ['quota'], function () { return gauge(412000, 500000); }),
+    mask: st('mask', 'sec', ['ms', 'api7'], P.mask, 'mask', ['mask'], function () { return pair(T('gw.ex.mask.in'), T('gw.ex.mask.out'), T('gw.ex.after.mask')); }),
+    route: st('route', 'cost', ['api7', 'ms'], P.toRes, 'mask', ['route', 'res']),
+    back: st('back', 'trace', ['ms', 'api7'], P.backRes, 'resp', ['res', 'log']),
+    bill: st('bill', 'trace', ['ms', 'adapt'], P.toSup, 'metric', ['log', 'sup']),
+    reply: st('reply', 'flow', ['api7'], P.reply, 'resp', ['eng'])
+  };
+  var S = {
+    normal: [C.send, C.auth, C.quota, C.mask, C.route, C.back, C.bill, C.reply],
+    sensible: [C.send, C.auth, C.quota,
+      st('conf_detect', 'sec', ['ms', 'adapt'], P.mask, 'mask', ['mask'], function () { return pair(T('gw.ex.conf.in'), T('gw.ex.conf.out'), T('gw.ex.after.filter')); }),
+      st('conf_route', 'sec', ['ms', 'adapt'], P.toInt, 'mask', ['route', 'int']),
+      st('conf_back', 'trace', ['ms', 'adapt'], P.backInt, 'resp', ['int', 'log']),
+      st('conf_audit', 'trace', ['api7', 'adapt'], P.toSup, 'metric', ['log', 'sup']),
+      C.reply],
+    quota: [C.send, C.auth,
+      st('q_stop', 'stop', ['ms', 'api7', 'owasp'], P.quota, 'stop', ['quota'], function () { return gauge(500000, 500000); }),
+      st('q_refuse', 'stop', ['ms'], P.refuse, 'stop', ['eng']),
+      st('q_log', 'trace', ['api7'], P.quotaLog, 'metric', ['log']),
+      st('q_alert', 'trace', ['adapt'], P.toSup, 'metric', ['log', 'sup'])],
+    debord: [C.send, C.auth, C.quota, C.mask,
+      st('d_try', 'cost', ['api7', 'ms'], P.toRes, 'mask', ['route', 'res']),
+      st('d_spill', 'cost', ['ms'], P.spill, 'mask', ['res', 'use']),
+      st('d_back', 'trace', ['ms'], P.backUse, 'resp', ['use', 'log']),
+      st('d_cost', 'trace', ['ms', 'adapt'], P.toSup, 'metric', ['log', 'sup']),
+      C.reply]
+  };
+
+  function $(id) { return document.getElementById(id); }
+  var trail = $('g-trail'), pkt = $('g-pkt'), pktr = $('g-pktr');
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var scn = 'normal', idx = 0, playing = !reduce, raf = null, timer = null;
+
+  function kindLabel(k) { return T('gw.kind.' + k); }
+  function stepTitle(s) { return T('gw.st.' + s.id + '.t'); }
+  function stepBody(s) { return T('gw.st.' + s.id + '.b'); }
+
+  function lenOf(p) { var L = 0; for (var i = 1; i < p.length; i++) { L += Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]); } return L; }
+  function pointAt(p, d) {
+    var out = [p[0]];
+    for (var i = 1; i < p.length; i++) {
+      var a = p[i - 1], b = p[i], s = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (d <= s) { var r = s ? d / s : 1; var q = [a[0] + (b[0] - a[0]) * r, a[1] + (b[1] - a[1]) * r]; out.push(q); return { pt: q, pts: out }; }
+      d -= s; out.push(b);
+    }
+    return { pt: p[p.length - 1], pts: out };
+  }
+  function draw(step, f) {
+    var r = pointAt(step.p, lenOf(step.p) * f);
+    trail.setAttribute('points', r.pts.map(function (q) { return q.join(','); }).join(' '));
+    pkt.setAttribute('transform', 'translate(' + r.pt[0] + ',' + r.pt[1] + ')');
+  }
+
+  // L'état du paquet et la nature de l'étape se lisent sur des classes : les
+  // couleurs restent dans home.css, où les tests de contraste les vérifient.
+  function styleStep(step) {
+    $('g-svg').setAttribute('data-pk', step.pk);
+    pktr.style.display = step.pk === 'mask' ? '' : 'none';
+    document.querySelectorAll('.g-node').forEach(function (n) { n.classList.remove('is-on'); n.removeAttribute('data-k'); });
+    step.hl.forEach(function (id) { var n = $('g-n-' + id); if (n) { n.classList.add('is-on'); n.setAttribute('data-k', step.k); } });
+  }
+
+  function sources(step) {
+    return step.src.map(function (k) {
+      if (k === 'adapt') { return '<span class="g-src is-adapt" title="' + T('gw.adapt.title') + '">' + T('gw.adapt') + '</span>'; }
+      return '<a class="g-src" href="' + SRC[k].u + '" target="_blank" rel="noopener">' + SRC[k].l + '</a>';
+    }).join('');
+  }
+
+  function renderPanel(step, i, n) {
+    $('g-panel').innerHTML = '<span class="g-kind" data-k="' + step.k + '">' + T('gw.step', { i: i + 1 }) + ' · ' + kindLabel(step.k) + '</span>' +
+      '<h3>' + stepTitle(step) + '</h3><p>' + stepBody(step) + '</p>' + (step.ex ? step.ex() : '') +
+      '<div class="g-srcs">' + T('gw.source') + ' ' + sources(step) + '</div>';
+    $('g-counter').textContent = T('gw.counter', { i: i + 1, n: n });
+    $('g-prev').disabled = i === 0;
+    $('g-next').disabled = i === n - 1;
+    Array.prototype.forEach.call($('g-dots').children, function (d, j) {
+      d.className = 'g-dot' + (j < i ? ' is-done' : '') + (j === i ? ' is-cur' : '');
+      if (j === i) { d.setAttribute('aria-current', 'step'); } else { d.removeAttribute('aria-current'); }
+    });
+    Array.prototype.forEach.call($('g-tl').children, function (li, j) { li.classList.toggle('is-cur', j === i); });
+  }
+
+  function buildLists() {
+    var steps = S[scn];
+    $('g-dots').innerHTML = steps.map(function (s, j) {
+      return '<button class="g-dot" type="button" aria-label="' + T('gw.goto', { i: j + 1, t: stepTitle(s) }) + '"></button>';
+    }).join('');
+    Array.prototype.forEach.call($('g-dots').children, function (d, j) { d.onclick = function () { pause(); go(j, true); }; });
+    $('g-tl-title').textContent = T('gw.tl.title', { name: T('gw.scn.' + scn) });
+    $('g-tl').innerHTML = steps.map(function (s, j) {
+      return '<li><button type="button"><span class="g-n">' + String(j + 1).padStart(2, '0') + ' · ' + kindLabel(s.k) +
+        '</span><span class="g-tt">' + stepTitle(s) + '</span></button></li>';
+    }).join('');
+    Array.prototype.forEach.call($('g-tl').querySelectorAll('button'), function (b, j) {
+      b.onclick = function () { pause(); go(j, true); $('g-svg').scrollIntoView({ block: 'nearest', behavior: 'instant' }); };
+    });
+  }
+
+  function stop() { cancelAnimationFrame(raf); clearTimeout(timer); }
+
+  // ⚠️ Le panneau n'est annoncé au lecteur d'écran que sur une action du
+  // visiteur : en lecture automatique, il parlerait toutes les quatre secondes.
+  function go(i, manual) {
+    stop();
+    var steps = S[scn];
+    idx = Math.max(0, Math.min(i, steps.length - 1));
+    var step = steps[idx];
+    $('g-panel').setAttribute('aria-live', manual ? 'polite' : 'off');
+    styleStep(step);
+    renderPanel(step, idx, steps.length);
+    if (reduce) { draw(step, 1); schedule(); return; }
+    var dur = Math.max(700, lenOf(step.p) / 0.28), t0 = performance.now();
+    var tick = function (t) {
+      var f = Math.min(1, (t - t0) / dur);
+      draw(step, f < 0.5 ? 2 * f * f : 1 - Math.pow(-2 * f + 2, 2) / 2);
+      if (f < 1) { raf = requestAnimationFrame(tick); } else { schedule(); }
+    };
+    raf = requestAnimationFrame(tick);
+  }
+
+  function schedule() {
+    clearTimeout(timer);
+    if (!playing) { return; }
+    if (idx >= S[scn].length - 1) { playing = false; setPlayLabel(); return; }
+    timer = setTimeout(function () { go(idx + 1, false); }, 4200);
+  }
+
+  function setPlayLabel() {
+    var last = idx >= S[scn].length - 1;
+    $('g-play').textContent = playing ? T('gw.pause') : (last ? T('gw.replay') : T('gw.play'));
+  }
+  function pause() { playing = false; setPlayLabel(); }
+
+  function setScn(s) {
+    scn = s;
+    document.querySelectorAll('.g-scn').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.s === s ? 'true' : 'false'); });
+    buildLists();
+    playing = !reduce;
+    setPlayLabel();
+    go(0, false);
+  }
+
+  document.querySelectorAll('.g-scn').forEach(function (b) { b.onclick = function () { setScn(b.dataset.s); }; });
+  $('g-prev').onclick = function () { pause(); go(idx - 1, true); };
+  $('g-next').onclick = function () { pause(); go(idx + 1, true); };
+  $('g-play').onclick = function () {
+    var last = idx >= S[scn].length - 1;
+    if (playing) { playing = false; stop(); draw(S[scn][idx], 1); }
+    else { playing = true; if (last) { go(0, false); } else { schedule(); } }
+    setPlayLabel();
+  };
+  setScn('normal');
+}());
+</script>
+
+</body>
+</html>
