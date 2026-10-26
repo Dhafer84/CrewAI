@@ -3156,7 +3156,7 @@ _NEUTRES_APROPOS = {
 _NEUTRES_BLOG = {
     "Quality", "Crew", "Menu", "GitHub", "LinkedIn", "Blog", "Articles", "Sources",
     "QualityCrew", "SentinelScan", "SafetyScope", "ThreatScope", "RegWatch", "CauseTrace",
-    "Audit", "HARA", "TARA", "8D", "◀", "▶", "Pause",
+    "Audit", "HARA", "TARA", "8D", "◀", "▶", "Pause", "5", "4", "3",
 }
 
 
@@ -3306,9 +3306,6 @@ def main() -> int:
     print(f"\n{len(tests) - failures}/{len(tests)} tests passés")
     return 1 if failures else 0
 
-
-if __name__ == "__main__":
-    raise SystemExit(main())
 
 
 # ── QualityCrew : gabarits à télécharger (11/10/2026) ────────────────────────
@@ -3550,3 +3547,28 @@ def test_the_ai_gateway_article_has_no_third_party_resources():
             csp = page.headers["content-security-policy"]
             assert "fonts.googleapis.com" not in csp
             assert "'unsafe-inline'" not in csp.split("script-src", 1)[1].split(";", 1)[0]
+
+
+def test_the_ai_gateway_counts_are_true():
+    """« 5 contrôles · 4 scénarios · 3 sources vérifiées » sont des DÉCOMPTES.
+
+    Le décompte du « Parti pris » a été faux deux fois sur l'accueil, à force
+    d'être incrémenté au lieu d'être recompté. Ici on recompte : les contrôles
+    du schéma (`MODS` du script), les boutons de scénario, les sources citées.
+    """
+    source = (_ROOT / "site" / "blog-ai-gateway.html").read_text(encoding="utf-8")
+    chiffres = dict(re.findall(r'<li><b>(\d+)</b><span data-i18n="gw\.stat\.(\w+)">', source)[i][::-1]
+                    for i in range(3))
+    mods = re.search(r"var MODS = \[(.*?)\];", source).group(1)
+    controles = len(re.findall(r"\['(\w+)', '(sec|cost|trace)'", mods))
+    scenarios = len(re.findall(r'<button class="g-scn"', source))
+    sources = len(re.findall(r'<li><a href="https://', source.split('class="g-list g-sources"', 1)[1].split("</ul>", 1)[0]))
+    assert chiffres == {"controls": str(controles), "scenarios": str(scenarios), "sources": str(sources)}, (
+        f"en-tête {chiffres} ≠ réalité : {controles} contrôles, {scenarios} scénarios, {sources} sources")
+
+
+# ⚠️ Le lanceur reste EN DERNIER : un test défini après lui n'est jamais exécuté
+# quand on lance le fichier (cas des tests QualityCrew du 11/10 et du blog,
+# trouvé le 26/10/2026).
+if __name__ == "__main__":
+    raise SystemExit(main())
