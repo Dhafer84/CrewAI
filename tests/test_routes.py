@@ -3241,7 +3241,7 @@ def test_robots_keeps_crawlers_off_every_dynamic_route():
     robots = resp.text
     assert "Sitemap: https://" in robots, "robots.txt doit annoncer le sitemap par une adresse absolue"
 
-    ouvertes = {"/", "/en", "/en/{page}", "/robots.txt", "/sitemap.xml", "/i18n/{lang}.js"} | set(PAGES)
+    ouvertes = {"/", "/en", "/en/{page}", "/robots.txt", "/sitemap.xml", "/favicon.ico", "/i18n/{lang}.js"} | set(PAGES)
     oubliees = []
     for route in app.routes:
         chemin = getattr(route, "path", "")
@@ -3387,8 +3387,13 @@ class _AuditFactice:
     def __enter__(self):
         import api.main as m
         self.m, self.appels = m, []
-        self.memoire = (dict(m._last_audit_by_client), dict(m._audit_daily_usage), m.run_audit_docs)
+        self.memoire = (dict(m._last_audit_by_client), dict(m._audit_daily_usage), m.run_audit_docs,
+                        m.require_llm_key)
         m._last_audit_by_client.clear()
+        # L'audit est factice : la présence d'une clé LLM ne doit rien changer.
+        # Sans ça, ces tests passent sur un poste qui a un `.env` et tombent en
+        # CI, où aucune clé n'existe (CI rouge du 26/10/2026).
+        m.require_llm_key = lambda: None
         m._audit_daily_usage.update({"day": None, "count": 0})
 
         def faux(docs, checklist, callback, lang, visitor=False):
@@ -3403,6 +3408,7 @@ class _AuditFactice:
         m._last_audit_by_client.update(self.memoire[0])
         m._audit_daily_usage.update(self.memoire[1])
         m.run_audit_docs = self.memoire[2]
+        m.require_llm_key = self.memoire[3]
 
 
 def test_the_visitor_upload_is_refused_without_consuming_an_audit():
@@ -3604,6 +3610,15 @@ def test_the_ai_gateway_engineer_view_covers_every_step():
     for langue in ("fr", "en"):
         refus = t("gw.st.q_refuse.b", langue)
         assert "403" in refus and refus.index("403") < refus.index("429"), refus
+
+
+def test_the_favicon_is_served():
+    """Les navigateurs demandent `/favicon.ico` d'office : sans lui, un 404 par visite."""
+    with client() as c:
+        resp = c.get("/favicon.ico")
+    assert resp.status_code == 200, f"/favicon.ico → {resp.status_code}"
+    assert resp.headers["content-type"] == "image/x-icon", resp.headers["content-type"]
+    assert resp.content[:4] == b"\x00\x00\x01\x00", "ce n'est pas un fichier .ico"
 
 
 # ⚠️ Le lanceur reste EN DERNIER : un test défini après lui n'est jamais exécuté

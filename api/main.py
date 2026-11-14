@@ -35,6 +35,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.responses import (
+    FileResponse,
     HTMLResponse,
     JSONResponse,
     Response,
@@ -481,6 +482,14 @@ for _chemin in BLOG_POSTS:
 @app.get("/robots.txt")
 async def robots():
     return Response(robots_txt(SITE_BASE_URL), media_type="text/plain; charset=utf-8")
+
+
+@app.get("/favicon.ico")
+async def favicon():
+    # Demandé d'office par les navigateurs, même sans <link rel="icon"> : sans
+    # cette route, chaque visite laisse un 404 dans les journaux.
+    return FileResponse(_SITE_DIR / "favicon.ico", media_type="image/x-icon",
+                        headers={"Cache-Control": "public, max-age=604800"})
 
 
 @app.get("/sitemap.xml")
