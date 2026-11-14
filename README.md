@@ -5,7 +5,7 @@ de sécurité de l'information, en ligne et fonctionnels.
 
 [![Licence MIT](https://img.shields.io/badge/licence-MIT-5dcaa5)](LICENSE)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
-![393 tests](https://img.shields.io/badge/tests-393-5dcaa5)
+![485 tests](https://img.shields.io/badge/tests-485-5dcaa5)
 
 Projet personnel. Aucune donnée réelle d'entreprise, aucun lien avec un employeur —
 les documents d'entrée sont fictifs et le disent en tête de fichier.
@@ -101,7 +101,7 @@ en donnant son motif, et c'est à l'analyste de qualifier.
 
 ## Tests
 
-**393 tests, 7 300 lignes**, exécutables sans `pytest` — chaque suite est un
+**485 tests, 9 500 lignes**, exécutables sans `pytest` — chaque suite est un
 programme autonome.
 
 ```bash
