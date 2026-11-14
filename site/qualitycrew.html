@@ -43,19 +43,42 @@
     <div class="hero-actions">
       <button class="btn btn-primary" id="btn-launch">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        <span data-i18n="qc.cta">Lancer l'audit</span>
+        <span data-i18n="qc.cta">Lancer la démo</span>
+      </button>
+      <button class="btn btn-ghost" id="btn-docs" aria-expanded="false" aria-controls="docs-panel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6M9 15l3-3 3 3"/></svg>
+        <span data-i18n="qc.docs.open">Auditer mes documents</span>
       </button>
       <span class="status-msg" id="status-msg"></span>
     </div>
-    <!-- Gabarits à remplir (étape 1 de « l'audit sur vos documents ») ; le script
-         plus bas met chaque lien dans la langue de la page. -->
-    <div class="templates">
-      <span data-i18n="qc.templates.label">Préparer vos propres documents :</span>
-      <a class="btn btn-ghost btn-sm" data-template="srs" href="/audit/templates/srs.md" download data-i18n="qc.templates.srs">Exigences (.md)</a>
-      <a class="btn btn-ghost btn-sm" data-template="test_plan" href="/audit/templates/test_plan.md" download data-i18n="qc.templates.test_plan">Plan de test (.md)</a>
-      <a class="btn btn-ghost btn-sm" data-template="review_report" href="/audit/templates/review_report.md" download data-i18n="qc.templates.review_report">Rapport de revue (.md)</a>
-      <p class="templates-hint" data-i18n="qc.templates.hint">Des gabarits à remplir, sur le modèle de l'exemple. L'audit de vos propres documents arrive bientôt ; n'y mettez rien de confidentiel.</p>
-    </div>
+    <!-- Audit des documents du VISITEUR (étape 4, 14/10/2026). Fichiers .md/.txt
+         seulement (D2), case « rien de confidentiel » obligatoire (D1). Le script
+         plus bas met chaque lien de gabarit dans la langue de la page. -->
+    <form class="docs-panel" id="docs-panel" hidden novalidate>
+      <p class="docs-step" data-i18n="qc.docs.step1">1. Téléchargez les gabarits et remplissez-les, sur le modèle de l'exemple :</p>
+      <div class="templates">
+        <a class="btn btn-ghost btn-sm" data-template="srs" href="/audit/templates/srs.md" download data-i18n="qc.templates.srs">Exigences (.md)</a>
+        <a class="btn btn-ghost btn-sm" data-template="test_plan" href="/audit/templates/test_plan.md" download data-i18n="qc.templates.test_plan">Plan de test (.md)</a>
+        <a class="btn btn-ghost btn-sm" data-template="review_report" href="/audit/templates/review_report.md" download data-i18n="qc.templates.review_report">Rapport de revue (.md)</a>
+      </div>
+      <p class="docs-step" data-i18n="qc.docs.step2">2. Choisissez vos trois fichiers (.md ou .txt, 12 Ko maximum chacun, 20 Ko en tout) :</p>
+      <div class="docs-files">
+        <label class="docs-file"><span data-i18n="qc.docs.name.srs">Exigences</span>
+          <input type="file" name="srs" accept=".md,.txt,text/markdown,text/plain"></label>
+        <label class="docs-file"><span data-i18n="qc.docs.name.test_plan">Plan de test</span>
+          <input type="file" name="test_plan" accept=".md,.txt,text/markdown,text/plain"></label>
+        <label class="docs-file"><span data-i18n="qc.docs.name.review_report">Rapport de revue</span>
+          <input type="file" name="review_report" accept=".md,.txt,text/markdown,text/plain"></label>
+      </div>
+      <p class="docs-privacy" data-i18n="qc.docs.privacy">Vos documents sont envoyés à Groq, un service d'IA externe, le temps de l'audit. Ce site ne les garde pas : ni sur disque, ni dans ses journaux. Le rapport obtenu est un brouillon à relire.</p>
+      <label class="docs-confirm"><input type="checkbox" name="confirm">
+        <span data-i18n="qc.docs.confirm_label">Ces documents ne contiennent rien de confidentiel.</span></label>
+      <ul class="docs-errors" id="docs-errors" hidden></ul>
+      <button class="btn btn-primary" type="submit" id="btn-docs-run">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <span data-i18n="qc.docs.run">Lancer l'audit de mes documents</span>
+      </button>
+    </form>
   </section>
 
   <div class="stats">
