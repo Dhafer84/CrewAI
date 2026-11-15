@@ -555,11 +555,9 @@ def test_no_status_message_is_hard_coded():
 
 
 # Scripts recopiés d'un autre dépôt, qui ne chargent pas le catalogue du site.
-# `assistant.js` (bulle de l'assistant 3D) : ses textes affichés lui sont
-# fournis PAR LA PAGE, depuis le catalogue (`assistant.*`, via
-# `api/render.assistant_tag`) — ses libellés intégrés ne servent qu'ailleurs.
-# `test_the_assistant_bubble_takes_its_texts_from_the_catalogue` (test_routes.py) le vérifie.
-_SCRIPTS_TIERS = {"assistant.js"}
+# Vide depuis le 15/11/2026 : `assistant.js` (l'orbe) est écrit pour ce site et
+# prend ses textes au catalogue par T(), comme les autres scripts.
+_SCRIPTS_TIERS: set[str] = set()
 
 
 def _script_texts():

@@ -38,7 +38,8 @@ _ATTR_KEY = re.compile(r'data-i18n-content="([^"]+)"')
 # (La liste est complétée plus bas par toutes les images de partage, dès
 # qu'elles sont définies : voir VERSIONED_ASSETS après OG_TOOL_CARDS.)
 _STATIC_ASSETS = ("style.css", "home.css", "i18n.js", "aistatus.js", "menu.js",
-                  "stance.js", "intro.js", "safe-markdown.js", "assistant.js")
+                  "stance.js", "intro.js", "safe-markdown.js", "assistant.js",
+                  "assistant.css")
 
 # Repère que chaque page pose dans son <nav> : `render` y injecte le menu
 # partagé (`site/partials/menu.html`). Une seule copie pour huit pages — un
@@ -327,18 +328,19 @@ def menu_for(menu: str, path: str) -> str:
 
 
 def assistant_tag(assistant_url: str, lang: str) -> str:
-    """Balise de la bulle de l'assistant 3D (`site/assistant.js`).
+    """Balises de l'assistant du site, en « orbe » (`site/assistant.js` + `.css`).
 
-    Ses textes viennent du catalogue (`assistant.*`), comme le reste du site.
-    Le script est servi par CE site (`/static/`) : la CSP n'autorise toujours
-    aucun script externe autre que marked. Seuls l'iframe, l'icône et le micro
-    viennent de `assistant_url`, autorisés par `_page_csp` et la
-    Permissions-Policy (api/main.py). L'assistant n'est chargé qu'au clic.
+    Ses textes viennent du catalogue (`assistant.*`) par `T()` : le script
+    est chargé après `i18n.js`, comme ceux des pages. Il interroge l'API de
+    l'assistant (`POST {assistant_url}/api/chat`), autorisée par `connect-src`
+    dans `_page_csp` (api/main.py) — aucune iframe, aucun micro, aucune caméra.
+
+    ⚠️ `data-origin` reste sur la balise `<script>` : la Surveillance du dépôt
+    de l'assistant la cherche sur l'accueil pour vérifier que l'assistant y est.
     """
-    textes = " ".join(f'data-{nom}="{_attr(t(f"assistant.{nom}", lang))}"'
-                      for nom in ("label", "title", "close"))
-    return (f'<script src="/static/assistant.js" data-origin="{_attr(assistant_url)}" '
-            f'data-lang="{lang}" {textes} defer></script>')
+    origine = _attr(assistant_url)
+    return ('<link rel="stylesheet" href="/static/assistant.css">\n'
+            f'<script src="/static/assistant.js" data-origin="{origine}" data-lang="{lang}" defer></script>')
 
 
 def render(html: str, lang: str, path: str, base_url: str,
@@ -357,7 +359,7 @@ def render(html: str, lang: str, path: str, base_url: str,
             règle de style s'afficherait nu. C'est arrivé en test.
         menu: le balisage du menu partagé. Injecté AVANT la traduction et le
             préfixage des liens : il suit la langue de la page comme le reste.
-        assistant_url: origine de l'assistant 3D ; vide = pas de bulle.
+        assistant_url: origine de l'assistant ; vide = pas d'orbe.
             Injectée avant `</body>`, AVANT le versionnage des fichiers
             statiques, pour que `assistant.js` reçoive son `?v=` comme les autres.
     """

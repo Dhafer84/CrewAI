@@ -131,17 +131,16 @@ def _assistant_origin(valeur: str) -> str:
     return ""
 
 
-# L'assistant 3D (dépôt robot-3d-assistant), proposé dans une bulle sur chaque
-# page. Seule exception aux en-têtes ci-dessous : son iframe, son icône, et le
-# micro et la caméra QUE LUI peut demander. Vide = pas de bulle, en-têtes
-# d'origine. Surchargeable pour un environnement de test.
+# L'assistant (dépôt robot-3d-assistant), proposé en « orbe » sur chaque page
+# depuis le 15/11/2026 (avant : une bulle avec l'avatar 3D en iframe). Seule
+# exception aux en-têtes ci-dessous : `connect-src` vers son API. Vide = pas
+# d'orbe, en-têtes d'origine. Surchargeable pour un environnement de test.
 ASSISTANT_URL = _assistant_origin(os.getenv("ASSISTANT_URL", "https://assistant.qualitycrew.fr"))
 
 
 def _permissions_policy() -> str:
-    """Micro et caméra interdits — sauf à l'iframe de l'assistant, s'il y en a un."""
-    appareils = f'("{ASSISTANT_URL}")' if ASSISTANT_URL else "()"
-    return f"camera={appareils}, microphone={appareils}, geolocation=(), payment=(), usb=()"
+    """Micro et caméra interdits partout : l'orbe s'écrit, il n'écoute pas."""
+    return "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
 
 
 _SECURITY_HEADERS = (
@@ -159,7 +158,7 @@ _SECURITY_HEADERS = (
     # Aucune adresse de page ne part chez un tiers — ni vers GitHub depuis un
     # rapport, ni vers le CDN de marked.
     ("referrer-policy", "same-origin"),
-    # Calculée à chaque réponse : voir `_permissions_policy` (assistant 3D).
+    # Voir `_permissions_policy`.
     ("permissions-policy", None),
     ("cross-origin-opener-policy", "same-origin"),
 )
@@ -186,15 +185,13 @@ def _page_csp(html: str) -> str:
     empreintes = " ".join(
         "'sha256-" + base64.b64encode(hashlib.sha256(corps.encode("utf-8")).digest()).decode() + "'"
         for corps in _INLINE_SCRIPT.findall(html))
-    # La bulle de l'assistant : son script est servi ICI (script-src inchangé),
-    # seuls son iframe et son icône viennent de son origine.
+    # L'orbe de l'assistant : son script est servi ICI (script-src inchangé),
+    # seuls ses appels à l'API partent vers son origine.
     assistant = f" {ASSISTANT_URL}" if ASSISTANT_URL else ""
-    cadres = f"frame-src {ASSISTANT_URL}; " if ASSISTANT_URL else ""
     return ("default-src 'self'; "
             f"script-src 'self' {_MARKED_URL} {empreintes}".rstrip() + "; "
             "style-src 'self' 'unsafe-inline'; "
-            f"img-src 'self' data:{assistant}; font-src 'self'; connect-src 'self'; "
-            f"{cadres}"
+            f"img-src 'self' data:; font-src 'self'; connect-src 'self'{assistant}; "
             "object-src 'none'; base-uri 'none'; form-action 'self'; "
             "frame-ancestors 'none'")
 

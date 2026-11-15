@@ -12,10 +12,23 @@ CATALOGUE: dict[str, str] = {
     "nav.source": "Source code",
 
     # --- Expanding menu (site/partials/menu.html) ---------------------------
-    # --- Bulle de l'assistant 3D (site/assistant.js, via api/render.py) -----
+    # --- L'assistant en « orbe » (site/assistant.js, via api/render.py) -----
     "assistant.label": "Talk to the assistant",
     "assistant.title": "Assistant",
     "assistant.close": "Close",
+    "assistant.placeholder": "Ask your question…",
+    "assistant.follow": "Another question?",
+    "assistant.send": "Send",
+    "assistant.you": "You:",
+    "assistant.step.1": "Thinking",
+    "assistant.step.2": "Searching",
+    "assistant.step.3": "Analyzing",
+    "assistant.step.4": "Writing",
+    "assistant.done": "Ready",
+    "assistant.ready": "Answer:",
+    "assistant.notice": "Your questions are handled by an AI model (Groq). Only unanswered ones are kept, anonymously, for 90 days.",
+    "assistant.error": "The assistant could not answer. Please try again in a moment.",
+    "assistant.offline": "The assistant cannot be reached right now. Check your connection or try again later.",
     "nav.menu.close": "Close",
     "nav.menu.tools": "Tools",
     "nav.menu.home": "Home",

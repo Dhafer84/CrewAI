@@ -477,9 +477,8 @@ _ENTETES_ATTENDUS = {
     "x-content-type-options": "nosniff",
     "x-frame-options": "DENY",
     "referrer-policy": "same-origin",
-    # Micro et caméra : interdits, sauf à l'assistant 3D — voir
-    # `test_the_assistant_is_the_only_exception_to_the_lockdown`.
-    "permissions-policy": "geolocation=(), payment=(), usb=()",
+    # Micro et caméra interdits à tous, l'assistant compris (l'orbe s'écrit).
+    "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
     "content-security-policy": "frame-ancestors 'none'",
 }
 
@@ -534,74 +533,84 @@ def test_each_page_allows_exactly_its_own_inline_scripts():
 
 
 def _bulle(html: str) -> str:
-    """La balise de la bulle de l'assistant dans une page servie ("" si absente)."""
+    """La balise de l'orbe de l'assistant dans une page servie ("" si absente)."""
     balises = re.findall(r'<script src="/static/assistant\.js[^"]*"[^>]*>', html)
-    assert len(balises) <= 1, f"bulle injectée {len(balises)} fois"
+    assert len(balises) <= 1, f"orbe injecté {len(balises)} fois"
     return balises[0] if balises else ""
 
 
-def test_the_assistant_bubble_is_on_every_page_and_served_from_here():
-    """La bulle de l'assistant 3D (dépôt robot-3d-assistant) est sur chaque page.
+def test_the_assistant_orb_is_on_every_page_and_served_from_here():
+    """L'orbe de l'assistant (dépôt robot-3d-assistant) est sur chaque page.
 
-    ⚠️ Son script est servi PAR CE SITE (`/static/assistant.js`, versionné comme
-    les autres) : `script-src` n'autorise toujours aucune origine externe autre
-    que marked — `test_each_page_allows_exactly_its_own_inline_scripts` le
-    tient. L'assistant lui-même n'est chargé qu'au clic sur la bulle.
+    ⚠️ Son script et sa feuille sont servis PAR CE SITE, versionnés comme les
+    autres : `script-src` n'autorise toujours aucune origine externe autre que
+    marked. ⚠️ `data-origin` doit rester sur la balise : la Surveillance du dépôt
+    de l'assistant la cherche sur l'accueil.
     """
     assert main_module.ASSISTANT_URL, "l'assistant doit être actif par défaut"
     with client() as c:
         for chemin in PAGES_FR + PAGES_EN:
-            balise = _bulle(c.get(chemin).text)
-            assert balise, f"{chemin} : pas de bulle"
-            assert "/static/assistant.js?v=" in balise, f"{chemin} : bulle non versionnée : {balise}"
+            html = c.get(chemin).text
+            balise = _bulle(html)
+            assert balise, f"{chemin} : pas d'orbe"
+            assert "/static/assistant.js?v=" in balise, f"{chemin} : orbe non versionné : {balise}"
             assert f'data-origin="{main_module.ASSISTANT_URL}"' in balise, f"{chemin} : {balise}"
-            assert balise.endswith(" defer>"), f"{chemin} : la bulle doit être chargée en `defer`"
-        resp = c.get("/static/assistant.js")
-        assert resp.status_code == 200
-        assert "javascript" in resp.headers["content-type"], "type MIME faux : `nosniff` bloquerait le script"
+            assert balise.endswith(" defer>"), f"{chemin} : l'orbe doit être chargé en `defer`"
+            assert re.search(r'<link rel="stylesheet" href="/static/assistant\.css\?v=', html), \
+                f"{chemin} : feuille de l'orbe absente ou non versionnée"
+            # T() doit exister quand le script s'exécute : le catalogue est chargé avant.
+            assert html.index("/i18n/") < html.index("/static/assistant.js"), chemin
+        for fichier, type_ in (("assistant.js", "javascript"), ("assistant.css", "text/css")):
+            resp = c.get(f"/static/{fichier}")
+            assert resp.status_code == 200 and type_ in resp.headers["content-type"], fichier
 
 
-def test_the_assistant_bubble_takes_its_texts_from_the_catalogue():
-    """Les libellés de la bulle viennent du catalogue, dans la langue de la page.
+def test_the_assistant_orb_takes_its_texts_from_the_catalogue():
+    """Les textes de l'orbe viennent du catalogue par T(), dans la langue de la page.
 
-    `assistant.js` est une copie d'un autre dépôt, sans `T()` : c'est la page
-    qui lui fournit ses textes (`data-label`, `data-title`, `data-close`).
-    D'où son exemption dans `tests/test_i18n.py` (`_SCRIPTS_TIERS`).
+    Chaque clé `assistant.*` du catalogue est lue par le script (et aucune
+    autre n'y est inventée) ; le catalogue servi à la page les contient.
     """
+    script = (_ROOT / "site" / "assistant.js").read_text(encoding="utf-8")
+    lues = set(re.findall(r"T\('(assistant\.[a-z0-9.]+)'\)", script))
+    from i18n.fr import CATALOGUE as _FR  # noqa: E402
+    connues = {k for k in _FR if k.startswith("assistant.")}
+    assert lues == connues, f"clés lues ≠ catalogue : {lues ^ connues}"
+    assert "innerHTML = " not in script.replace("s.innerHTML = body", ""), \
+        "la réponse de l'IA se pose en textContent, jamais en innerHTML"
     with client() as c:
-        for chemin, lang in (("/", "fr"), ("/en", "en"), ("/hara", "fr"), ("/en/tara", "en")):
-            balise = _bulle(c.get(chemin).text)
-            assert f'data-lang="{lang}"' in balise, f"{chemin} : {balise}"
-            for nom in ("label", "title", "close"):
-                attendu = t(f"assistant.{nom}", lang).replace("&", "&amp;").replace('"', "&quot;")
-                assert f'data-{nom}="{attendu}"' in balise, f"{chemin} : data-{nom} ≠ catalogue : {balise}"
+        for lang in ("fr", "en"):
+            catalogue = c.get(f"/i18n/{lang}.js").text
+            for cle in connues:
+                assert f'"{cle}"' in catalogue, f"{lang} : {cle} absente du catalogue servi"
+        for chemin, lang in (("/", "fr"), ("/en/tara", "en")):
+            assert f'data-lang="{lang}"' in _bulle(c.get(chemin).text), chemin
 
 
 def test_the_assistant_is_the_only_exception_to_the_lockdown():
-    """L'assistant obtient son iframe, son icône, son micro et sa caméra — rien de plus.
+    """L'orbe obtient `connect-src` vers l'API de l'assistant — rien de plus.
 
-    ⚠️ Micro et caméra restent interdits à la page elle-même et à tout autre
-    cadre : la Permissions-Policy n'en délègue l'usage qu'à l'origine de
-    l'assistant, qui le demande dans sa bulle, au clic du visiteur.
+    Ni cadre (plus d'iframe depuis le 15/11/2026), ni image, ni script de son
+    origine ; micro et caméra interdits à tous.
     """
     origine = main_module.ASSISTANT_URL
     with client() as c:
         for chemin in ("/", "/en/hara", "/about"):
             entetes = c.get(chemin).headers
             csp = entetes["content-security-policy"]
-            assert re.search(r"frame-src ([^;]+)", csp).group(1).split() == [origine], f"{chemin} : {csp}"
-            assert origine in re.search(r"img-src ([^;]+)", csp).group(1).split(), f"{chemin} : {csp}"
+            assert re.search(r"connect-src ([^;]+)", csp).group(1).split() == ["'self'", origine], csp
+            assert "frame-src" not in csp, f"{chemin} : plus aucun cadre à autoriser : {csp}"
+            assert origine not in re.search(r"img-src ([^;]+)", csp).group(1), csp
             assert origine not in re.search(r"script-src ([^;]+)", csp).group(1), \
                 f"{chemin} : l'assistant ne doit PAS pouvoir servir de script à la page"
-            politique = entetes["permissions-policy"]
-            assert f'camera=("{origine}")' in politique and f'microphone=("{origine}")' in politique, politique
-            assert "self" not in politique and "*" not in politique, politique
+            assert entetes["permissions-policy"] == \
+                "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
         # Les réponses qui ne sont pas des pages ne gagnent rien.
         assert c.get("/ai/status").headers["content-security-policy"] == "default-src 'none'; frame-ancestors 'none'"
 
 
 def test_without_an_assistant_the_headers_are_the_original_ones():
-    """ASSISTANT_URL vide : ni bulle, ni iframe, micro et caméra interdits à tous."""
+    """ASSISTANT_URL vide : pas d'orbe, `connect-src 'self'` seulement."""
     ancienne = main_module.ASSISTANT_URL
     main_module.ASSISTANT_URL = ""
     main_module._rendered.clear()
@@ -609,10 +618,9 @@ def test_without_an_assistant_the_headers_are_the_original_ones():
         with client() as c:
             resp = c.get("/")
             csp = resp.headers["content-security-policy"]
-            assert not _bulle(resp.text), "bulle injectée alors que l'assistant est désactivé"
-            assert "frame-src" not in csp and "img-src 'self' data:;" in csp, csp
-            assert resp.headers["permissions-policy"] == \
-                "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+            assert not _bulle(resp.text), "orbe injecté alors que l'assistant est désactivé"
+            assert "assistant.css" not in resp.text
+            assert "connect-src 'self';" in csp and "frame-src" not in csp, csp
     finally:
         main_module.ASSISTANT_URL = ancienne
         main_module._rendered.clear()

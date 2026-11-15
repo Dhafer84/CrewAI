@@ -19,10 +19,23 @@ CATALOGUE: dict[str, str] = {
     # --- Menu qui se déploie (site/partials/menu.html) ----------------------
     # « Menu », les noms d'outils, « Audit », « HARA », « TARA », « 8D » et
     # « LinkedIn » s'écrivent pareil dans les deux langues : non annotés.
-    # --- Bulle de l'assistant 3D (site/assistant.js, via api/render.py) -----
+    # --- L'assistant en « orbe » (site/assistant.js, via api/render.py) -----
     "assistant.label": "Parler à l'assistant",
     "assistant.title": "Assistant",
     "assistant.close": "Fermer",
+    "assistant.placeholder": "Posez votre question…",
+    "assistant.follow": "Une autre question ?",
+    "assistant.send": "Envoyer",
+    "assistant.you": "Vous :",
+    "assistant.step.1": "Réflexion",
+    "assistant.step.2": "Recherche",
+    "assistant.step.3": "Analyse",
+    "assistant.step.4": "Rédaction",
+    "assistant.done": "Prêt",
+    "assistant.ready": "Réponse :",
+    "assistant.notice": "Vos questions sont traitées par un modèle d'IA (Groq). Seules celles restées sans réponse sont gardées 90 jours, anonymes.",
+    "assistant.error": "L'assistant n'a pas pu répondre. Réessayez dans un instant.",
+    "assistant.offline": "L'assistant est injoignable pour le moment. Vérifiez votre connexion ou réessayez plus tard.",
     "nav.menu.close": "Fermer",
     "nav.menu.tools": "Outils",
     "nav.menu.home": "Accueil",

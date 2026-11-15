@@ -1,0 +1,119 @@
+/* assistant.css — l'assistant du site en « orbe » (site/assistant.js, 15/11/2026).
+   Aucune opacity : on cache par visibility, on fait apparaître par transform,
+   clip-path et couleur — la règle du site (test_no_opacity_fades_readable_text). */
+@property --qo-ang { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+
+.qo {
+  --qo-acc: #9eacfe; --qo-acc-2: #6f7dff; --qo-bg: #13172a; --qo-ink: #f0f3fc;
+  --qo-dim: #a2a9c2; --qo-line: #2b3150; --qo-e: cubic-bezier(.22,1,.36,1);
+  --qo-z: 2147482990;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.qo *, .qo *::before, .qo *::after { box-sizing: border-box; }
+
+/* ── voile ── */
+.qo-scrim { position: fixed; inset: 0; z-index: var(--qo-z); background: rgba(6,8,15,0); visibility: hidden; }
+.qo[data-busy] .qo-scrim { visibility: visible; }
+.qo-canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: calc(var(--qo-z) + 1); pointer-events: none; }
+
+/* ── état « réflexion » sous l'orbe ── */
+.qo-status { position: fixed; left: 50%; top: calc(50% + 98px); z-index: calc(var(--qo-z) + 2);
+  transform: translateX(-50%); height: 22px; overflow: hidden; visibility: hidden; pointer-events: none; }
+.qo-status.is-on { visibility: visible; }
+.qo-lab { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 8px; height: 22px; white-space: nowrap;
+  font: 600 15px/22px var(--h-display, system-ui); letter-spacing: .02em; }
+.qo-lab-t { background: linear-gradient(90deg, var(--qo-dim) 0 38%, #fff 50%, var(--qo-dim) 62% 100%);
+  background-size: 260% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: qo-shimmer 1.7s linear infinite; }
+.qo-lab-done { color: var(--qo-acc); }
+.qo-dots { display: inline-flex; gap: 4px; }
+.qo-dots i { width: 4px; height: 4px; border-radius: 50%; background: var(--qo-dim); animation: qo-dot 1.2s ease-in-out infinite; }
+.qo-dots i:nth-child(2) { animation-delay: .15s; } .qo-dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes qo-shimmer { from { background-position: 130% 0; } to { background-position: -130% 0; } }
+@keyframes qo-dot { 0%,80%,100% { transform: scale(.6); background: var(--qo-line); } 40% { transform: scale(1.15); background: var(--qo-ink); } }
+
+/* ── carte réponse ── */
+.qo-card { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%); z-index: calc(var(--qo-z) + 3);
+  width: min(580px, calc(100vw - 32px)); max-height: min(74vh, 620px); display: none; flex-direction: column;
+  background: var(--qo-bg); color: var(--qo-ink); border: 1px solid var(--qo-line); border-radius: 22px;
+  box-shadow: 0 30px 90px rgba(0,0,0,.55), 0 0 0 1px rgba(158,172,254,.06); }
+.qo-card.is-on { display: flex; }
+.qo-card:focus { outline: none; }
+.qo-head { display: flex; align-items: center; gap: 10px; padding: 14px 12px 6px 20px; }
+.qo-head i { width: 9px; height: 9px; border-radius: 50%; background: var(--qo-acc); box-shadow: 0 0 0 4px rgba(158,172,254,.16); }
+.qo-head h2 { margin: 0; flex: 1; font: 600 15px/1.2 var(--h-display, system-ui); letter-spacing: .03em; text-transform: uppercase; color: var(--qo-ink); }
+.qo-x { width: 38px; height: 38px; border-radius: 50%; border: 0; background: transparent; color: var(--qo-dim); cursor: pointer; display: grid; place-items: center; }
+.qo-x:hover { background: #1d2239; color: var(--qo-ink); }
+.qo-x svg { width: 18px; height: 18px; }
+.qo-q { margin: 0 20px; padding: 8px 12px; border-radius: 12px; background: #0f1220; color: var(--qo-dim); font-size: 14px; line-height: 1.45; }
+.qo-q b { color: var(--qo-ink); font-weight: 600; }
+.qo-a { padding: 14px 20px 6px; overflow-y: auto; font-size: 15.5px; line-height: 1.62; flex: 1; min-height: 0; }
+.qo-a p { margin: 0 0 .7em; }
+.qo-w { display: inline-block; visibility: hidden; }
+.qo-a.is-shown .qo-w { visibility: visible; }
+.qo-note { margin: 0 20px 4px; font-size: 12.5px; color: var(--qo-dim); }
+.qo-follow { display: flex; gap: 8px; align-items: center; margin: 8px 12px 12px; padding: 6px 6px 6px 16px;
+  border: 1px solid var(--qo-line); border-radius: 999px; background: #0f1220; }
+.qo-follow:focus-within { border-color: var(--qo-acc); }
+
+/* ── champ (partagé pilule / carte) ── */
+.qo-field { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--qo-ink); font: inherit; font-size: 15.5px; height: 40px; }
+.qo-field::placeholder { color: var(--qo-dim); }
+.qo-send { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 0; cursor: pointer; display: grid; place-items: center;
+  background: #262c47; color: var(--qo-dim); transition: background .2s, color .2s, transform .2s var(--qo-e); }
+.qo-send[data-ready] { background: var(--qo-acc); color: #0f111b; }
+.qo-send[data-ready]:hover { transform: scale(1.06); }
+.qo-send svg { width: 18px; height: 18px; }
+
+/* ── pilule ── */
+.qo-pill { position: fixed; right: 20px; bottom: 20px; z-index: calc(var(--qo-z) + 4); height: 56px; width: var(--qo-rest, 220px);
+  display: flex; align-items: center; gap: 10px; padding: 0 8px 0 18px; border-radius: 999px;
+  background: var(--qo-bg); color: var(--qo-ink); border: 1px solid var(--qo-line);
+  box-shadow: 0 14px 40px rgba(0,0,0,.45);
+  transition: width .5s var(--qo-e), padding .4s var(--qo-e), transform .45s var(--qo-e); }
+.qo-pill::before { content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1.5px; pointer-events: none;
+  background: conic-gradient(from var(--qo-ang), transparent 0 55%, var(--qo-acc-2) 72%, var(--qo-acc) 80%, transparent 92%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: qo-spin 4.5s linear infinite; }
+.qo-pill::after { content: ""; position: absolute; left: 12%; right: 12%; bottom: -10px; height: 26px; z-index: -1; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(111,125,255,.45), rgba(111,125,255,0)); filter: blur(8px); pointer-events: none; }
+@keyframes qo-spin { to { --qo-ang: 360deg; } }
+.qo-spark { flex: none; width: 20px; height: 20px; color: var(--qo-acc); }
+.qo-cell { flex: 1; min-width: 0; display: grid; align-items: center; }
+.qo-cell > * { grid-area: 1 / 1; }
+.qo-label { white-space: nowrap; font-weight: 600; font-size: 15px; }
+.qo-pill .qo-field { visibility: hidden; }
+.qo-pill .qo-send { visibility: hidden; width: 0; margin-left: -10px; }
+.qo-open { position: absolute; inset: 0; border: 0; border-radius: inherit; background: transparent; cursor: pointer; }
+.qo-open:hover ~ .qo-label, .qo-pill:hover .qo-label { color: #fff; }
+
+.qo-pill[data-state="open"] { width: min(440px, calc(100vw - 40px)); }
+.qo-pill[data-state="open"] .qo-label { visibility: hidden; }
+.qo-pill[data-state="open"] .qo-field,
+.qo-pill[data-state="open"] .qo-send { visibility: visible; }
+.qo-pill[data-state="open"] .qo-send { width: 40px; margin-left: 0; }
+.qo-pill[data-state="open"] .qo-open { display: none; }
+
+.qo-pill[data-state="launch"] { width: 56px; padding: 0; }
+.qo-pill[data-state="launch"] > :not(.qo-open) { visibility: hidden; }
+.qo-pill[data-state="gone"] { visibility: hidden; width: 56px; padding: 0; transition: none; }
+
+@media (max-width: 480px) {
+  .qo-pill { right: 16px; bottom: 16px; }
+  .qo-pill[data-state="open"] { width: calc(100vw - 32px); }
+  .qo-status { top: calc(50% + 92px); }
+}
+
+/* ── lecteur d'écran ── */
+.qo-live { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .qo-pill, .qo-send { transition: none; }
+  .qo-pill::before, .qo-lab-t, .qo-dots i { animation: none; }
+}
+
+.qo .qo-field:focus, .qo .qo-field:focus-visible { outline: none; }
+.qo-pill:focus-within { border-color: #3d4572; }
+.qo-open:focus-visible { outline: 2px solid var(--qo-acc); outline-offset: 3px; }
+.qo-x:focus-visible, .qo-send:focus-visible { outline: 2px solid var(--qo-acc); outline-offset: 2px; }
+.qo-a.is-error { color: #ea6867; }
